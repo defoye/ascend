@@ -60,6 +60,16 @@ that collides with `Identifiable.ID`. Codable as a bare string. `Hashable`,
   recordedAt, source: ProgressSource)`
   - `ProgressSource { clientSelfReported, coachRecorded, inAppMeasured }`
 
+## Coach notes
+
+- `CoachNote(id, engagementID, authorID: Identifier<Person>, body, createdAt, updatedAt)`
+  — a coach's private note about a client engagement, not visible to the client.
+  `NotesRepository` (`DataInterfaces`) provides `notes(forEngagement:)`,
+  `upsert(_:)`, and `delete(_:)`; `Backend` vends it as `var notes: any
+  NotesRepository`. Implemented in-memory by `InMemoryBackend`
+  (`InMemoryBackend+NotesRepository.swift`), seeded with a note each on two
+  engagements in `MockData` (`MockData+Notes.swift`).
+
 ## Messaging & payments
 
 - `Message(id, engagementID, authorID: Identifier<Person>, body, sentAt)`

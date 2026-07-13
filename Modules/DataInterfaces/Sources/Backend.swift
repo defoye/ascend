@@ -14,5 +14,6 @@ public protocol Backend: Sendable {
     var payments: any PaymentRepository { get }
     var messages: any MessageRepository { get }
     var outcomes: any OutcomeRepository { get }
+    var notes: any NotesRepository { get }
     var auth: any AuthGateway { get }
 }

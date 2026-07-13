@@ -30,6 +30,7 @@ public actor InMemoryBackend: Backend {
     var progressEntriesByID: [Identifier<ProgressEntry>: ProgressEntry] = [:]
     var paymentsByID: [Identifier<Payment>: Payment] = [:]
     var messagesByID: [Identifier<Message>: Message] = [:]
+    var notesByID: [Identifier<CoachNote>: CoachNote] = [:]
 
     var currentAuthState: AuthState = .signedOut
     var registeredUsers: [String: (password: String, user: AuthenticatedUser)] = [:]
@@ -63,6 +64,7 @@ public actor InMemoryBackend: Backend {
         progressEntriesByID = Dictionary(uniqueKeysWithValues: mockData.progressEntries.map { ($0.id, $0) })
         paymentsByID = Dictionary(uniqueKeysWithValues: mockData.payments.map { ($0.id, $0) })
         messagesByID = Dictionary(uniqueKeysWithValues: mockData.messages.map { ($0.id, $0) })
+        notesByID = Dictionary(uniqueKeysWithValues: mockData.notes.map { ($0.id, $0) })
         registeredUsers = [mockData.demoCredentials.email: (mockData.demoCredentials.password, mockData.demoCredentials.user)]
         currentAuthState = .signedIn(mockData.demoCredentials.user)
     }
@@ -84,5 +86,6 @@ public actor InMemoryBackend: Backend {
     nonisolated public var payments: any PaymentRepository { self }
     nonisolated public var messages: any MessageRepository { self }
     nonisolated public var outcomes: any OutcomeRepository { self }
+    nonisolated public var notes: any NotesRepository { self }
     nonisolated public var auth: any AuthGateway { self }
 }

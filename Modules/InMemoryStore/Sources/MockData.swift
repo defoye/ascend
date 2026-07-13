@@ -25,6 +25,7 @@ public enum MockData {
         public let progressEntries: [ProgressEntry]
         public let payments: [Payment]
         public let messages: [Message]
+        public let notes: [CoachNote]
         public let demoCredentials: DemoCredentials
     }
 
@@ -69,6 +70,7 @@ public enum MockData {
             progressEntries: activity.progressEntries,
             payments: activity.payments,
             messages: activity.messages,
+            notes: coachNotes(),
             demoCredentials: DemoCredentials(
                 email: "jordan@ascend.coach",
                 password: "password123",

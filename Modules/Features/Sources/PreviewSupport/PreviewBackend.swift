@@ -20,6 +20,13 @@ struct PreviewBackend: Backend {
     private let progressByEngagement: [Identifier<Engagement>: [ProgressEntry]]
     private let paymentsByEngagement: [Identifier<Engagement>: [Payment]]
     private let messagesByEngagement: [Identifier<Engagement>: [Message]]
+    private let notesByEngagement: [Identifier<Engagement>: [CoachNote]]
+    private let programsByID: [Identifier<Program>: Program]
+    private let assignmentsByEngagement: [Identifier<Engagement>: [ProgramAssignment]]
+
+    /// Exposed so previews of screens that need a concrete engagement (e.g.
+    /// `ClientDetailView`) can reference this fixture's primary engagement.
+    var engagementAID: Identifier<Engagement> { engagementA }
 
     init(professionalID: Identifier<Person> = Identifier()) {
         self.professionalID = professionalID
@@ -42,6 +49,10 @@ struct PreviewBackend: Backend {
         progressByEngagement = Self.makeProgress(engagementA: engagementA, now: now)
         paymentsByEngagement = Self.makePayments(engagementA: engagementA, engagementB: engagementB, now: now)
         messagesByEngagement = Self.makeMessages(engagementB: engagementB, clientB: clientB, now: now)
+        notesByEngagement = Self.makeNotes(engagementA: engagementA, professionalID: professionalID, now: now)
+        let programID = Identifier<Program>()
+        programsByID = Self.makePrograms(programID: programID)
+        assignmentsByEngagement = Self.makeAssignments(engagementA: engagementA, programID: programID, now: now)
     }
 
     // MARK: - Fixture factories
@@ -166,15 +177,69 @@ struct PreviewBackend: Backend {
         ]
     }
 
+    private static func makeNotes(
+        engagementA: Identifier<Engagement>,
+        professionalID: Identifier<Person>,
+        now: Date
+    ) -> [Identifier<Engagement>: [CoachNote]] {
+        [
+            engagementA: [
+                CoachNote(
+                    id: Identifier(),
+                    engagementID: engagementA,
+                    authorID: professionalID,
+                    body: "Responds well to weekly check-ins.",
+                    createdAt: now.addingTimeInterval(-10 * 86_400),
+                    updatedAt: now.addingTimeInterval(-10 * 86_400)
+                )
+            ]
+        ]
+    }
+
+    private static func makePrograms(programID: Identifier<Program>) -> [Identifier<Program>: Program] {
+        [
+            programID: Program(
+                id: programID,
+                authorID: Identifier(),
+                title: "Strength Foundations",
+                summary: "An 8-week linear progression across the big compound lifts.",
+                weeks: [
+                    ProgramWeek(id: Identifier(), index: 0, workouts: [])
+                ]
+            )
+        ]
+    }
+
+    private static func makeAssignments(
+        engagementA: Identifier<Engagement>,
+        programID: Identifier<Program>,
+        now: Date
+    ) -> [Identifier<Engagement>: [ProgramAssignment]] {
+        [
+            engagementA: [
+                ProgramAssignment(
+                    id: Identifier(),
+                    programID: programID,
+                    engagementID: engagementA,
+                    assignedAt: now.addingTimeInterval(-14 * 86_400),
+                    startDate: now.addingTimeInterval(-14 * 86_400)
+                )
+            ]
+        ]
+    }
+
     var people: any PersonRepository { PreviewPersonRepository(peopleByID: peopleByID) }
     var professionals: any ProfessionalRepository { PreviewProfessionalRepository() }
     var engagements: any EngagementRepository { PreviewEngagementRepository(engagements: engagementsList) }
-    var programs: any ProgramRepository { PreviewProgramRepository() }
+    var programs: any ProgramRepository {
+        PreviewProgramRepository(programsByID: programsByID, assignmentsByEngagement: assignmentsByEngagement)
+    }
     var sessions: any SessionRepository { PreviewSessionRepository(sessionsByEngagement: sessionsByEngagement) }
     var progress: any ProgressRepository { PreviewProgressRepository(progressByEngagement: progressByEngagement) }
     var payments: any PaymentRepository { PreviewPaymentRepository(paymentsByEngagement: paymentsByEngagement) }
     var messages: any MessageRepository { PreviewMessageRepository(messagesByEngagement: messagesByEngagement) }
     var outcomes: any OutcomeRepository { PreviewOutcomeRepository() }
+    var notes: any NotesRepository { PreviewNotesRepository(notesByEngagement: notesByEngagement) }
     var auth: any AuthGateway { PreviewAuthGateway() }
 }
 
@@ -211,12 +276,16 @@ private struct PreviewEngagementRepository: EngagementRepository {
 }
 
 private struct PreviewProgramRepository: ProgramRepository {
-    func get(_ id: Identifier<Program>) async throws -> Program? { nil }
-    func list(forAuthor authorID: Identifier<Person>) async throws -> [Program] { [] }
+    let programsByID: [Identifier<Program>: Program]
+    let assignmentsByEngagement: [Identifier<Engagement>: [ProgramAssignment]]
+    func get(_ id: Identifier<Program>) async throws -> Program? { programsByID[id] }
+    func list(forAuthor authorID: Identifier<Person>) async throws -> [Program] { Array(programsByID.values) }
     func upsert(_ program: Program) async throws -> Program { program }
     func delete(_ id: Identifier<Program>) async throws {}
     func assign(_ assignment: ProgramAssignment) async throws -> ProgramAssignment { assignment }
-    func assignments(forEngagement engagementID: Identifier<Engagement>) async throws -> [ProgramAssignment] { [] }
+    func assignments(forEngagement engagementID: Identifier<Engagement>) async throws -> [ProgramAssignment] {
+        assignmentsByEngagement[engagementID] ?? []
+    }
 }
 
 private struct PreviewSessionRepository: SessionRepository {
@@ -275,6 +344,15 @@ private struct PreviewMessageRepository: MessageRepository {
 private struct PreviewOutcomeRepository: OutcomeRepository {
     func outcomes(forProfessional professionalID: Identifier<Person>) async throws -> [VerifiedOutcome] { [] }
     func outcomes(forEngagement engagementID: Identifier<Engagement>) async throws -> [VerifiedOutcome] { [] }
+}
+
+private struct PreviewNotesRepository: NotesRepository {
+    let notesByEngagement: [Identifier<Engagement>: [CoachNote]]
+    func notes(forEngagement engagementID: Identifier<Engagement>) async throws -> [CoachNote] {
+        notesByEngagement[engagementID] ?? []
+    }
+    func upsert(_ note: CoachNote) async throws -> CoachNote { note }
+    func delete(_ id: Identifier<CoachNote>) async throws {}
 }
 
 private struct PreviewAuthGateway: AuthGateway {

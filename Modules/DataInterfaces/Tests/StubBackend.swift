@@ -85,6 +85,12 @@ struct StubOutcomeRepository: OutcomeRepository {
     func outcomes(forEngagement engagementID: Identifier<Engagement>) async throws -> [VerifiedOutcome] { [] }
 }
 
+struct StubNotesRepository: NotesRepository {
+    func notes(forEngagement engagementID: Identifier<Engagement>) async throws -> [CoachNote] { [] }
+    func upsert(_ note: CoachNote) async throws -> CoachNote { note }
+    func delete(_ id: Identifier<CoachNote>) async throws {}
+}
+
 struct StubAuthGateway: AuthGateway {
     var currentAuth: AsyncStream<AuthState> { AsyncStream { $0.finish() } }
     func signIn(email: String, password: String) async throws {}
@@ -102,5 +108,6 @@ struct StubBackend: Backend {
     let payments: any PaymentRepository = StubPaymentRepository()
     let messages: any MessageRepository = StubMessageRepository()
     let outcomes: any OutcomeRepository = StubOutcomeRepository()
+    let notes: any NotesRepository = StubNotesRepository()
     let auth: any AuthGateway = StubAuthGateway()
 }

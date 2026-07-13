@@ -21,7 +21,20 @@ contract — adjust as the product dictates.
       graceful empty state. Plus the coach's 5-tab scaffold (`CoachRootView`:
       Today, Clients, Programs, Messages, Profile) with placeholder screens for
       the not-yet-built tabs.
-- [ ] **Prompt 6** — Services management screens (`Service` CRUD, pricing, modality).
+- [x] **Prompt 6** — Clients roster (`ClientsListView`/`ClientsListViewModel`):
+      every engagement for the professional joined with the client's name/goal
+      and a computed last-activity timestamp, filterable by `EngagementStatus`
+      (chips + "All") and searchable by name, with an empty state and an
+      "Add client" flow. Add-client (`AddClientView`/`AddClientViewModel`)
+      creates a lightweight new `Person` + `Engagement`, or links an existing
+      `.consumer` person not already engaged with this professional. Client
+      detail (`ClientDetailView`/`ClientDetailViewModel`) shows a header with
+      an editable engagement status, an Overview (goals + per-metric stat
+      tiles), Program summary, Progress (per-metric `ProgressChart`s + recent
+      entries), a Notes section, and a stubbed Message shortcut; edits
+      (status, notes) write back through repositories. Added a `CoachNote`
+      domain type and `NotesRepository` (`DataInterfaces`/`InMemoryStore`) to
+      back the Notes section — see docs/DATA_MODEL.md.
 - [ ] **Prompt 7** — Engagements: list/detail screens, starting and managing a
       client relationship (`Engagement` lifecycle).
 - [ ] **Prompt 8** — Sessions: scheduling, marking completed/cancelled/no-show.
