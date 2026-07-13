@@ -14,15 +14,22 @@ import SwiftUI
 /// DesignSystem.
 @main
 struct AscendApp: App {
+    @State private var container = AppContainer.live()
+
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environment(container)
         }
     }
 }
 
-/// Placeholder root view shown until Prompt 1+ wire up real screens.
+/// Placeholder root view shown until Prompt 4+ wire up real screens. Reads the
+/// composition root's `AppContainer` from the environment so later prompts can
+/// build real screens against `container.backend` without touching this wiring.
 struct RootView: View {
+    @Environment(AppContainer.self) private var container
+
     var body: some View {
         Text("Ascend")
             .font(.largeTitle)
@@ -32,4 +39,5 @@ struct RootView: View {
 
 #Preview {
     RootView()
+        .environment(AppContainer.live())
 }

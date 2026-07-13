@@ -1,0 +1,106 @@
+import Domain
+@testable import DataInterfaces
+
+/// A minimal, no-op stub proving that `DataInterfaces`' protocol shapes compose
+/// into a working `Backend` — exercised only at compile time and in a couple of
+/// smoke tests here. Real behavior lives in `InMemoryStore`.
+
+struct StubPersonRepository: PersonRepository {
+    func get(_ id: Identifier<Person>) async throws -> Person? { nil }
+    func list() async throws -> [Person] { [] }
+    func upsert(_ person: Person) async throws -> Person { person }
+    func delete(_ id: Identifier<Person>) async throws {}
+}
+
+struct StubProfessionalRepository: ProfessionalRepository {
+    func get(_ id: Identifier<ProfessionalProfile>) async throws -> ProfessionalProfile? { nil }
+    func profile(forProfessional personID: Identifier<Person>) async throws -> ProfessionalProfile? { nil }
+    func listProfiles() async throws -> [ProfessionalProfile] { [] }
+    func upsert(_ profile: ProfessionalProfile) async throws -> ProfessionalProfile { profile }
+    func delete(_ id: Identifier<ProfessionalProfile>) async throws {}
+}
+
+struct StubEngagementRepository: EngagementRepository {
+    func get(_ id: Identifier<Engagement>) async throws -> Engagement? { nil }
+    func upsert(_ engagement: Engagement) async throws -> Engagement { engagement }
+    func delete(_ id: Identifier<Engagement>) async throws {}
+    func fetchEngagements(forProfessional professionalID: Identifier<Person>) async throws -> [Engagement] { [] }
+    func engagements(forProfessional professionalID: Identifier<Person>) -> AsyncStream<[Engagement]> {
+        AsyncStream { $0.finish() }
+    }
+    func fetchEngagements(forClient clientID: Identifier<Person>) async throws -> [Engagement] { [] }
+    func consent(for engagementID: Identifier<Engagement>) async throws -> Bool { false }
+    func setConsent(_ granted: Bool, for engagementID: Identifier<Engagement>) async throws {}
+}
+
+struct StubProgramRepository: ProgramRepository {
+    func get(_ id: Identifier<Program>) async throws -> Program? { nil }
+    func list(forAuthor authorID: Identifier<Person>) async throws -> [Program] { [] }
+    func upsert(_ program: Program) async throws -> Program { program }
+    func delete(_ id: Identifier<Program>) async throws {}
+    func assign(_ assignment: ProgramAssignment) async throws -> ProgramAssignment { assignment }
+    func assignments(forEngagement engagementID: Identifier<Engagement>) async throws -> [ProgramAssignment] { [] }
+}
+
+struct StubSessionRepository: SessionRepository {
+    func get(_ id: Identifier<Session>) async throws -> Session? { nil }
+    func upsert(_ session: Session) async throws -> Session { session }
+    func delete(_ id: Identifier<Session>) async throws {}
+    func fetchSessions(forEngagement engagementID: Identifier<Engagement>) async throws -> [Session] { [] }
+    func sessions(forEngagement engagementID: Identifier<Engagement>) -> AsyncStream<[Session]> {
+        AsyncStream { $0.finish() }
+    }
+}
+
+struct StubProgressRepository: ProgressRepository {
+    func get(_ id: Identifier<ProgressEntry>) async throws -> ProgressEntry? { nil }
+    func upsert(_ entry: ProgressEntry) async throws -> ProgressEntry { entry }
+    func delete(_ id: Identifier<ProgressEntry>) async throws {}
+    func fetchEntries(forEngagement engagementID: Identifier<Engagement>) async throws -> [ProgressEntry] { [] }
+    func fetchEntries(
+        forEngagement engagementID: Identifier<Engagement>,
+        metric: MetricKind
+    ) async throws -> [ProgressEntry] { [] }
+    func entries(forEngagement engagementID: Identifier<Engagement>) -> AsyncStream<[ProgressEntry]> {
+        AsyncStream { $0.finish() }
+    }
+}
+
+struct StubPaymentRepository: PaymentRepository {
+    func get(_ id: Identifier<Payment>) async throws -> Payment? { nil }
+    func upsert(_ payment: Payment) async throws -> Payment { payment }
+    func delete(_ id: Identifier<Payment>) async throws {}
+    func payments(forEngagement engagementID: Identifier<Engagement>) async throws -> [Payment] { [] }
+}
+
+struct StubMessageRepository: MessageRepository {
+    func messages(in engagement: Identifier<Engagement>) -> AsyncStream<[Message]> {
+        AsyncStream { $0.finish() }
+    }
+    func send(_ message: Message) async throws {}
+}
+
+struct StubOutcomeRepository: OutcomeRepository {
+    func outcomes(forProfessional professionalID: Identifier<Person>) async throws -> [VerifiedOutcome] { [] }
+    func outcomes(forEngagement engagementID: Identifier<Engagement>) async throws -> [VerifiedOutcome] { [] }
+}
+
+struct StubAuthGateway: AuthGateway {
+    var currentAuth: AsyncStream<AuthState> { AsyncStream { $0.finish() } }
+    func signIn(email: String, password: String) async throws {}
+    func signUp(email: String, password: String, displayName: String) async throws {}
+    func signOut() async throws {}
+}
+
+struct StubBackend: Backend {
+    let people: any PersonRepository = StubPersonRepository()
+    let professionals: any ProfessionalRepository = StubProfessionalRepository()
+    let engagements: any EngagementRepository = StubEngagementRepository()
+    let programs: any ProgramRepository = StubProgramRepository()
+    let sessions: any SessionRepository = StubSessionRepository()
+    let progress: any ProgressRepository = StubProgressRepository()
+    let payments: any PaymentRepository = StubPaymentRepository()
+    let messages: any MessageRepository = StubMessageRepository()
+    let outcomes: any OutcomeRepository = StubOutcomeRepository()
+    let auth: any AuthGateway = StubAuthGateway()
+}

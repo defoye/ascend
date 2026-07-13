@@ -8,9 +8,9 @@ contract — adjust as the product dictates.
 - [x] **Prompt 1** — Implement the `Domain` data model per docs/DATA_MODEL.md,
       including `VerifiedOutcome.derive`, with full unit test coverage of its
       eligibility rules.
-- [ ] **Prompt 2** — `DataInterfaces` repository protocols (async/throwing,
+- [x] **Prompt 2** — `DataInterfaces` repository protocols (async/throwing,
       `AsyncStream`-based live reads; messaging built stream-first).
-- [ ] **Prompt 3** — `InMemoryStore` adapter implementing the repository protocols,
+- [x] **Prompt 3** — `InMemoryStore` adapter implementing the repository protocols,
       plus `MockData` and `InMemoryStore.seeded()` as the default DEBUG backend.
 - [ ] **Prompt 4** — `DesignSystem` foundations: colors, typography, spacing, and
       core reusable components with light/dark previews.
