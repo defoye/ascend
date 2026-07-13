@@ -64,8 +64,9 @@ that collides with `Identifiable.ID`. Codable as a bare string. `Hashable`,
 
 - `Message(id, engagementID, authorID: Identifier<Person>, body, sentAt)`
 - `Payment(id, engagementID, amountCents, currency, status: PaymentStatus,
-  platformFeeCents, stripePaymentIntentID: String?)`
+  platformFeeCents, stripePaymentIntentID: String?, createdAt: Date)`
   - `PaymentStatus { pending, succeeded, refunded, failed }`
+  - the coach's net for a `.succeeded` payment is `amountCents - platformFeeCents`
 
 ## Verified outcomes — the core invariant
 

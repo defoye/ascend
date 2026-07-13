@@ -48,9 +48,17 @@ extension Target {
     }
 
     /// A unit test target for an Ascend framework module.
+    ///
+    /// - Parameter additionalDependencies: Extra module dependencies beyond
+    ///   `moduleName` itself — e.g. a test target that composes a concrete
+    ///   backend (`InMemoryStore`) to exercise a module's view models against
+    ///   seeded data (see docs/TESTING.md). Composing a concrete backend in a
+    ///   *test* target is fine even for modules (like `Features`) whose
+    ///   production code may never depend on one.
     public static func ascendTests(
         name: String,
-        testing moduleName: String
+        testing moduleName: String,
+        additionalDependencies: [TargetDependency] = []
     ) -> Target {
         Target(
             name: name,
@@ -60,7 +68,7 @@ extension Target {
             deploymentTarget: AscendSettings.deploymentTarget,
             infoPlist: .default,
             sources: ["Modules/\(moduleName)/Tests/**"],
-            dependencies: [.target(name: moduleName)],
+            dependencies: [.target(name: moduleName)] + additionalDependencies,
             settings: AscendSettings.settings
         )
     }

@@ -155,7 +155,8 @@ struct InMemoryStoreTests {
             currency: "USD",
             status: .succeeded,
             platformFeeCents: 1_000,
-            stripePaymentIntentID: "pi_test"
+            stripePaymentIntentID: "pi_test",
+            createdAt: Date()
         )
         _ = try await backend.payments.upsert(payment)
 

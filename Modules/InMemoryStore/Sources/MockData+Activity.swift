@@ -47,7 +47,8 @@ extension MockData {
             currency: "USD",
             status: .succeeded,
             platformFeeCents: amountCents / 10,
-            stripePaymentIntentID: "pi_mock_\(index)"
+            stripePaymentIntentID: "pi_mock_\(index)",
+            createdAt: date(daysOffset)
         )
     }
 

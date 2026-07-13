@@ -68,7 +68,11 @@ let featuresTarget = Target.ascendFramework(
         .target(name: "Domain"),
     ]
 )
-let featuresTestsTarget = Target.ascendTests(name: "FeaturesTests", testing: "Features")
+let featuresTestsTarget = Target.ascendTests(
+    name: "FeaturesTests",
+    testing: "Features",
+    additionalDependencies: [.target(name: "InMemoryStore"), .target(name: "Domain")]
+)
 
 // Tuist's default synthesized resource accessors (Bundle.module, an Assets
 // enum, etc. — see `Derived/Sources/Tuist*+DesignSystem.swift`) predate

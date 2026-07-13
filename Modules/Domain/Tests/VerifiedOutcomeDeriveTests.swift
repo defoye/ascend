@@ -37,7 +37,8 @@ struct VerifiedOutcomeDeriveTests {
             currency: "USD",
             status: .succeeded,
             platformFeeCents: 1_000,
-            stripePaymentIntentID: "pi_test"
+            stripePaymentIntentID: "pi_test",
+            createdAt: Self.referenceDate
         )
     }
 
@@ -155,7 +156,8 @@ struct VerifiedOutcomeDeriveTests {
             currency: "USD",
             status: .pending,
             platformFeeCents: 1_000,
-            stripePaymentIntentID: nil
+            stripePaymentIntentID: nil,
+            createdAt: Self.referenceDate
         )
         let outcome = VerifiedOutcome.derive(
             from: engagement,

@@ -14,8 +14,13 @@ contract — adjust as the product dictates.
       plus `MockData` and `InMemoryStore.seeded()` as the default DEBUG backend.
 - [x] **Prompt 4** — `DesignSystem` foundations: colors, typography, spacing, and
       core reusable components with light/dark previews.
-- [ ] **Prompt 5** — Provider onboarding & `ProfessionalProfile` screens
-      (create/edit profile, headline, bio).
+- [x] **Prompt 5** — Coach "Today" dashboard (`TodayViewModel` + `TodayView`):
+      upcoming sessions across all engagements, a recent-client-activity feed
+      (progress logs + client messages, newest first), and a platform-fee-aware
+      revenue snapshot (net/gross over a trailing 30-day window), each with a
+      graceful empty state. Plus the coach's 5-tab scaffold (`CoachRootView`:
+      Today, Clients, Programs, Messages, Profile) with placeholder screens for
+      the not-yet-built tabs.
 - [ ] **Prompt 6** — Services management screens (`Service` CRUD, pricing, modality).
 - [ ] **Prompt 7** — Engagements: list/detail screens, starting and managing a
       client relationship (`Engagement` lifecycle).
