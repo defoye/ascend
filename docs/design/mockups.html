@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ascend — Design Mockups</title>
+<style>
+  :root {
+    --bg: #F6F8FB; --bg2: #FFFFFF; --surface: #FFFFFF; --surfaceEl: #FFFFFF;
+    --primary: #2557D6; --primaryPressed: #1E47B0; --onPrimary: #FFFFFF;
+    --verified: #0F766E; --verifiedSurface: #E6F4F2;
+    --success: #1E8E5A; --warning: #B45309; --danger: #DC2626;
+    --textPrimary: #141A22; --textSecondary: #5B6472; --textTertiary: #8A93A2;
+    --border: #E4E8EE; --borderStrong: #CBD2DC;
+    --shadow1: 0 2px 8px rgba(20,26,34,.06); --shadow2: 0 8px 24px rgba(20,26,34,.12);
+  }
+  .dark {
+    --bg: #0B0E13; --bg2: #12161D; --surface: #171C24; --surfaceEl: #1F262F;
+    --primary: #3D6FE3; --primaryPressed: #5B8DEF; --onPrimary: #FFFFFF;
+    --verified: #2DD4BF; --verifiedSurface: #0E2A28;
+    --success: #34D399; --warning: #FBBF24; --danger: #F87171;
+    --textPrimary: #F2F5F9; --textSecondary: #A0A9B8; --textTertiary: #6B7482;
+    --border: #262D37; --borderStrong: #39424E;
+    --shadow1: none; --shadow2: 0 8px 24px rgba(0,0,0,.5);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, sans-serif;
+    background: #6b7280; color: var(--textPrimary);
+    -webkit-font-smoothing: antialiased;
+  }
+  .page-head {
+    text-align: center; color: #fff; padding: 28px 16px 8px;
+    font-family: -apple-system, system-ui, sans-serif;
+  }
+  .page-head h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: -.02em; }
+  .page-head p { margin: 0; opacity: .85; font-size: 14px; }
+  .modes { display: flex; flex-wrap: wrap; gap: 32px; justify-content: center; padding: 24px 16px 64px; }
+  .mode { background: var(--bg); border-radius: 20px; padding: 20px; width: 420px; max-width: 100%;
+          box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  .mode-title { font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+                color: var(--textSecondary); margin: 0 0 16px; font-weight: 700; }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+  /* tokens */
+  .swatches { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+  .swatch { border-radius: 10px; height: 44px; border: 1px solid var(--border);
+            display: flex; align-items: flex-end; padding: 5px; font-size: 9px; font-weight: 600; }
+
+  /* components */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+          padding: 16px; box-shadow: var(--shadow1); }
+  .btn { border: none; border-radius: 12px; font-size: 17px; font-weight: 600; padding: 15px 18px;
+         width: 100%; cursor: pointer; font-family: inherit; }
+  .btn-primary { background: var(--primary); color: var(--onPrimary); }
+  .btn-secondary { background: color-mix(in srgb, var(--primary) 10%, transparent);
+                   color: var(--primary); border: 1px solid var(--borderStrong); }
+  .btn-destructive { background: var(--danger); color: #fff; }
+  .btn.compact { padding: 11px 16px; font-size: 15px; }
+  .field { background: var(--surface); border: 1px solid var(--borderStrong); border-radius: 12px;
+           padding: 13px 14px; color: var(--textPrimary); font-size: 17px; width: 100%; font-family: inherit; }
+  .field::placeholder { color: var(--textTertiary); }
+  .field.focused { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent); }
+  .chip { border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600; display: inline-flex;
+          gap: 5px; align-items: center; border: 1px solid var(--border); color: var(--textSecondary);
+          background: color-mix(in srgb, var(--textSecondary) 8%, transparent); }
+  .chip.primary { color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); border-color: transparent; }
+  .chip.success { color: var(--success); background: color-mix(in srgb, var(--success) 14%, transparent); border-color: transparent; }
+  .chip.warning { color: var(--warning); background: color-mix(in srgb, var(--warning) 16%, transparent); border-color: transparent; }
+  .chip.verified { color: var(--verified); background: var(--verifiedSurface); border-color: transparent; }
+  .verified-badge { display: inline-flex; gap: 5px; align-items: center; background: var(--verifiedSurface);
+                    color: var(--verified); border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 700; }
+  .listrow { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .listrow:last-child { border-bottom: none; }
+  .listrow .txt { flex: 1; }
+  .listrow .title { font-size: 17px; font-weight: 600; }
+  .listrow .sub { font-size: 15px; color: var(--textSecondary); }
+  .listrow .chev { color: var(--textTertiary); }
+  .avatar { width: 40px; height: 40px; border-radius: 999px; background: var(--primary); color: #fff;
+            display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0; }
+  .avatar.teal { background: var(--verified); } .avatar.amber { background: #C2760B; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px; box-shadow: var(--shadow1); }
+  .stat .lbl { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--textSecondary); font-weight: 700; }
+  .stat .val { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 4px; letter-spacing: -.02em; }
+  .stat .delta { font-size: 13px; font-weight: 600; margin-top: 2px; }
+  .up { color: var(--success); } .down { color: var(--danger); }
+  .empty { text-align: center; padding: 24px 12px; }
+  .empty .glyph { width: 56px; height: 56px; border-radius: 999px; margin: 0 auto 12px;
+                  background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary);
+                  display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .empty .t { font-size: 20px; font-weight: 700; } .empty .m { color: var(--textSecondary); margin: 6px 0 14px; }
+  .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .section-head .st { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--textSecondary); font-weight: 700; }
+  .section-head .sa { font-size: 15px; color: var(--primary); font-weight: 600; }
+  h2.screen-title { font-size: 28px; font-weight: 800; letter-spacing: -.02em; margin: 4px 0 2px; }
+  .muted { color: var(--textSecondary); font-size: 15px; }
+
+  /* chart */
+  .chart { height: 130px; position: relative; }
+  .chart svg { width: 100%; height: 100%; display: block; }
+  .cap { font-size: 12px; color: var(--textSecondary); margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="page-head">
+  <h1>Ascend — Design System</h1>
+  <p>Trust layer for physical improvement · light &amp; dark · reference for Modules/DesignSystem</p>
+</div>
+<div class="modes">
+  <!-- LIGHT -->
+  <div class="mode" id="light">
+    <p class="mode-title">Light</p>
+    <div class="stack" id="content-light"></div>
+  </div>
+  <!-- DARK -->
+  <div class="mode dark" id="dark">
+    <p class="mode-title">Dark</p>
+    <div class="stack" id="content-dark"></div>
+  </div>
+</div>
+
+<script>
+const chartSVG = `
+<svg viewBox="0 0 300 130" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--primary)" stop-opacity=".28"/>
+      <stop offset="100%" stop-color="var(--primary)" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <line x1="0" y1="40" x2="300" y2="40" stroke="var(--border)" stroke-width="1"/>
+  <line x1="0" y1="80" x2="300" y2="80" stroke="var(--border)" stroke-width="1"/>
+  <path d="M0,110 L60,96 L120,84 L180,58 L240,44 L300,22 L300,130 L0,130 Z" fill="url(#g)"/>
+  <path d="M0,110 L60,96 L120,84 L180,58 L240,44 L300,22" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linejoin="round"/>
+  <line x1="0" y1="20" x2="300" y2="20" stroke="var(--verified)" stroke-width="1.5" stroke-dasharray="4 4"/>
+</svg>`;
+
+const gallery = `
+  <div class="card">
+    <p class="section-head"><span class="st">Color tokens</span></p>
+    <div class="swatches">
+      <div class="swatch" style="background:var(--primary);color:#fff">primary</div>
+      <div class="swatch" style="background:var(--verified);color:#fff">verified</div>
+      <div class="swatch" style="background:var(--success);color:#fff">success</div>
+      <div class="swatch" style="background:var(--danger);color:#fff">danger</div>
+      <div class="swatch" style="background:var(--surface);color:var(--textPrimary)">surface</div>
+      <div class="swatch" style="background:var(--bg);color:var(--textPrimary)">bg</div>
+      <div class="swatch" style="background:var(--warning);color:#fff">warning</div>
+      <div class="swatch" style="background:var(--verifiedSurface);color:var(--verified)">vfd&nbsp;bg</div>
+    </div>
+  </div>
+
+  <div class="card stack">
+    <p class="section-head"><span class="st">Buttons</span></p>
+    <button class="btn btn-primary">Log session</button>
+    <button class="btn btn-secondary">Add client</button>
+    <button class="btn btn-destructive">End engagement</button>
+    <div class="row"><button class="btn btn-primary compact" style="width:auto">Save</button>
+    <button class="btn btn-secondary compact" style="width:auto">Cancel</button></div>
+  </div>
+
+  <div class="card stack">
+    <p class="section-head"><span class="st">Text field</span></p>
+    <input class="field focused" placeholder="Client name" value="Maya R.">
+    <input class="field" placeholder="Search clients…">
+  </div>
+
+  <div class="card">
+    <p class="section-head" style="margin-bottom:10px"><span class="st">Chips &amp; badges</span></p>
+    <div class="row">
+      <span class="chip">Strength</span>
+      <span class="chip primary">Active</span>
+      <span class="chip success">Paid</span>
+      <span class="chip warning">Pending</span>
+      <span class="verified-badge">✓ Verified</span>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat"><div class="lbl">Active clients</div><div class="val">24</div><div class="delta up">▲ 3 this month</div></div>
+    <div class="stat"><div class="lbl">Retention</div><div class="val">92%</div><div class="delta up">▲ 4%</div></div>
+    <div class="stat"><div class="lbl">Sessions</div><div class="val">128</div><div class="delta up">▲ 12</div></div>
+    <div class="stat"><div class="lbl">No-shows</div><div class="val">2</div><div class="delta down">▼ 1</div></div>
+  </div>
+
+  <div class="card">
+    <p class="section-head"><span class="st">Clients</span><span class="sa">See all</span></p>
+    <div class="listrow"><div class="avatar">MR</div><div class="txt"><div class="title">Maya Rodriguez</div><div class="sub">Strength · Week 6 of 16</div></div><span class="chev">›</span></div>
+    <div class="listrow"><div class="avatar teal">JL</div><div class="txt"><div class="title">Jordan Lee</div><div class="sub">Weight loss · Week 3 of 12</div></div><span class="chev">›</span></div>
+    <div class="listrow"><div class="avatar amber">TP</div><div class="txt"><div class="title">Tomas Pereira</div><div class="sub">Mobility · Week 9 of 10</div></div><span class="chev">›</span></div>
+  </div>
+`;
+
+const coachScreen = `
+  <h2 class="screen-title">Today</h2>
+  <p class="muted">Wednesday, Jul 13 · 3 sessions</p>
+  <div class="stat-grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="stat"><div class="lbl">Today</div><div class="val">3</div></div>
+    <div class="stat"><div class="lbl">Revenue</div><div class="val">$4.2k</div><div class="delta up">▲ 8%</div></div>
+    <div class="stat"><div class="lbl">Clients</div><div class="val">24</div></div>
+  </div>
+  <div class="card">
+    <p class="section-head"><span class="st">Upcoming</span></p>
+    <div class="listrow"><div class="avatar">MR</div><div class="txt"><div class="title">Maya Rodriguez</div><div class="sub">9:00 AM · Lower body</div></div><span class="chip primary">Next</span></div>
+    <div class="listrow"><div class="avatar teal">JL</div><div class="txt"><div class="title">Jordan Lee</div><div class="sub">11:30 AM · Assessment</div></div></div>
+  </div>
+  <div class="card">
+    <p class="section-head"><span class="st">Proof profile</span></p>
+    <div class="row" style="margin-bottom:10px"><span class="verified-badge">✓ 18 verified journeys</span><span class="chip success">92% retention</span></div>
+    <p class="muted" style="margin:0">"Squat 95→185 lb over 16 weeks" — a measured client journey with this coach.</p>
+  </div>
+`;
+
+const clientScreen = `
+  <h2 class="screen-title">Today's workout</h2>
+  <p class="muted">Lower body · 6 exercises · ~45 min</p>
+  <div class="card stack">
+    <div class="listrow" style="padding-top:0"><div class="txt"><div class="title">Back squat</div><div class="sub">4 × 5 · 155 lb</div></div><span class="chip success">Logged</span></div>
+    <div class="listrow"><div class="txt"><div class="title">Romanian deadlift</div><div class="sub">3 × 8 · 135 lb</div></div><span class="chip">Up next</span></div>
+    <button class="btn btn-primary">Start workout</button>
+  </div>
+  <div class="card">
+    <p class="section-head"><span class="st">My progress</span><span class="sa">Details</span></p>
+    <div class="chart">${chartSVG}</div>
+    <p class="cap">Back squat · 95 → 185 lb over 16 weeks · dashed line = goal</p>
+  </div>
+  <div class="empty card">
+    <div class="glyph">✦</div>
+    <div class="t">No messages yet</div>
+    <div class="m">Your coach will check in here after today's session.</div>
+    <button class="btn btn-secondary" style="max-width:220px;margin:0 auto">Message coach</button>
+  </div>
+`;
+
+const full = gallery + `<div style="height:8px"></div>` + coachScreen + `<div style="height:8px"></div>` + clientScreen;
+document.getElementById('content-light').innerHTML = full;
+document.getElementById('content-dark').innerHTML = full;
+</script>
+</body>
+</html>
