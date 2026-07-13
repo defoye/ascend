@@ -1,277 +1,172 @@
 # Ascend — Design Spec
 
-The visual system for Ascend: the operating system for independent fitness coaches
-and the clients they train, and a **trust layer for physical improvement**. This spec
-is the source of truth for `Modules/DesignSystem` and every screen built on top of it
-(see `docs/ROADMAP.md`). The paired visual reference is `docs/design/mockups.html`.
-
-> **Copy invariant (Invariant 2, docs/PRODUCT.md):** results are **verified journeys
-> with a coach**, never "the coach caused the result." This governs every string in
-> the UI, not just marketing surfaces. Do not soften it.
+> The operating system for independent fitness coaches and their clients, and a trust layer for physical improvement. iOS 18+, SwiftUI. One app, two role modes (professional / client / both).
 
 ---
 
 ## 1. Design principles
 
-1. **Trust is the brand.** Premium, calm, credible, data-honest. Reference feeling:
-   Things / Oura / Whoop / Apple Health — never a loud neon gym app. Restraint reads
-   as credibility.
-2. **Proof over hype.** The "Verified" accent (a distinct teal) is reserved *only* for
-   verified-journey surfaces. It is never a generic decoration; scarcity is what makes
-   it mean something.
-3. **Data honest.** Charts and stats never exaggerate. Y-axes are labeled, sources are
-   shown, and journey copy describes measured change over time — not causation.
-4. **Two roles, one brand.** The coach surface is the dense business tool; the client
-   surface is a calmer, lighter, focused daily surface. Same tokens, same components —
-   the client side simply uses more whitespace and fewer dense controls.
-5. **iOS-native.** SF Pro, SF Symbols, standard navigation, Dynamic Type, and system
-   materials. We extend the platform; we don't fight it.
+1. **Trust is the interface.** Every screen should feel like a credible record, not a marketing surface. Restraint, whitespace, precise typography and honest data do the persuading — never hype.
+2. **Data-honest by default.** Numbers are shown with real units, real timeframes and directional deltas. We describe *verified journeys with a coach*; we never claim a coach *caused* a result. Copy is framed accordingly everywhere.
+3. **Calm over loud.** No neon, no gamified confetti, no aggressive gradients. A single confident brand colour (teal) carries both action and trust. Reference feeling: Things / Oura / Whoop / Apple Health.
+4. **Two roles, one brand.** The coach side is a dense business toolkit; the client side is a calmer, focused daily surface. Same tokens, same components — the client surface simply uses more air, fewer controls and warmer copy.
+5. **iOS-native, not custom.** Standard navigation (large titles, back chevrons, sheets), SF Pro, SF Symbols, 44pt minimum targets, system-feeling motion. We lean on the platform so the app feels trustworthy and familiar.
+
+### How "trust / proof" is expressed visually
+- **The brand colour *is* the verified colour.** Teal is used for primary actions *and* for the Verified badge — trust and action are one system, reinforcing that proof is native to the product.
+- **The Verified badge** is a filled teal pill with a checkmark, always paired with a plain-language substantiation line ("Backed by a real, paid coaching relationship & tracked measurements").
+- **Proof Profile** leads with a verification chip (identity, credentials, relationships verified by Ascend), then aggregate stats (sessions, retention), then *anonymized* journeys with explicit non-causation copy.
+- **Consent is a first-class screen**, privacy-forward: anonymous, scoped to tracked measurements only, reversible. This visible respect for the client is itself a trust signal.
+- **Charts show real trajectories over real time** with directional deltas (▲ / ▼) and units — evidence, not decoration.
 
 ---
 
-## 2. Color tokens
+## 2. Tokens
 
-Every token below ships as a **color set in the asset catalog** (`Colors.xcassets`)
-with an explicit **Any (light)** and **Dark** appearance, and is surfaced through a
-`Color.Ascend.<token>` accessor (see §7). All hex values are sRGB. Text/!background
-pairs listed as "AA" meet WCAG 2.1 AA (≥4.5:1 body, ≥3:1 large/semibold ≥17pt or
-≥24pt).
+Token names map directly to SwiftUI `Color` assets in an asset catalog (`Color("Primary")`, or an enum `AscendColor.primary`). Provide **Any** (light) and **Dark** appearances per asset so the OS switches automatically.
 
-### 2.1 Light
+### 2.1 Color — Light
 
-| Token | Hex | Role |
-|---|---|---|
-| `backgroundPrimary` | `#F6F8FB` | App background (grouped surfaces sit on this) |
-| `backgroundSecondary` | `#FFFFFF` | Secondary/grouped background |
-| `surface` | `#FFFFFF` | Card / row / sheet surface |
-| `surfaceElevated` | `#FFFFFF` | Elevated surface (paired with elevation shadow) |
-| `primary` | `#2557D6` | Primary brand action (fills, key CTAs) |
-| `primaryPressed` | `#1E47B0` | Primary pressed/active state |
-| `onPrimary` | `#FFFFFF` | Foreground on `primary` — AA (white on `primary`) |
-| `verified` | `#0F766E` | **Verified Outcomes accent** (teal) — reserved |
-| `verifiedSurface` | `#E6F4F2` | Tinted background behind verified badges/blocks |
-| `success` | `#1E8E5A` | Positive/confirmed (paid, completed) |
-| `warning` | `#B45309` | Caution (pending, no-show risk) — text-safe amber |
-| `danger` | `#DC2626` | Destructive / error |
-| `onDanger` | `#FFFFFF` | Foreground on `danger` — AA |
-| `textPrimary` | `#141A22` | Primary text — AA on all backgrounds |
-| `textSecondary` | `#5B6472` | Secondary text/labels — AA on `backgroundPrimary` |
-| `textTertiary` | `#8A93A2` | Tertiary/placeholder (non-essential only) |
-| `border` | `#E4E8EE` | Hairline separators, card borders |
-| `borderStrong` | `#CBD2DC` | Emphasized borders, unfilled control outlines |
-| `scrim` | `#141A22` @ 40% | Modal/overlay scrim |
-
-### 2.2 Dark
-
-Dark mode is premium near-black (Oura/Whoop): it prefers **surface elevation steps +
-subtle borders** over heavy shadows.
-
-| Token | Hex | Role |
-|---|---|---|
-| `backgroundPrimary` | `#0B0E13` | App background |
-| `backgroundSecondary` | `#12161D` | Secondary/grouped background |
-| `surface` | `#171C24` | Card / row / sheet surface |
-| `surfaceElevated` | `#1F262F` | Elevated surface (one step lighter than `surface`) |
-| `primary` | `#3D6FE3` | Primary brand action |
-| `primaryPressed` | `#5B8DEF` | Primary pressed/active (lighter on dark) |
-| `onPrimary` | `#FFFFFF` | Foreground on `primary` — AA |
-| `verified` | `#2DD4BF` | Verified accent (bright teal for dark) |
-| `verifiedSurface` | `#0E2A28` | Tinted background behind verified badges/blocks |
-| `success` | `#34D399` | Positive/confirmed |
-| `warning` | `#FBBF24` | Caution |
-| `danger` | `#F87171` | Destructive / error |
-| `onDanger` | `#141A22` | Foreground on dark `danger` — AA |
-| `textPrimary` | `#F2F5F9` | Primary text — AA |
-| `textSecondary` | `#A0A9B8` | Secondary text/labels — AA on `backgroundPrimary` |
-| `textTertiary` | `#6B7482` | Tertiary/placeholder |
-| `border` | `#262D37` | Hairline separators, card borders |
-| `borderStrong` | `#39424E` | Emphasized borders |
-| `scrim` | `#000000` @ 55% | Modal/overlay scrim |
-
-> **Contrast note:** `onPrimary`/`onDanger` labels are always used at semibold ≥17pt
-> (large-text threshold), and the fill tokens above are chosen so the pair meets AA.
-> `textTertiary` is decorative/placeholder only — never the sole carrier of meaning.
-
----
-
-## 3. Typography
-
-SF Pro (system). Sizes map to SwiftUI **text styles** so Dynamic Type scales them
-automatically; weight/design are applied on top. Never hard-code a fixed point size
-where a text style exists.
-
-| Token | Text style basis | Size / Weight / Leading | Use |
+| Token | Role | Hex | On-color / contrast |
 |---|---|---|---|
-| `largeTitle` | `.largeTitle` | 34 / Bold / 41 | Screen hero titles |
-| `title1` | `.title` | 28 / Bold / 34 | Section-level titles |
-| `title2` | `.title2` | 22 / Bold / 28 | Card group titles |
-| `title3` | `.title3` | 20 / Semibold / 25 | Sub-section titles |
-| `headline` | `.headline` | 17 / Semibold / 22 | Row titles, emphasis |
-| `body` | `.body` | 17 / Regular / 22 | Body copy |
-| `callout` | `.callout` | 16 / Regular / 21 | Secondary body |
-| `subheadline` | `.subheadline` | 15 / Regular / 20 | Supporting text |
-| `footnote` | `.footnote` | 13 / Regular / 18 | Metadata, timestamps |
-| `caption` | `.caption` | 12 / Regular / 16 | Labels, chip text |
-| `caption2` | `.caption2` | 11 / Regular / 13 | Dense metadata |
-| `statLarge` | `.largeTitle` | 34 / Semibold / **rounded + monospaced digits** | Hero stat values |
-| `statMedium` | `.title2` | 22 / Semibold / **rounded + monospaced digits** | StatTile values |
+| `background` | App background | `#F4F5F7` | text-primary 15.3:1 ✓ |
+| `surface` | Cards, sheets, nav bars | `#FFFFFF` | text-primary 16.9:1 ✓ |
+| `surfaceSecondary` | Subtle fills, segmented tracks | `#EEF1F4` | text-primary 14.6:1 ✓ |
+| `primary` | Primary actions / brand | `#0C6B75` | white 4.9:1 ✓ AA |
+| `verified` | Verified accent (= brand) | `#0C6B75` | white 4.9:1 ✓ AA |
+| `secondary` | Tonal button background | `#E7EBEF` | secondary-text 11.8:1 ✓ |
+| `success` | Positive / gains / streaks | `#1C8250` | white 4.6:1 ✓ AA |
+| `warning` | Caution / pending | `#8A5A00` | white 5.1:1 ✓ AA |
+| `danger` | Destructive | `#C0362F` | white 5.2:1 ✓ AA |
+| `textPrimary` | Primary text | `#15181E` | on background 15.3:1 ✓ |
+| `textSecondary` | Secondary text | `#5A6472` | on background 4.9:1 ✓ AA |
+| `textTertiary` | Captions, placeholders | `#8A93A2` | on background 3.0:1 (large/again non-essential) |
+| `border` | Separators, hairlines | `#E3E6EB` | — |
+| `onPrimary` | Text/icons on primary | `#FFFFFF` | — |
 
-Numeric/stat styles use `.fontDesign(.rounded)` and `.monospacedDigit()` so figures
-align and read as instrument-panel data.
+### 2.2 Color — Dark
 
----
+| Token | Role | Hex | On-color / contrast |
+|---|---|---|---|
+| `background` | App background | `#0D1013` | text-primary 16.1:1 ✓ |
+| `surface` | Cards, sheets, nav bars | `#161A1F` | text-primary 13.6:1 ✓ |
+| `surfaceSecondary` | Subtle fills | `#1E242B` | text-primary 11.2:1 ✓ |
+| `primary` | Primary actions / brand | `#34AEBD` | `#04262B` 8.9:1 ✓ AA |
+| `verified` | Verified accent (= brand) | `#3BB8C6` | `#04262B` 9.7:1 ✓ AA |
+| `secondary` | Tonal button background | `#232A32` | secondary-text 9.8:1 ✓ |
+| `success` | Positive / gains | `#3FBE7E` | on background 8.4:1 ✓ |
+| `warning` | Caution / pending | `#D6A02E` | on background 8.6:1 ✓ |
+| `danger` | Destructive | `#E86B63` | on background 6.2:1 ✓ AA |
+| `textPrimary` | Primary text | `#F1F4F7` | on background 16.1:1 ✓ |
+| `textSecondary` | Secondary text | `#98A2AF` | on background 6.5:1 ✓ AA |
+| `textTertiary` | Captions, placeholders | `#6B7480` | on background 3.6:1 |
+| `border` | Separators, hairlines | `#2A313A` | — |
+| `onPrimary` | Text/icons on primary | `#04262B` | — |
 
-## 4. Spacing, radii, elevation
+> **Note on `onPrimary`:** in light mode primary is dark → white label; in dark mode primary is bright → very dark teal label. Store `onPrimary` / `onVerified` as their own dynamic assets so labels flip automatically.
 
-**Spacing** — 4pt base grid:
+### 2.3 Type scale — SF Pro
 
-| Token | pt |
-|---|---|
-| `xxs` | 2 |
-| `xs` | 4 |
-| `sm` | 8 |
-| `md` | 12 |
-| `lg` | 16 |
-| `xl` | 24 |
-| `xxl` | 32 |
-| `xxxl` | 48 |
+Use Dynamic Type. Sizes below are the default (`.large`) content-size step. `.title`/`.largeTitle` use **SF Pro Display**; body and below use **SF Pro Text** (the system does this automatically via `.font(.title)` etc.). Numerals in stats/charts use **monospaced / tabular figures** (`.monospacedDigit()`).
 
-Default screen horizontal inset: `lg` (16). Default card padding: `lg` (16). Default
-vertical rhythm between grouped elements: `md`–`lg`.
+| Role | SwiftUI style | Size / Line-height | Weight |
+|---|---|---|---|
+| Large Title | `.largeTitle` | 34 / 41 | Bold (700) |
+| Title 1 | `.title` | 28 / 34 | Bold (700) |
+| Title 2 | `.title2` | 22 / 28 | Semibold (600) |
+| Title 3 | `.title3` | 20 / 25 | Semibold (600) |
+| Headline | `.headline` | 17 / 22 | Semibold (600) |
+| Body | `.body` | 17 / 22 | Regular (400) |
+| Callout | `.callout` | 16 / 21 | Regular (400) |
+| Subheadline | `.subheadline` | 15 / 20 | Regular (400) |
+| Footnote | `.footnote` | 13 / 18 | Regular (400) |
+| Caption | `.caption` | 12 / 16 | Regular (400) |
+| Data / label | custom | 11–12 | Semibold, `ui-monospace` (SF Mono), uppercase, +0.8 tracking |
 
-**Radii:**
+### 2.4 Spacing — 4pt grid
 
-| Token | pt | Use |
+| Token | Value | Typical use |
 |---|---|---|
-| `sm` | 8 | Chips-in-field, small controls |
-| `md` | 12 | Buttons, text fields |
-| `lg` | 16 | Cards, tiles, sheets |
-| `xl` | 24 | Large hero cards |
-| `capsule` | ∞ | Chips/tags, pills, avatars |
+| `space-1` | 4 | icon ↔ label, chip inner gaps |
+| `space-2` | 8 | tight stacks, inline gaps |
+| `space-3` | 12 | list-row internal gap |
+| `space-4` | 16 | **default** card padding, screen gutters |
+| `space-5` | 20 | section gaps |
+| `space-6` | 24 | between major blocks |
+| `space-8` | 32 | screen top padding |
+| `space-10` | 40 | large separations |
+| `space-12` | 48 | hero spacing |
 
-**Elevation** — light mode uses soft shadows; dark mode uses surface steps + border.
+### 2.5 Radii
 
-| Token | Light | Dark |
+| Token | Value | Use |
 |---|---|---|
-| `level0` | none | none |
-| `level1` (resting card) | shadow: y 2, blur 8, `#141A22` @ 6% | `surface` + 1px `border` |
-| `level2` (elevated/sheet) | shadow: y 8, blur 24, `#141A22` @ 12% | `surfaceElevated` + 1px `border` |
+| `radius-sm` | 8 | chips, small tiles, inputs' inner |
+| `radius-md` | 12 | buttons, inputs, segmented controls |
+| `radius-lg` | 16 | cards |
+| `radius-xl` | 22 | hero cards, bottom sheets |
+| `radius-pill` | 999 | pills, tab-bar highlights, avatars |
+| device screen | 37 (frame), 46 (bezel) | mock only |
 
-The `DesignSystem` provides an `.ascendElevation(_)` view modifier that resolves the
-correct treatment per color scheme.
+### 2.6 Elevation
 
----
+Shadows are subtle and used sparingly; in dark mode elevation is carried by `surface` lightness + `border`, not shadow.
 
-## 5. Components
-
-All components are theme-aware, Dynamic-Type-correct, and expose accessibility labels.
-Interactive controls have a **≥44×44pt** hit target. **No business logic** lives here —
-components take plain values (`String`, `Double`, `Date`, arrays of plain data points),
-never Domain types.
-
-### AscendButton
-- Variants: **primary** (filled `primary`/`onPrimary`), **secondary** (tinted:
-  `primary` text on `primary`@10% fill, 1px `borderStrong`), **destructive** (filled
-  `danger`/`onDanger`).
-- Sizes: `large` (52pt tall, full-width default) and `compact` (44pt tall).
-- Corner radius `md` (12). Label `headline` (semibold 17). Optional leading SF Symbol.
-- States: normal, pressed (use `*Pressed`/opacity 0.9 + 0.98 scale), disabled (40%
-  opacity, no shadow), loading (swaps label for `ProgressView`, control disabled).
-- Min hit target 44pt even at `compact`. Accessibility: `.isButton`; loading sets
-  `accessibilityLabel` + `.updatesFrequently` and hides the spinner.
-
-### Card
-- `surface` fill, radius `lg` (16), padding `lg`, `.ascendElevation(.level1)`.
-- Optional 1px `border` in both modes for crispness. Accepts arbitrary content.
-
-### ListRow
-- Leading (icon/avatar), title (`headline`) + subtitle (`subheadline`, `textSecondary`),
-  optional trailing (value/chevron/accessory). 44pt min height, `md` vertical padding.
-- Tappable variant renders a chevron and is a single a11y element combining title +
-  subtitle + trailing value.
-
-### AscendTextFieldStyle (`TextFieldStyle`)
-- `surface` fill, 1px `borderStrong` (→ `primary` when focused), radius `md`, `md`
-  padding, `body` text. Supports label above + footnote helper/error (`danger`) below.
-- Placeholder uses `textTertiary`. 44pt min height.
-
-### Chip / Tag
-- Capsule, `caption`/`footnote` text. Tones: `neutral` (`textSecondary` on
-  `border`@ fill), `primary`, `success`, `warning`, `verified`. Optional leading SF
-  Symbol. Optional selected state (filled tone). Decorative chips are
-  `.accessibilityHidden` when the text is redundant.
-
-### StatTile
-- Compact metric block: `caption` uppercase-tracked label (`textSecondary`), `statMedium`
-  value, optional delta (`success`/`danger` with ▲/▼ + `footnote`), optional unit.
-- `surface`, radius `lg`, padding `lg`. Grid-friendly (2-up / 3-up). A11y: label + value
-  + delta combined into one spoken string ("Sessions, 128, up 12 this month").
-
-### VerifiedBadge
-- The trust mark. `verified` seal SF Symbol (`checkmark.seal.fill`) + "Verified"
-  (`caption`, semibold) on `verifiedSurface`, capsule. Sizes `small`/`medium`.
-- Accessibility label: **"Verified journey"** (never "verified result"). Reserved for
-  verified-outcome surfaces only.
-
-### Avatar
-- Circle. Renders an image when provided, else initials on a deterministic tinted
-  background derived from the name. Sizes `sm` 28, `md` 40, `lg` 56, `xl` 88.
-- Optional small `VerifiedBadge` overlay affordance. A11y label: person's name.
-
-### EmptyState
-- Centered SF Symbol (in a `primary`@10% circle), `title3` title, `subheadline`
-  `textSecondary` message, optional primary `AscendButton`. Used for zero-data screens.
-
-### SectionHeader
-- `footnote`/`caption` uppercase-tracked title (`textSecondary`) + optional trailing
-  action (`AscendButton` compact/plain "See all"). `lg` leading inset, `sm` bottom.
-
-### ProgressChart (Swift Charts)
-- Line + area (gradient fill from `primary`@25% → clear) over time. Plain input:
-  `[ProgressPoint]` where `ProgressPoint = (date: Date, value: Double)`, plus a title,
-  unit label, and optional target line (dashed `verified`).
-- Labeled Y axis (never zero-baseline-hidden in a misleading way), `footnote` axis text,
-  `.monospacedDigit()` values. Optional "start → latest" caption framed as a journey.
-- A11y: `.accessibilityChartDescriptor` / element per point with date + value; overall
-  label summarizes start, latest, and net change as a **measured journey**.
+| Token | Use | Light shadow |
+|---|---|---|
+| `e0` | flat, on-surface | none — 1px `border` only |
+| `e1` | cards, raised rows | `0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08)` |
+| `e2` | sheets, popovers, floating CTAs | `0 6px 16px rgba(16,24,40,.09), 0 16px 34px -10px rgba(16,24,40,.16)` |
 
 ---
 
-## 6. Interaction & motion
+## 3. Component specs
 
-- Motion is quiet: 0.2–0.25s ease-in-out for state changes; spring only for sheet/press.
-- Press feedback: 0.98 scale + pressed color. Honor **Reduce Motion** (cross-fade
-  instead of movement) and **Reduce Transparency** (solid `surface` instead of material).
-- Standard iOS navigation (push/sheet), SF Symbols throughout, pull-to-refresh on lists.
-- Haptics: light impact on primary actions, success notification on verified/paid events.
+**Tab bar** — Standard iOS `TabView`. Coach = 5 tabs (Today, Clients, Programs, Inbox, Profile). Client = 4 tabs (Today, Progress, Coach, Me). Translucent material background, hairline top border, SF Symbols at ~23pt, 10pt labels. Active tint = `primary`; inactive = `textTertiary`.
+
+**Cards** — `surface` fill, `radius-lg`, 16pt padding, `e1` (or `border` in dark). Group related rows inside one card with 1px `border` dividers rather than stacking many separate cards.
+
+**List rows** — 44pt+ height, 12pt gap. Leading avatar/icon → title (headline/`textPrimary`) + subtitle (footnote/`textSecondary`) → trailing status pill / chevron (`textTertiary`). Chevron only when the row navigates.
+
+**Buttons**
+- *Primary*: `primary` fill, `onPrimary` label, 44–50pt height, `radius-md`, semibold 15–16.
+- *Secondary (tonal)*: `secondary` fill, `secondaryText` label.
+- *Destructive*: `danger` — outline for reversible destructive, filled for confirm-in-sheet.
+- *Text*: `primary` label, no fill (nav bar actions, inline).
+- *Small pill*: 32pt height, `radius-pill`.
+- *Disabled*: 38% opacity, no interaction.
+
+**Form fields** — Label (footnote semibold) above a `surfaceSecondary` field, `radius-md`, 46pt height. Steppers use a `surfaceSecondary` track with a raised (`e1`) increment control. Segmented controls = `surfaceSecondary` track + raised selected segment. Toggles = system switch, `success` when on.
+
+**Chips / tags** — 28–30pt pills. *Filter chips*: selected = `primary` fill; idle = `border` outline + `textSecondary`. *Goal tags*: `surfaceSecondary` fill + 7px category dot. *Status pills*: outline + coloured dot + label (Active=`success`, Pending=`warning`, Paused=`textSecondary`).
+
+**Stat tiles** — `surfaceSecondary` (or `surface`) tile: caption label, large tabular number, coloured delta line (`success`/`danger`).
+
+**Verified badge** — filled `verified` pill, checkmark + "Verified journey"; a compact inline variant (outline check + "Verified"); a 22–24px circular check for avatar overlays / lock-ups. Always accompanied by substantiation copy nearby.
+
+**Avatars** — circular, initials on a muted fill by default; `radius-pill`. Verified coaches get a `verified` check overlay (bottom-right, 3px `surface` ring). Stacked groups overlap −10px with a 2px `surface` ring + "+N".
+
+**Empty states** — centered: `surfaceSecondary` icon chip → headline → one-line footnote → single primary action. Warm, never scolding.
+
+**Progress chart** — line + soft area fill (`chart-fill` = 12–16% `primary`), 2.5px stroke, end-point dot, tabular-figure value + directional delta, sparse mono axis labels (Wk 1 / Now). Weight-loss charts may use `success` for the "down is good" line. Keep gridlines minimal or omit.
 
 ---
 
-## 7. SwiftUI token mapping
+## 4. Interaction & motion
 
-The `DesignSystem` module exposes tokens so Features never reference raw hex:
-
-- **Colors:** `Color.Ascend.<token>` (e.g. `Color.Ascend.primary`, `.verified`,
-  `.textSecondary`) — backed by `Colors.xcassets` color sets of the same name, loaded
-  from the DesignSystem bundle.
-- **Typography:** `Font.Ascend.<token>` (e.g. `.headline`, `.statMedium`) and a
-  `.ascendType(_)` `Text`/`View` modifier that also applies rounded/monospaced-digit
-  where the token requires it.
-- **Spacing / radii:** `Spacing.<token>` (CGFloat) and `Radius.<token>` (CGFloat),
-  `CornerRadius.capsule` via `Capsule()`.
-- **Elevation:** `.ascendElevation(_ level:)` view modifier.
-
-Component call sites read like the platform: `AscendButton("Log session", .primary) { … }`,
-`StatTile(label: "Retention", value: "92%", delta: .up("4%"))`, etc.
+- **Motion is quiet and physical.** Sheet presentations, push transitions and tab switches use system defaults. Custom animations use `spring(response: 0.35, dampingFraction: 0.9)` — settle fast, no bounce theatre.
+- **Logging feedback:** on save, the delta line animates in and a light haptic (`.success` notification / `.impact(.light)`) fires. No confetti.
+- **Rest timer** counts down live in the workout player; a subtle pulse + haptic at 0.
+- **Verified badge** never animates on its own — trust marks stay still and factual.
+- **Pull-to-refresh** on Today / Clients; swipe actions on list rows (message, log, archive).
+- **Reduce Motion** respected: cross-fades replace slides; Dynamic Type and increased-contrast supported throughout.
+- **Navigation:** large-title screens collapse to inline titles on scroll (standard). Modals for creation/consent; push for drill-downs (client → program → workout).
+- **Role switch:** presented as a bottom sheet from the avatar/Me tab; switching cross-fades the tab bar and root — coaching and training data stay fully separate.
 
 ---
 
-## 8. Accessibility checklist (Definition of Done for every component)
-
-- [ ] Renders correctly in light **and** dark (previews prove both).
-- [ ] Scales with Dynamic Type through at least AX3 without clipping (text styles, no
-      fixed sizes; layouts wrap/scroll).
-- [ ] Every interactive element ≥44×44pt and exposes a role + meaningful label.
-- [ ] Color pairs meet WCAG AA (§2); color is never the *only* signal (icon/label too).
-- [ ] Honors Reduce Motion and Reduce Transparency.
-- [ ] Verified/proof copy follows Invariant 2 ("journey," never "caused").
+## 5. iOS-native patterns
+- SF Symbols for all iconography (calendar, person.2, list.bullet, bubble.left, chart.line.uptrend.xyaxis, dumbbell, checkmark.seal, shield, etc.).
+- Standard `NavigationStack` + `TabView`; `.searchable` for the Clients list; `.sheet` / `.presentationDetents([.medium, .large])` for consent and role switch.
+- System materials for tab bar / nav bar translucency.
+- Dynamic Type, Dark Mode, VoiceOver labels on every control, and 44pt minimum targets are requirements, not options.

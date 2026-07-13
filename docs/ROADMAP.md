@@ -12,7 +12,7 @@ contract — adjust as the product dictates.
       `AsyncStream`-based live reads; messaging built stream-first).
 - [x] **Prompt 3** — `InMemoryStore` adapter implementing the repository protocols,
       plus `MockData` and `InMemoryStore.seeded()` as the default DEBUG backend.
-- [ ] **Prompt 4** — `DesignSystem` foundations: colors, typography, spacing, and
+- [x] **Prompt 4** — `DesignSystem` foundations: colors, typography, spacing, and
       core reusable components with light/dark previews.
 - [ ] **Prompt 5** — Provider onboarding & `ProfessionalProfile` screens
       (create/edit profile, headline, bio).

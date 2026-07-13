@@ -54,7 +54,10 @@ let inMemoryStoreTarget = Target.ascendFramework(
 )
 let inMemoryStoreTestsTarget = Target.ascendTests(name: "InMemoryStoreTests", testing: "InMemoryStore")
 
-let designSystemTarget = Target.ascendFramework(name: "DesignSystem")
+let designSystemTarget = Target.ascendFramework(
+    name: "DesignSystem",
+    resources: ["Modules/DesignSystem/Resources/**"]
+)
 let designSystemTestsTarget = Target.ascendTests(name: "DesignSystemTests", testing: "DesignSystem")
 
 let featuresTarget = Target.ascendFramework(
@@ -67,9 +70,19 @@ let featuresTarget = Target.ascendFramework(
 )
 let featuresTestsTarget = Target.ascendTests(name: "FeaturesTests", testing: "Features")
 
+// Tuist's default synthesized resource accessors (Bundle.module, an Assets
+// enum, etc. — see `Derived/Sources/Tuist*+DesignSystem.swift`) predate
+// Swift 6 strict concurrency and emit non-Sendable-static-state errors under
+// this project's "complete" checking. DesignSystem hand-writes its own
+// bundle/color accessors (see Modules/DesignSystem/Sources/Tokens), so
+// synthesis is disabled project-wide.
 let project = Project(
     name: "Ascend",
     organizationName: "Ascend",
+    options: .options(
+        disableBundleAccessors: true,
+        disableSynthesizedResourceAccessors: true
+    ),
     settings: AscendSettings.settings,
     targets: [
         appTarget,
@@ -83,5 +96,6 @@ let project = Project(
         designSystemTestsTarget,
         featuresTarget,
         featuresTestsTarget,
-    ]
+    ],
+    resourceSynthesizers: []
 )

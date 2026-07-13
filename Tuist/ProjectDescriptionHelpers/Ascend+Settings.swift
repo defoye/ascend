@@ -12,6 +12,12 @@ public enum AscendSettings {
         "SWIFT_STRICT_CONCURRENCY": "complete",
         "IPHONEOS_DEPLOYMENT_TARGET": "18.0",
         "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+        // Xcode's automatic asset-catalog Swift symbol generation
+        // (`GeneratedAssetSymbols.swift`) predates Swift 6 strict
+        // concurrency and emits non-Sendable-static-state errors under
+        // "complete" checking. Modules hand-write their own color/resource
+        // accessors instead (see Modules/DesignSystem/Sources/Tokens).
+        "ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOLS": "NO",
     ]
 
     public static var settings: Settings {
@@ -24,7 +30,8 @@ extension Target {
     /// sources at `Modules/<name>/Sources/**`, bundle id `com.ascend.<name>`.
     public static func ascendFramework(
         name: String,
-        dependencies: [TargetDependency] = []
+        dependencies: [TargetDependency] = [],
+        resources: ResourceFileElements? = nil
     ) -> Target {
         Target(
             name: name,
@@ -34,6 +41,7 @@ extension Target {
             deploymentTarget: AscendSettings.deploymentTarget,
             infoPlist: .default,
             sources: ["Modules/\(name)/Sources/**"],
+            resources: resources,
             dependencies: dependencies,
             settings: AscendSettings.settings
         )
