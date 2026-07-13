@@ -1,0 +1,40 @@
+# Tuist
+*.xcodeproj
+*.xcworkspace
+Derived/
+.build/
+.tuist-bin/
+.tuist-version
+Tuist/.build/
+
+# Xcode
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+*.xcscmblueprint
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Secrets
+Config/Secrets.xcconfig
+
+# Swift Package Manager
+.swiftpm/
+Packages/
+Package.resolved
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Editor / tooling
+.vscode/
+.idea/
+*.swp
