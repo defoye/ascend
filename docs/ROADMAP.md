@@ -5,7 +5,7 @@ Protocol" in `CLAUDE.md`. Ordering after Prompt 3 is a reasonable plan, not a
 contract — adjust as the product dictates.
 
 - [x] **Prompt 0** — Project skeleton, Tuist modules, docs, CI-less build, git+GitHub.
-- [ ] **Prompt 1** — Implement the `Domain` data model per docs/DATA_MODEL.md,
+- [x] **Prompt 1** — Implement the `Domain` data model per docs/DATA_MODEL.md,
       including `VerifiedOutcome.derive`, with full unit test coverage of its
       eligibility rules.
 - [ ] **Prompt 2** — `DataInterfaces` repository protocols (async/throwing,
