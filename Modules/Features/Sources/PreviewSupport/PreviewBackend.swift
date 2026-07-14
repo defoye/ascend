@@ -106,6 +106,7 @@ struct PreviewBackend: Backend {
     ) -> [Identifier<Engagement>: [Session]] {
         [
             engagementA: [
+                Session(id: Identifier(), engagementID: engagementA, scheduledAt: now.addingTimeInterval(-20 * 86_400), status: .completed),
                 Session(id: Identifier(), engagementID: engagementA, scheduledAt: now.addingTimeInterval(2 * 86_400), status: .scheduled)
             ],
             engagementB: [
@@ -114,12 +115,25 @@ struct PreviewBackend: Backend {
         ]
     }
 
+    /// Two time-separated `bodyweight` points on `engagementA` — enough,
+    /// combined with its completed session, succeeded payment, and (default)
+    /// granted consent, for `VerifiedOutcome.derive` to yield a real outcome
+    /// that `PreviewOutcomeRepository` can surface (see
+    /// `PreviewBackend+Payments.swift`'s sibling outcome fixture).
     private static func makeProgress(
         engagementA: Identifier<Engagement>,
         now: Date
     ) -> [Identifier<Engagement>: [ProgressEntry]] {
         [
             engagementA: [
+                ProgressEntry(
+                    id: Identifier(),
+                    engagementID: engagementA,
+                    metric: .bodyweight,
+                    value: MetricValue(value: 210, unit: .lb),
+                    recordedAt: now.addingTimeInterval(-60 * 86_400),
+                    source: .clientSelfReported
+                ),
                 ProgressEntry(
                     id: Identifier(),
                     engagementID: engagementA,
@@ -235,7 +249,14 @@ struct PreviewBackend: Backend {
     var payments: any PaymentRepository { PreviewPaymentRepository(paymentsByEngagement: paymentsByEngagement) }
     var paymentGateway: any PaymentGateway { PreviewPaymentGateway() }
     var messages: any MessageRepository { PreviewMessageRepository(messagesByEngagement: messagesByEngagement) }
-    var outcomes: any OutcomeRepository { PreviewOutcomeRepository() }
+    var outcomes: any OutcomeRepository {
+        PreviewOutcomeRepository(
+            engagements: engagementsList,
+            sessionsByEngagement: sessionsByEngagement,
+            progressByEngagement: progressByEngagement,
+            paymentsByEngagement: paymentsByEngagement
+        )
+    }
     var notes: any NotesRepository { PreviewNotesRepository(notesByEngagement: notesByEngagement) }
     var availability: any AvailabilityRepository { PreviewAvailabilityRepository(windowsList: availabilityWindowsList) }
     var auth: any AuthGateway { PreviewAuthGateway() }
@@ -337,11 +358,6 @@ private struct PreviewMessageRepository: MessageRepository {
         }
     }
     func send(_ message: Message) async throws {}
-}
-
-private struct PreviewOutcomeRepository: OutcomeRepository {
-    func outcomes(forProfessional professionalID: Identifier<Person>) async throws -> [VerifiedOutcome] { [] }
-    func outcomes(forEngagement engagementID: Identifier<Engagement>) async throws -> [VerifiedOutcome] { [] }
 }
 
 private struct PreviewNotesRepository: NotesRepository {

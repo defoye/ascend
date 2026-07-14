@@ -108,9 +108,21 @@ contract — adjust as the product dictates.
 - [ ] **Prompt 10** — Progress logging: `ProgressEntry` capture UI for coaches and
       clients, per metric.
 - [x] **Prompt 11** — Messaging: stream-first chat UI per engagement.
-- [ ] **Prompt 12** — Verified Outcomes surface: showing derived outcomes on a
+- [x] **Prompt 12** — Verified Outcomes surface: showing derived outcomes on a
       provider's profile, respecting Invariant 2 (journeys, not causation) in all
-      copy.
+      copy. Coach "Proof Profile" (`ProofProfileView`/`ProofProfileViewModel`),
+      reachable from the Profile tab's new "Trust" section (5-tab bar
+      unchanged): verification chips from the professional's `Verification`s,
+      aggregate practice stats (sessions completed, active clients, retention
+      over established engagements), a "How verification works" explainer of
+      the four pillars + the >=2 progress-points requirement, and anonymized
+      verified journeys ("Client · squat 1RM 185 → 225 lb · 4 weeks") sourced
+      exclusively from `Backend.outcomes.outcomes(forProfessional:)` — whose
+      only construction path is `Domain.VerifiedOutcome.derive` — so a
+      consent-off engagement contributes zero journeys. Pure, unit-tested
+      aggregation split into `ProofProfileSummaries` (mirroring
+      `TodaySummaries`), covering stat math, journey-copy formatting (no
+      client/coach names, no causal verbs), and sort order.
 - [ ] **Prompt 13** — `SupabaseBackend` adapter implementing `DataInterfaces`
       against real Supabase tables/auth; `Config/Secrets.xcconfig` wiring; offline
       write queue per docs/BACKEND.md.

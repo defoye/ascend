@@ -28,7 +28,11 @@ struct PreviewProfessionalRepository: ProfessionalRepository {
                     priceCents: 12_000, currency: "USD", modality: .virtual
                 )
             ],
-            verifications: []
+            verifications: [
+                Verification(id: Identifier(), kind: .identity, status: .verified, evidenceURL: nil),
+                Verification(id: Identifier(), kind: .certification, status: .verified, evidenceURL: nil),
+                Verification(id: Identifier(), kind: .insurance, status: .pending, evidenceURL: nil)
+            ]
         )
     }
 

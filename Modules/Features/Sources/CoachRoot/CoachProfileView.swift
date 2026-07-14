@@ -24,6 +24,24 @@ public struct CoachProfileView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                SectionHeader("Trust")
+                Card {
+                    NavigationLink {
+                        ProofProfileView(
+                            viewModel: ProofProfileViewModel(backend: backend, professionalID: professionalID)
+                        )
+                    } label: {
+                        ListRow(
+                            title: "Proof Profile",
+                            subtitle: "Verification, stats, and verified client journeys",
+                            leading: { Image(systemName: "checkmark.seal").foregroundStyle(Color.Ascend.verified) },
+                            trailing: { chevron }
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, Spacing.space4)
+
                 SectionHeader("Business")
                 Card {
                     VStack(spacing: 0) {
