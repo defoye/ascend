@@ -14,6 +14,8 @@ public struct ClientDetailView: View {
     @State var viewModel: ClientDetailViewModel
     @State var showingMessageStub = false
     @State private var showingAssignProgram = false
+    @State var showingLogProgress = false
+    @State var showingFullProgress = false
     @State var editingNoteID: Identifier<CoachNote>?
     @State var editingNoteText = ""
 
@@ -50,6 +52,12 @@ public struct ClientDetailView: View {
                     professionalID: viewModel.professionalID,
                     engagementID: viewModel.engagementID
                 ),
+                onSaved: { Task { await viewModel.load() } }
+            )
+        }
+        .sheet(isPresented: $showingLogProgress) {
+            LogProgressView(
+                viewModel: LogProgressViewModel(backend: viewModel.backend, engagementID: viewModel.engagementID),
                 onSaved: { Task { await viewModel.load() } }
             )
         }
@@ -216,21 +224,38 @@ extension ClientDetailView {
     @ViewBuilder
     var progressSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SectionHeader("Progress")
+            SectionHeader("Progress", actionTitle: viewModel.progressEntries.isEmpty ? nil : "See all") {
+                showingFullProgress = true
+            }
             if viewModel.progressEntries.isEmpty {
                 Card {
                     EmptyState(
                         systemImage: "chart.line.uptrend.xyaxis",
                         title: "No progress logged yet",
-                        message: "Progress entries the client (or you) log will show up here."
+                        message: "Progress entries the client (or you) log will show up here.",
+                        actionTitle: "Log progress",
+                        action: { showingLogProgress = true }
                     )
                 }
                 .padding(.horizontal, Spacing.space4)
             } else {
                 progressCharts
                 recentEntriesCard
+                logProgressButton
             }
         }
+        .navigationDestination(isPresented: $showingFullProgress) {
+            EngagementProgressView(
+                viewModel: ProgressViewModel(backend: viewModel.backend, engagementID: viewModel.engagementID)
+            )
+        }
+    }
+
+    private var logProgressButton: some View {
+        AscendButton("Log progress", variant: .secondary, size: .compact) {
+            showingLogProgress = true
+        }
+        .padding(.horizontal, Spacing.space4)
     }
 
     private var progressCharts: some View {

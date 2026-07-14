@@ -19,10 +19,12 @@ public enum MockData {
         public let professionalProfiles: [ProfessionalProfile]
         public let engagements: [Engagement]
         public let consentByEngagement: [Identifier<Engagement>: Bool]
+        public let photoConsentByEngagement: [Identifier<Engagement>: Bool]
         public let programs: [Program]
         public let programAssignments: [ProgramAssignment]
         public let sessions: [Session]
         public let progressEntries: [ProgressEntry]
+        public let progressPhotos: [ProgressPhoto]
         public let payments: [Payment]
         public let messages: [Message]
         public let notes: [CoachNote]
@@ -65,10 +67,12 @@ public enum MockData {
             professionalProfiles: [profile],
             engagements: activity.engagements,
             consentByEngagement: activity.consentByEngagement,
+            photoConsentByEngagement: photoConsentByEngagement(),
             programs: programData.programs,
             programAssignments: programData.assignments,
             sessions: activity.sessions,
             progressEntries: activity.progressEntries,
+            progressPhotos: seedProgressPhotos(),
             payments: activity.payments,
             messages: activity.messages,
             notes: coachNotes(),

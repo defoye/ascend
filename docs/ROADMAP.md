@@ -81,8 +81,30 @@ contract — adjust as the product dictates.
       "Upcoming sessions" section gets a "See all" action (plus a toolbar
       calendar button) pushing the full `ScheduleView` onto Today's existing
       `NavigationStack`, keeping the coach tab bar at 5 tabs.
-- [ ] **Prompt 9** — Programs: authoring `Program`/`ProgramWeek`/`Workout`, and
-      assigning programs to engagements.
+- [x] **Prompt 9** — Progress logging + charts. `LogProgressViewModel`/
+      `LogProgressView` (a `.sheet`) let a coach pick a `MetricKind`, enter a
+      value in a metric-appropriate `MetricUnit` (defaulted per metric,
+      overridable), and a date, then persist a `ProgressEntry` via
+      `ProgressRepository.upsert(_:)` with an injectable `source` (defaults
+      to `.coachRecorded`, ready for client self-logging later). A dedicated
+      per-engagement Progress screen (`ProgressViewModel`/
+      `EngagementProgressView` — named to avoid colliding with SwiftUI's
+      `ProgressView`) subscribes to `progress.entries(forEngagement:)` live
+      so newly logged entries update its charts immediately, renders one
+      `ProgressChart` per tracked metric with directional deltas, and adds a
+      `MetricKind` filter (chips + "All"); reachable from
+      `ClientDetailView`'s Progress section via a "See all" push plus a
+      "Log progress" entry point on both screens. Added consent-gated
+      progress photos: a `ProgressPhoto` domain type + `ProgressPhotoRepository`
+      (`DataInterfaces`/`InMemoryStore`, mirroring `ProgressRepository`) and a
+      dedicated `photoConsent`/`setPhotoConsent` grant on
+      `EngagementRepository`, separate from the existing outcome-derivation
+      consent — see docs/DATA_MODEL.md. The Progress screen's photos section
+      is completely absent (no thumbnails, no counts) whenever photo consent
+      is withheld, and `ProgressViewModel` never even subscribes to photo
+      data without consent; when granted, it shows placeholder photo tiles
+      (`InMemoryStore` has no real assets) and a `PhotosPicker`-backed
+      capture flow that stores only a reference, never image bytes.
 - [ ] **Prompt 10** — Progress logging: `ProgressEntry` capture UI for coaches and
       clients, per metric.
 - [ ] **Prompt 11** — Messaging: stream-first chat UI per engagement.

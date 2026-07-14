@@ -24,10 +24,12 @@ public actor InMemoryBackend: Backend {
     var professionalProfilesByID: [Identifier<ProfessionalProfile>: ProfessionalProfile] = [:]
     var engagementsByID: [Identifier<Engagement>: Engagement] = [:]
     var consentByEngagement: [Identifier<Engagement>: Bool] = [:]
+    var photoConsentByEngagement: [Identifier<Engagement>: Bool] = [:]
     var programsByID: [Identifier<Program>: Program] = [:]
     var programAssignmentsByID: [Identifier<ProgramAssignment>: ProgramAssignment] = [:]
     var sessionsByID: [Identifier<Session>: Session] = [:]
     var progressEntriesByID: [Identifier<ProgressEntry>: ProgressEntry] = [:]
+    var progressPhotosByID: [Identifier<ProgressPhoto>: ProgressPhoto] = [:]
     var paymentsByID: [Identifier<Payment>: Payment] = [:]
     var messagesByID: [Identifier<Message>: Message] = [:]
     var notesByID: [Identifier<CoachNote>: CoachNote] = [:]
@@ -41,6 +43,7 @@ public actor InMemoryBackend: Backend {
     var engagementRegistry = StreamRegistry<Identifier<Person>, [Engagement]>()
     var sessionRegistry = StreamRegistry<Identifier<Engagement>, [Session]>()
     var progressRegistry = StreamRegistry<Identifier<Engagement>, [ProgressEntry]>()
+    var progressPhotoRegistry = StreamRegistry<Identifier<Engagement>, [ProgressPhoto]>()
     var messageRegistry = StreamRegistry<Identifier<Engagement>, [Message]>()
     var authRegistry = StreamRegistry<SingletonKey, AuthState>()
 
@@ -59,10 +62,12 @@ public actor InMemoryBackend: Backend {
         professionalProfilesByID = Dictionary(uniqueKeysWithValues: mockData.professionalProfiles.map { ($0.id, $0) })
         engagementsByID = Dictionary(uniqueKeysWithValues: mockData.engagements.map { ($0.id, $0) })
         consentByEngagement = mockData.consentByEngagement
+        photoConsentByEngagement = mockData.photoConsentByEngagement
         programsByID = Dictionary(uniqueKeysWithValues: mockData.programs.map { ($0.id, $0) })
         programAssignmentsByID = Dictionary(uniqueKeysWithValues: mockData.programAssignments.map { ($0.id, $0) })
         sessionsByID = Dictionary(uniqueKeysWithValues: mockData.sessions.map { ($0.id, $0) })
         progressEntriesByID = Dictionary(uniqueKeysWithValues: mockData.progressEntries.map { ($0.id, $0) })
+        progressPhotosByID = Dictionary(uniqueKeysWithValues: mockData.progressPhotos.map { ($0.id, $0) })
         paymentsByID = Dictionary(uniqueKeysWithValues: mockData.payments.map { ($0.id, $0) })
         messagesByID = Dictionary(uniqueKeysWithValues: mockData.messages.map { ($0.id, $0) })
         notesByID = Dictionary(uniqueKeysWithValues: mockData.notes.map { ($0.id, $0) })
@@ -85,6 +90,7 @@ public actor InMemoryBackend: Backend {
     nonisolated public var programs: any ProgramRepository { self }
     nonisolated public var sessions: any SessionRepository { self }
     nonisolated public var progress: any ProgressRepository { self }
+    nonisolated public var progressPhotos: any ProgressPhotoRepository { self }
     nonisolated public var payments: any PaymentRepository { self }
     nonisolated public var messages: any MessageRepository { self }
     nonisolated public var outcomes: any OutcomeRepository { self }

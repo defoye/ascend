@@ -60,6 +60,33 @@ that collides with `Identifiable.ID`. Codable as a bare string. `Hashable`,
   recordedAt, source: ProgressSource)`
   - `ProgressSource { clientSelfReported, coachRecorded, inAppMeasured }`
 
+## Progress photos — sensitive, consent-gated
+
+- `ProgressPhoto(id, engagementID, reference: String, capturedAt, source:
+  ProgressSource)` — a reference to a single progress photo. `reference` is a
+  String asset identifier or URL, **never** image bytes: in production this
+  maps to a signed URL into Supabase Storage; `InMemoryStore` treats it as an
+  opaque key with no backing asset. `ProgressPhotoRepository`
+  (`DataInterfaces`) provides `fetchPhotos(forEngagement:)`, a live
+  `photos(forEngagement:) -> AsyncStream<[ProgressPhoto]>`, `upsert(_:)`, and
+  `delete(_:)`; `Backend` vends it as `var progressPhotos: any
+  ProgressPhotoRepository`. Implemented in-memory by `InMemoryBackend`
+  (`InMemoryBackend+ProgressPhotoRepository.swift`), seeded with two photo
+  references on one engagement in `MockData` (`MockData+Photos.swift`).
+
+- Progress photos have their **own** consent grant on `EngagementRepository`,
+  separate from `consent(for:)`/`setConsent(_:for:)` (which scopes only
+  outcome derivation): `photoConsent(for engagementID:) async throws -> Bool`
+  and `setPhotoConsent(_ granted: Bool, for engagementID:) async throws`. A
+  client may share their measurement trend without ever sharing photos, or
+  vice versa — the two grants are independent and both default to `false`.
+  Seeded via `MockData.photoConsentByEngagement()`: exactly one engagement
+  has photo consent granted, every other engagement withholds it, so the
+  Progress screen's consent gate has real seeded cases on both sides. Every
+  Features read path MUST check `photoConsent(for:)` before surfacing
+  anything `ProgressPhotoRepository` returns — the gate lives in the caller,
+  not the repository.
+
 ## Coach notes
 
 - `CoachNote(id, engagementID, authorID: Identifier<Person>, body, createdAt, updatedAt)`

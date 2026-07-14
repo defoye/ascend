@@ -31,6 +31,8 @@ struct StubEngagementRepository: EngagementRepository {
     func fetchEngagements(forClient clientID: Identifier<Person>) async throws -> [Engagement] { [] }
     func consent(for engagementID: Identifier<Engagement>) async throws -> Bool { false }
     func setConsent(_ granted: Bool, for engagementID: Identifier<Engagement>) async throws {}
+    func photoConsent(for engagementID: Identifier<Engagement>) async throws -> Bool { false }
+    func setPhotoConsent(_ granted: Bool, for engagementID: Identifier<Engagement>) async throws {}
 }
 
 struct StubProgramRepository: ProgramRepository {
@@ -62,6 +64,16 @@ struct StubProgressRepository: ProgressRepository {
         metric: MetricKind
     ) async throws -> [ProgressEntry] { [] }
     func entries(forEngagement engagementID: Identifier<Engagement>) -> AsyncStream<[ProgressEntry]> {
+        AsyncStream { $0.finish() }
+    }
+}
+
+struct StubProgressPhotoRepository: ProgressPhotoRepository {
+    func get(_ id: Identifier<ProgressPhoto>) async throws -> ProgressPhoto? { nil }
+    func upsert(_ photo: ProgressPhoto) async throws -> ProgressPhoto { photo }
+    func delete(_ id: Identifier<ProgressPhoto>) async throws {}
+    func fetchPhotos(forEngagement engagementID: Identifier<Engagement>) async throws -> [ProgressPhoto] { [] }
+    func photos(forEngagement engagementID: Identifier<Engagement>) -> AsyncStream<[ProgressPhoto]> {
         AsyncStream { $0.finish() }
     }
 }
@@ -111,6 +123,7 @@ struct StubBackend: Backend {
     let programs: any ProgramRepository = StubProgramRepository()
     let sessions: any SessionRepository = StubSessionRepository()
     let progress: any ProgressRepository = StubProgressRepository()
+    let progressPhotos: any ProgressPhotoRepository = StubProgressPhotoRepository()
     let payments: any PaymentRepository = StubPaymentRepository()
     let messages: any MessageRepository = StubMessageRepository()
     let outcomes: any OutcomeRepository = StubOutcomeRepository()

@@ -27,4 +27,16 @@ public protocol EngagementRepository: Sendable {
 
     /// Grants or revokes consent for this engagement.
     func setConsent(_ granted: Bool, for engagementID: Identifier<Engagement>) async throws
+
+    /// Whether the client has granted consent for progress **photos** to be
+    /// shared with the coach for this engagement.
+    ///
+    /// Deliberately a separate grant from `consent(for:)` (outcome
+    /// derivation): a client may be fine with a coach seeing their numbers
+    /// trend over time while never wanting to share photos, or vice versa.
+    /// Progress photos MUST NOT be surfaced anywhere unless this is `true`.
+    func photoConsent(for engagementID: Identifier<Engagement>) async throws -> Bool
+
+    /// Grants or revokes photo-sharing consent for this engagement.
+    func setPhotoConsent(_ granted: Bool, for engagementID: Identifier<Engagement>) async throws
 }

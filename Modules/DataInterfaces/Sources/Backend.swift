@@ -11,6 +11,7 @@ public protocol Backend: Sendable {
     var programs: any ProgramRepository { get }
     var sessions: any SessionRepository { get }
     var progress: any ProgressRepository { get }
+    var progressPhotos: any ProgressPhotoRepository { get }
     var payments: any PaymentRepository { get }
     var messages: any MessageRepository { get }
     var outcomes: any OutcomeRepository { get }

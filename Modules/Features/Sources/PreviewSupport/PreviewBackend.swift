@@ -24,6 +24,8 @@ struct PreviewBackend: Backend {
     private let programsByID: [Identifier<Program>: Program]
     private let assignmentsByEngagement: [Identifier<Engagement>: [ProgramAssignment]]
     private let availabilityWindowsList: [AvailabilityWindow]
+    private let progressPhotosByEngagement: [Identifier<Engagement>: [ProgressPhoto]]
+    private let photoConsentByEngagement: [Identifier<Engagement>: Bool]
 
     /// Exposed so previews of screens that need a concrete engagement (e.g.
     /// `ClientDetailView`) can reference this fixture's primary engagement.
@@ -55,6 +57,8 @@ struct PreviewBackend: Backend {
         programsByID = Self.makePrograms(professionalID: professionalID, strengthProgramID: strengthProgramID)
         assignmentsByEngagement = Self.makeAssignments(engagementA: engagementA, programID: strengthProgramID, now: now)
         availabilityWindowsList = Self.makeAvailabilityWindows(professionalID: professionalID)
+        progressPhotosByEngagement = Self.makeProgressPhotos(engagementA: engagementA, now: now)
+        photoConsentByEngagement = [engagementA: true, engagementB: false]
     }
 
     // MARK: - Fixture factories
@@ -122,6 +126,23 @@ struct PreviewBackend: Backend {
                     metric: .bodyweight,
                     value: MetricValue(value: 196, unit: .lb),
                     recordedAt: now.addingTimeInterval(-1 * 86_400),
+                    source: .clientSelfReported
+                )
+            ]
+        ]
+    }
+
+    private static func makeProgressPhotos(
+        engagementA: Identifier<Engagement>,
+        now: Date
+    ) -> [Identifier<Engagement>: [ProgressPhoto]] {
+        [
+            engagementA: [
+                ProgressPhoto(
+                    id: Identifier(),
+                    engagementID: engagementA,
+                    reference: "preview-photo-1",
+                    capturedAt: now.addingTimeInterval(-14 * 86_400),
                     source: .clientSelfReported
                 )
             ]
@@ -200,12 +221,17 @@ struct PreviewBackend: Backend {
 
     var people: any PersonRepository { PreviewPersonRepository(peopleByID: peopleByID) }
     var professionals: any ProfessionalRepository { PreviewProfessionalRepository() }
-    var engagements: any EngagementRepository { PreviewEngagementRepository(engagements: engagementsList) }
+    var engagements: any EngagementRepository {
+        PreviewEngagementRepository(engagements: engagementsList, photoConsentByEngagement: photoConsentByEngagement)
+    }
     var programs: any ProgramRepository {
         PreviewProgramRepository(programsByID: programsByID, assignmentsByEngagement: assignmentsByEngagement)
     }
     var sessions: any SessionRepository { PreviewSessionRepository(sessionsByEngagement: sessionsByEngagement) }
     var progress: any ProgressRepository { PreviewProgressRepository(progressByEngagement: progressByEngagement) }
+    var progressPhotos: any ProgressPhotoRepository {
+        PreviewProgressPhotoRepository(photosByEngagement: progressPhotosByEngagement)
+    }
     var payments: any PaymentRepository { PreviewPaymentRepository(paymentsByEngagement: paymentsByEngagement) }
     var messages: any MessageRepository { PreviewMessageRepository(messagesByEngagement: messagesByEngagement) }
     var outcomes: any OutcomeRepository { PreviewOutcomeRepository() }
@@ -232,6 +258,7 @@ private struct PreviewProfessionalRepository: ProfessionalRepository {
 
 private struct PreviewEngagementRepository: EngagementRepository {
     let engagements: [Engagement]
+    var photoConsentByEngagement: [Identifier<Engagement>: Bool] = [:]
     func get(_ id: Identifier<Engagement>) async throws -> Engagement? { engagements.first { $0.id == id } }
     func upsert(_ engagement: Engagement) async throws -> Engagement { engagement }
     func delete(_ id: Identifier<Engagement>) async throws {}
@@ -244,6 +271,10 @@ private struct PreviewEngagementRepository: EngagementRepository {
     }
     func consent(for engagementID: Identifier<Engagement>) async throws -> Bool { true }
     func setConsent(_ granted: Bool, for engagementID: Identifier<Engagement>) async throws {}
+    func photoConsent(for engagementID: Identifier<Engagement>) async throws -> Bool {
+        photoConsentByEngagement[engagementID] ?? false
+    }
+    func setPhotoConsent(_ granted: Bool, for engagementID: Identifier<Engagement>) async throws {}
 }
 
 private struct PreviewSessionRepository: SessionRepository {
@@ -275,6 +306,22 @@ private struct PreviewProgressRepository: ProgressRepository {
     }
     func entries(forEngagement engagementID: Identifier<Engagement>) -> AsyncStream<[ProgressEntry]> {
         AsyncStream { $0.finish() }
+    }
+}
+
+private struct PreviewProgressPhotoRepository: ProgressPhotoRepository {
+    let photosByEngagement: [Identifier<Engagement>: [ProgressPhoto]]
+    func get(_ id: Identifier<ProgressPhoto>) async throws -> ProgressPhoto? { nil }
+    func upsert(_ photo: ProgressPhoto) async throws -> ProgressPhoto { photo }
+    func delete(_ id: Identifier<ProgressPhoto>) async throws {}
+    func fetchPhotos(forEngagement engagementID: Identifier<Engagement>) async throws -> [ProgressPhoto] {
+        photosByEngagement[engagementID] ?? []
+    }
+    func photos(forEngagement engagementID: Identifier<Engagement>) -> AsyncStream<[ProgressPhoto]> {
+        AsyncStream { continuation in
+            continuation.yield(photosByEngagement[engagementID] ?? [])
+            continuation.finish()
+        }
     }
 }
 

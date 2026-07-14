@@ -16,6 +16,7 @@ extension InMemoryBackend: EngagementRepository {
     public func delete(_ id: Identifier<Engagement>) async throws {
         guard let removed = engagementsByID.removeValue(forKey: id) else { throw InMemoryStoreError.notFound }
         consentByEngagement.removeValue(forKey: id)
+        photoConsentByEngagement.removeValue(forKey: id)
         engagementRegistry.yield(engagementsList(forProfessional: removed.professionalID), for: removed.professionalID)
     }
 
@@ -49,6 +50,16 @@ extension InMemoryBackend: EngagementRepository {
     public func setConsent(_ granted: Bool, for engagementID: Identifier<Engagement>) async throws {
         guard engagementsByID[engagementID] != nil else { throw InMemoryStoreError.notFound }
         consentByEngagement[engagementID] = granted
+    }
+
+    public func photoConsent(for engagementID: Identifier<Engagement>) async throws -> Bool {
+        guard engagementsByID[engagementID] != nil else { throw InMemoryStoreError.notFound }
+        return photoConsentByEngagement[engagementID] ?? false
+    }
+
+    public func setPhotoConsent(_ granted: Bool, for engagementID: Identifier<Engagement>) async throws {
+        guard engagementsByID[engagementID] != nil else { throw InMemoryStoreError.notFound }
+        photoConsentByEngagement[engagementID] = granted
     }
 
     // MARK: - Helpers
