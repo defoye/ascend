@@ -24,9 +24,12 @@ public final class ClientDetailViewModel {
     /// Bound to the "add a note" text field.
     public var draftNoteBody = ""
 
-    private let backend: any Backend
-    private let engagementID: Identifier<Engagement>
-    private let professionalID: Identifier<Person>
+    /// Exposed (rather than kept private) so the view can construct sibling
+    /// view models that need the same backend/identifiers — e.g.
+    /// `AssignProgramViewModel` for the "Assign / Reassign program" action.
+    public let backend: any Backend
+    public let engagementID: Identifier<Engagement>
+    public let professionalID: Identifier<Person>
     private let clock: @Sendable () -> Date
 
     public init(

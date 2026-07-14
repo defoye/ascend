@@ -35,8 +35,21 @@ contract — adjust as the product dictates.
       (status, notes) write back through repositories. Added a `CoachNote`
       domain type and `NotesRepository` (`DataInterfaces`/`InMemoryStore`) to
       back the Notes section — see docs/DATA_MODEL.md.
-- [ ] **Prompt 7** — Engagements: list/detail screens, starting and managing a
-      client relationship (`Engagement` lifecycle).
+- [x] **Prompt 7** — Program builder (`ProgramBuilderViewModel`/
+      `ProgramBuilderView`): authoring a `Program`'s nested `ProgramWeek` →
+      `Workout` → `ExercisePrescription` tree against a mutable `ProgramDraft`,
+      with add/duplicate/delete/reorder at every level (weeks renumbered
+      0-based contiguous from their display order on save) and pure,
+      unit-tested draft operations (`ProgramDraftOperations`). Programs tab
+      (`ProgramsListView`/`ProgramsListViewModel`) lists the coach's programs
+      with an empty state and a "+" into the builder. An exercise picker
+      (`ExercisePickerView`) sources a searchable library aggregated from the
+      coach's existing programs (surfacing the 10 seeded exercises) plus
+      free-text add for new ones. Assigning/reassigning a program to a client
+      engagement, with a start date (`AssignProgramView`/
+      `AssignProgramViewModel` → `ProgramRepository.assign(_:)`), is surfaced
+      from client detail's Program section and refreshes
+      `ClientDetailViewModel` to show the newly-assigned program.
 - [ ] **Prompt 8** — Sessions: scheduling, marking completed/cancelled/no-show.
 - [ ] **Prompt 9** — Programs: authoring `Program`/`ProgramWeek`/`Workout`, and
       assigning programs to engagements.

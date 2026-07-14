@@ -6,7 +6,7 @@ import SwiftUI
 
 /// The coach experience's public entry point: a 5-tab `TabView` per
 /// docs/design/DESIGN_SPEC.md §3 (Today, Clients, Programs, Messages,
-/// Profile). Today and Clients are real screens; Programs, Messages, and
+/// Profile). Today, Clients, and Programs are real screens; Messages and
 /// Profile are "Coming soon" placeholders that later prompts replace.
 ///
 /// Takes only `any Backend` + the signed-in professional's identifier (and
@@ -42,11 +42,13 @@ public struct CoachRootView: View {
             }
             .tabItem { Label("Clients", systemImage: "person.2") }
 
-            ComingSoonView(
-                title: "Programs",
-                systemImage: "dumbbell",
-                message: "Build and assign training programs to your clients here."
-            )
+            NavigationStack {
+                ProgramsListView(
+                    viewModel: ProgramsListViewModel(backend: backend, professionalID: professionalID),
+                    backend: backend,
+                    professionalID: professionalID
+                )
+            }
             .tabItem { Label("Programs", systemImage: "dumbbell") }
 
             ComingSoonView(

@@ -50,9 +50,9 @@ struct PreviewBackend: Backend {
         paymentsByEngagement = Self.makePayments(engagementA: engagementA, engagementB: engagementB, now: now)
         messagesByEngagement = Self.makeMessages(engagementB: engagementB, clientB: clientB, now: now)
         notesByEngagement = Self.makeNotes(engagementA: engagementA, professionalID: professionalID, now: now)
-        let programID = Identifier<Program>()
-        programsByID = Self.makePrograms(programID: programID)
-        assignmentsByEngagement = Self.makeAssignments(engagementA: engagementA, programID: programID, now: now)
+        let strengthProgramID = Identifier<Program>()
+        programsByID = Self.makePrograms(professionalID: professionalID, strengthProgramID: strengthProgramID)
+        assignmentsByEngagement = Self.makeAssignments(engagementA: engagementA, programID: strengthProgramID, now: now)
     }
 
     // MARK: - Fixture factories
@@ -196,38 +196,6 @@ struct PreviewBackend: Backend {
         ]
     }
 
-    private static func makePrograms(programID: Identifier<Program>) -> [Identifier<Program>: Program] {
-        [
-            programID: Program(
-                id: programID,
-                authorID: Identifier(),
-                title: "Strength Foundations",
-                summary: "An 8-week linear progression across the big compound lifts.",
-                weeks: [
-                    ProgramWeek(id: Identifier(), index: 0, workouts: [])
-                ]
-            )
-        ]
-    }
-
-    private static func makeAssignments(
-        engagementA: Identifier<Engagement>,
-        programID: Identifier<Program>,
-        now: Date
-    ) -> [Identifier<Engagement>: [ProgramAssignment]] {
-        [
-            engagementA: [
-                ProgramAssignment(
-                    id: Identifier(),
-                    programID: programID,
-                    engagementID: engagementA,
-                    assignedAt: now.addingTimeInterval(-14 * 86_400),
-                    startDate: now.addingTimeInterval(-14 * 86_400)
-                )
-            ]
-        ]
-    }
-
     var people: any PersonRepository { PreviewPersonRepository(peopleByID: peopleByID) }
     var professionals: any ProfessionalRepository { PreviewProfessionalRepository() }
     var engagements: any EngagementRepository { PreviewEngagementRepository(engagements: engagementsList) }
@@ -273,19 +241,6 @@ private struct PreviewEngagementRepository: EngagementRepository {
     }
     func consent(for engagementID: Identifier<Engagement>) async throws -> Bool { true }
     func setConsent(_ granted: Bool, for engagementID: Identifier<Engagement>) async throws {}
-}
-
-private struct PreviewProgramRepository: ProgramRepository {
-    let programsByID: [Identifier<Program>: Program]
-    let assignmentsByEngagement: [Identifier<Engagement>: [ProgramAssignment]]
-    func get(_ id: Identifier<Program>) async throws -> Program? { programsByID[id] }
-    func list(forAuthor authorID: Identifier<Person>) async throws -> [Program] { Array(programsByID.values) }
-    func upsert(_ program: Program) async throws -> Program { program }
-    func delete(_ id: Identifier<Program>) async throws {}
-    func assign(_ assignment: ProgramAssignment) async throws -> ProgramAssignment { assignment }
-    func assignments(forEngagement engagementID: Identifier<Engagement>) async throws -> [ProgramAssignment] {
-        assignmentsByEngagement[engagementID] ?? []
-    }
 }
 
 private struct PreviewSessionRepository: SessionRepository {

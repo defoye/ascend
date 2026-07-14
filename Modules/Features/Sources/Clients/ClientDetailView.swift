@@ -8,10 +8,14 @@ import SwiftUI
 /// (see docs/design/DESIGN_SPEC.md). Pushed from `ClientsListView` onto the
 /// Clients tab's `NavigationStack`.
 public struct ClientDetailView: View {
-    @State private var viewModel: ClientDetailViewModel
-    @State private var showingMessageStub = false
-    @State private var editingNoteID: Identifier<CoachNote>?
-    @State private var editingNoteText = ""
+    // Not `private`: `ClientDetailView+Notes.swift` (a same-type extension in
+    // a different file, split out purely to stay under SwiftLint's
+    // `file_length`) needs access — `private` is file-scoped in Swift.
+    @State var viewModel: ClientDetailViewModel
+    @State var showingMessageStub = false
+    @State private var showingAssignProgram = false
+    @State var editingNoteID: Identifier<CoachNote>?
+    @State var editingNoteText = ""
 
     public init(viewModel: ClientDetailViewModel) {
         _viewModel = State(wrappedValue: viewModel)
@@ -38,6 +42,16 @@ public struct ClientDetailView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Chat with \(viewModel.clientName) will be available in a future update.")
+        }
+        .sheet(isPresented: $showingAssignProgram) {
+            AssignProgramView(
+                viewModel: AssignProgramViewModel(
+                    backend: viewModel.backend,
+                    professionalID: viewModel.professionalID,
+                    engagementID: viewModel.engagementID
+                ),
+                onSaved: { Task { await viewModel.load() } }
+            )
         }
     }
 
@@ -157,24 +171,33 @@ public struct ClientDetailView: View {
         VStack(alignment: .leading, spacing: 0) {
             SectionHeader("Program")
             Card {
-                if let program = viewModel.program {
-                    VStack(alignment: .leading, spacing: Spacing.space2) {
-                        Text(program.title)
-                            .ascendType(.headline)
-                            .foregroundStyle(Color.Ascend.textPrimary)
-                        Text(program.summary)
-                            .ascendType(.subheadline)
-                            .foregroundStyle(Color.Ascend.textSecondary)
-                        Text("\(program.weeks.count) week\(program.weeks.count == 1 ? "" : "s")")
-                            .ascendType(.footnote)
-                            .foregroundStyle(Color.Ascend.textTertiary)
+                VStack(alignment: .leading, spacing: Spacing.space3) {
+                    if let program = viewModel.program {
+                        VStack(alignment: .leading, spacing: Spacing.space2) {
+                            Text(program.title)
+                                .ascendType(.headline)
+                                .foregroundStyle(Color.Ascend.textPrimary)
+                            Text(program.summary)
+                                .ascendType(.subheadline)
+                                .foregroundStyle(Color.Ascend.textSecondary)
+                            Text("\(program.weeks.count) week\(program.weeks.count == 1 ? "" : "s")")
+                                .ascendType(.footnote)
+                                .foregroundStyle(Color.Ascend.textTertiary)
+                        }
+                    } else {
+                        EmptyState(
+                            systemImage: "dumbbell",
+                            title: "No program assigned yet",
+                            message: "Assign a training program to this client to see it here."
+                        )
                     }
-                } else {
-                    EmptyState(
-                        systemImage: "dumbbell",
-                        title: "No program assigned yet",
-                        message: "Assign a training program to this client to see it here."
-                    )
+                    AscendButton(
+                        viewModel.program == nil ? "Assign program" : "Reassign program",
+                        variant: .secondary,
+                        size: .compact
+                    ) {
+                        showingAssignProgram = true
+                    }
                 }
             }
             .padding(.horizontal, Spacing.space4)
@@ -258,108 +281,6 @@ extension ClientDetailView {
 
     private var recentEntries: [ProgressEntry] {
         Array(viewModel.progressEntries.sorted { $0.recordedAt > $1.recordedAt }.prefix(10))
-    }
-
-    // MARK: - Notes
-
-    private var notesSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SectionHeader("Coach notes")
-            Card {
-                VStack(alignment: .leading, spacing: Spacing.space4) {
-                    if viewModel.notes.isEmpty {
-                        Text("No notes yet.")
-                            .ascendType(.subheadline)
-                            .foregroundStyle(Color.Ascend.textSecondary)
-                    } else {
-                        VStack(alignment: .leading, spacing: Spacing.space3) {
-                            ForEach(viewModel.notes) { note in
-                                noteRow(note)
-                            }
-                        }
-                    }
-                    Divider()
-                    addNoteField
-                }
-            }
-            .padding(.horizontal, Spacing.space4)
-        }
-    }
-
-    @ViewBuilder
-    private func noteRow(_ note: CoachNote) -> some View {
-        if editingNoteID == note.id {
-            editingNoteRow(note)
-        } else {
-            Button {
-                editingNoteID = note.id
-                editingNoteText = note.body
-            } label: {
-                VStack(alignment: .leading, spacing: Spacing.space1) {
-                    Text(note.body)
-                        .ascendType(.body)
-                        .foregroundStyle(Color.Ascend.textPrimary)
-                        .multilineTextAlignment(.leading)
-                    Text("Updated \(note.updatedAt.formatted(date: .abbreviated, time: .shortened))")
-                        .ascendType(.footnote)
-                        .foregroundStyle(Color.Ascend.textTertiary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private func editingNoteRow(_ note: CoachNote) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.space2) {
-            AscendTextField(text: $editingNoteText)
-            HStack(spacing: Spacing.space2) {
-                AscendButton("Save", size: .compact) {
-                    Task {
-                        await viewModel.updateNote(note, body: editingNoteText)
-                        editingNoteID = nil
-                    }
-                }
-                AscendButton("Cancel", variant: .secondary, size: .compact) {
-                    editingNoteID = nil
-                }
-            }
-        }
-    }
-
-    private var addNoteField: some View {
-        VStack(alignment: .leading, spacing: Spacing.space2) {
-            AscendTextField(label: "Add a note", placeholder: "Write a private note about this client…", text: $viewModel.draftNoteBody)
-            AscendButton(
-                "Save note",
-                variant: .secondary,
-                size: .compact,
-                isEnabled: !viewModel.draftNoteBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ) {
-                Task { await viewModel.saveNote() }
-            }
-        }
-    }
-
-    // MARK: - Message shortcut
-
-    private var messageShortcut: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SectionHeader("Messages")
-            Card {
-                ListRow(
-                    title: "Message \(viewModel.clientName)",
-                    subtitle: "Chat is coming in a later prompt",
-                    action: { showingMessageStub = true },
-                    leading: {
-                        Image(systemName: "bubble.left")
-                            .foregroundStyle(Color.Ascend.primary)
-                    },
-                    trailing: { EmptyView() }
-                )
-            }
-            .padding(.horizontal, Spacing.space4)
-        }
     }
 }
 
