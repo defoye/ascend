@@ -1,4 +1,5 @@
 import Domain
+import Foundation
 @testable import DataInterfaces
 
 /// A minimal, no-op stub proving that `DataInterfaces`' protocol shapes compose
@@ -85,6 +86,34 @@ struct StubPaymentRepository: PaymentRepository {
     func payments(forEngagement engagementID: Identifier<Engagement>) async throws -> [Payment] { [] }
 }
 
+struct StubPaymentGateway: PaymentGateway {
+    func charge(engagementID: Identifier<Engagement>, amountCents: Int, currency: String) async throws -> Payment {
+        Payment(
+            id: Identifier(),
+            engagementID: engagementID,
+            amountCents: amountCents,
+            currency: currency,
+            status: .succeeded,
+            platformFeeCents: 0,
+            stripePaymentIntentID: nil,
+            createdAt: Date()
+        )
+    }
+
+    func refund(paymentID: Identifier<Payment>) async throws -> Payment {
+        Payment(
+            id: paymentID,
+            engagementID: Identifier(),
+            amountCents: 0,
+            currency: "USD",
+            status: .refunded,
+            platformFeeCents: 0,
+            stripePaymentIntentID: nil,
+            createdAt: Date()
+        )
+    }
+}
+
 struct StubMessageRepository: MessageRepository {
     func messages(in engagement: Identifier<Engagement>) -> AsyncStream<[Message]> {
         AsyncStream { $0.finish() }
@@ -125,6 +154,7 @@ struct StubBackend: Backend {
     let progress: any ProgressRepository = StubProgressRepository()
     let progressPhotos: any ProgressPhotoRepository = StubProgressPhotoRepository()
     let payments: any PaymentRepository = StubPaymentRepository()
+    let paymentGateway: any PaymentGateway = StubPaymentGateway()
     let messages: any MessageRepository = StubMessageRepository()
     let outcomes: any OutcomeRepository = StubOutcomeRepository()
     let notes: any NotesRepository = StubNotesRepository()

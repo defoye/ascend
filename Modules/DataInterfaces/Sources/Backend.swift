@@ -13,6 +13,7 @@ public protocol Backend: Sendable {
     var progress: any ProgressRepository { get }
     var progressPhotos: any ProgressPhotoRepository { get }
     var payments: any PaymentRepository { get }
+    var paymentGateway: any PaymentGateway { get }
     var messages: any MessageRepository { get }
     var outcomes: any OutcomeRepository { get }
     var notes: any NotesRepository { get }

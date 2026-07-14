@@ -6,8 +6,8 @@ import SwiftUI
 
 /// The coach experience's public entry point: a 5-tab `TabView` per
 /// docs/design/DESIGN_SPEC.md §3 (Today, Clients, Programs, Messages,
-/// Profile). Today, Clients, Programs, and Messages are real screens;
-/// Profile is a "Coming soon" placeholder that a later prompt replaces.
+/// Profile). All five tabs are real screens: Profile hosts services/pricing
+/// and payment history (see `CoachProfileView`).
 ///
 /// Takes only `any Backend` + the signed-in professional's identifier (and
 /// an optional clock) so the App composition root can wire it without
@@ -65,36 +65,12 @@ public struct CoachRootView: View {
             }
             .tabItem { Label("Messages", systemImage: "bubble.left") }
 
-            ComingSoonView(
-                title: "Profile",
-                systemImage: "person.crop.circle",
-                message: "Your professional profile, services, and verifications will live here."
-            )
+            NavigationStack {
+                CoachProfileView(backend: backend, professionalID: professionalID, clock: clock)
+            }
             .tabItem { Label("Profile", systemImage: "person.crop.circle") }
         }
         .tint(Color.Ascend.primary)
-    }
-}
-
-/// A titled `NavigationStack` around a friendly "Coming soon" `EmptyState`,
-/// standing in for a tab whose real screen a later prompt (6, 7, 8, ...)
-/// will build.
-private struct ComingSoonView: View {
-    let title: String
-    let systemImage: String
-    let message: String
-
-    var body: some View {
-        NavigationStack {
-            EmptyState(
-                systemImage: systemImage,
-                title: "\(title) coming soon",
-                message: message
-            )
-            .frame(maxHeight: .infinity)
-            .background(Color.Ascend.background)
-            .navigationTitle(title)
-        }
     }
 }
 

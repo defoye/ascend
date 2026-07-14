@@ -220,7 +220,7 @@ struct PreviewBackend: Backend {
     }
 
     var people: any PersonRepository { PreviewPersonRepository(peopleByID: peopleByID) }
-    var professionals: any ProfessionalRepository { PreviewProfessionalRepository() }
+    var professionals: any ProfessionalRepository { PreviewProfessionalRepository(professionalID: professionalID) }
     var engagements: any EngagementRepository {
         PreviewEngagementRepository(engagements: engagementsList, photoConsentByEngagement: photoConsentByEngagement)
     }
@@ -233,6 +233,7 @@ struct PreviewBackend: Backend {
         PreviewProgressPhotoRepository(photosByEngagement: progressPhotosByEngagement)
     }
     var payments: any PaymentRepository { PreviewPaymentRepository(paymentsByEngagement: paymentsByEngagement) }
+    var paymentGateway: any PaymentGateway { PreviewPaymentGateway() }
     var messages: any MessageRepository { PreviewMessageRepository(messagesByEngagement: messagesByEngagement) }
     var outcomes: any OutcomeRepository { PreviewOutcomeRepository() }
     var notes: any NotesRepository { PreviewNotesRepository(notesByEngagement: notesByEngagement) }
@@ -246,14 +247,6 @@ private struct PreviewPersonRepository: PersonRepository {
     func list() async throws -> [Person] { Array(peopleByID.values) }
     func upsert(_ person: Person) async throws -> Person { person }
     func delete(_ id: Identifier<Person>) async throws {}
-}
-
-private struct PreviewProfessionalRepository: ProfessionalRepository {
-    func get(_ id: Identifier<ProfessionalProfile>) async throws -> ProfessionalProfile? { nil }
-    func profile(forProfessional personID: Identifier<Person>) async throws -> ProfessionalProfile? { nil }
-    func listProfiles() async throws -> [ProfessionalProfile] { [] }
-    func upsert(_ profile: ProfessionalProfile) async throws -> ProfessionalProfile { profile }
-    func delete(_ id: Identifier<ProfessionalProfile>) async throws {}
 }
 
 private struct PreviewEngagementRepository: EngagementRepository {

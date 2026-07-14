@@ -114,6 +114,12 @@ contract — adjust as the product dictates.
 - [ ] **Prompt 13** — `SupabaseBackend` adapter implementing `DataInterfaces`
       against real Supabase tables/auth; `Config/Secrets.xcconfig` wiring; offline
       write queue per docs/BACKEND.md.
+- [x] **Prompt 11 (payments, mock)** — Payments behind a `PaymentGateway`
+      protocol: `DataInterfaces` protocol + `MockPaymentGateway` in
+      `InMemoryStore` writing `Payment` records (success/refund), coach
+      price-setting/charge/payment-history + platform-fee-aware revenue, a
+      client pay-screen stub, and the real Stripe Connect Express plan
+      documented in docs/BACKEND.md (server work stays Prompt 14).
 - [ ] **Prompt 14** — Payments: Stripe integration via Supabase Edge Functions
       (`Payment` lifecycle, platform fee handling); no Stripe secret keys in the app.
 - [ ] **Prompt 15** — Consumer-facing discovery/marketplace surface (Phase 2 per

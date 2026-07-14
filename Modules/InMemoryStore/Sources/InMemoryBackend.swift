@@ -92,6 +92,7 @@ public actor InMemoryBackend: Backend {
     nonisolated public var progress: any ProgressRepository { self }
     nonisolated public var progressPhotos: any ProgressPhotoRepository { self }
     nonisolated public var payments: any PaymentRepository { self }
+    nonisolated public var paymentGateway: any PaymentGateway { self }
     nonisolated public var messages: any MessageRepository { self }
     nonisolated public var outcomes: any OutcomeRepository { self }
     nonisolated public var notes: any NotesRepository { self }
