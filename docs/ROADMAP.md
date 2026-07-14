@@ -120,3 +120,29 @@ contract — adjust as the product dictates.
       docs/PRODUCT.md): browsing verified professionals and their outcomes.
 - [ ] **Prompt 16** — Polish pass: accessibility audit, performance pass, error/empty
       state coverage, App Store metadata/screenshots.
+
+## AI capabilities (deferred track)
+
+Intentionally not sequenced into the phase-1 build — see the "AI: intentionally
+deferred, not dropped" section of docs/PRODUCT.md for the rationale. Captured here so
+the founding vision's AI surface is documented and not silently lost. These are
+unordered relative to each other and will be slotted into the main sequence when we
+deliberately pick AI up; most depend on the consumer discovery/marketplace surface
+(Prompt 15) and/or a real backend (Prompt 13) existing first. AI is a product layer
+on top of the verified-outcome substrate — it is explicitly **not** the moat.
+
+- [ ] **AI-1** — Provider assistant: generate/draft a `Program` from a goal +
+      constraints, draft client messages, and summarize an engagement's progress
+      from its `ProgressEntry` history. Assistive drafts only; a human coach edits
+      and owns the output.
+- [ ] **AI-2** — Consumer AI goal assessment / onboarding: a guided intake that
+      turns "I have back pain and want to lose 30 lbs" into structured `Goal`s +
+      preferences, replacing/augmenting manual goal entry.
+- [ ] **AI-3** — Consumer↔professional matching: rank professionals for a consumer
+      by goals, specialty (`ServiceCategory`), availability, and **verified
+      outcomes**, each recommendation carrying a human-readable "why." Depends on the
+      consumer discovery surface (Prompt 15). This is the capability the vision's MVP
+      philosophy ties to "prove consumers trust recommendations."
+- [ ] **AI-4** — Provider marketing assistant: generate profile copy, program
+      descriptions, and content. Must respect Invariant 2 (journeys, never causation)
+      in all generated copy.

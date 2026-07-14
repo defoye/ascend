@@ -46,6 +46,40 @@ over a real, paid coaching relationship) — it never claims the coach **caused*
 outcome. This distinction is legally and ethically load-bearing; do not soften it in
 copy, marketing surfaces, or UI microcopy.
 
+## Sequencing: a conscious deviation from a consumer-first reading
+
+The founding vision can be read two ways. Its "Phase 1" frames the foundation as
+**consumer** Identity + Discovery (users browse professionals first); its
+"Distribution Strategy" section says the **initial focus should likely be
+providers**, because a provider brings their existing clients, followers, and
+community. These two readings are in mild tension.
+
+Ascend deliberately follows the **provider-first** thread. We build the coach-side
+operating system first (Today, Clients, Programs, Scheduling, Progress, Messaging)
+and treat the consumer-facing discovery/marketplace surface as a **later** layer
+(see docs/ROADMAP.md, ~Prompt 15). Rationale: the provider tool is useful with zero
+consumers, it is what seeds the verified-outcome graph that is the actual moat, and
+providers are the side that brings distribution. This is a chosen ordering, **not**
+an oversight of the vision's Phase-1 framing — do not "correct" it by pulling the
+consumer marketplace forward without a deliberate decision to re-sequence.
+
+## AI: intentionally deferred, not dropped
+
+The founding vision leans on AI as a product surface — AI goal assessment /
+onboarding, AI consumer↔professional matching with "why" explanations, and an AI
+provider assistant (generate programs, draft client messages, summarize progress,
+write marketing copy). **None of this is in the phase-1 build**, and that is a
+deliberate choice, consistent with the vision's own note that *AI is not the moat*
+(the verified-outcome data, provider network, and reputation system are). We build
+the durable substrate first; AI is layered on top once the entities and data it
+would operate over exist.
+
+AI capabilities are tracked explicitly as a deferred track in docs/ROADMAP.md so
+they are not silently lost. Note the standing tension to revisit when we do pick AI
+up: the vision's "MVP Philosophy" wants the product to *prove consumers trust
+recommendations*, which structurally needs the AI-matching + consumer-discovery
+layer that we are deferring.
+
 ## Explicitly not building initially
 
 - A generic social feed.
