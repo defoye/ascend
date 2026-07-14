@@ -6,7 +6,7 @@ up. Prompt numbers follow the source build sequence (`Ascend-Build-Prompts.md`).
 `docs/ROADMAP.md` remains the detailed per-prompt checklist; this file is the
 at-a-glance "done / next / needs-you" view.
 
-_Last updated: 2026-07-14 (through Prompt 16 — tagged `v0.1.0`)._
+_Last updated: 2026-07-14 (through Prompt 16 — tagged `v0.1.0`; + free-first rollout plan)._
 
 ## ✅ Done — shipped, built clean, tests green on `InMemoryStore` ($0, no backend)
 
@@ -60,6 +60,45 @@ these are the steps only you can do (see `Ascend-Build-Prompts.md` §3 Runbooks 
 
 After you complete 1 & 2, run the follow-up prompt Claude hands you to execute the
 live verification and finalize `SupabaseBackend`/Stripe wiring.
+
+## 🧭 Rollout strategy — free first, monetize later
+
+Deliberate decision: **launch free (no live payments), validate a two-sided
+userbase, then flip payments on.** Rationale:
+
+- Stripe Connect (Prompt 14) is the most complex, highest-liability part of the
+  system — coach KYC/onboarding, payouts, webhooks, refunds/disputes, tax
+  (1099s). Deferring it removes that weight from v1 and speeds App Review (a free
+  app has no IAP/payment review surface).
+- It costs almost nothing to add back later, because payments already sit behind
+  the `PaymentGateway` protocol and the gateway is selected in one place (the
+  composition root). Turning payments on is a config flip, not a rewrite.
+
+**The catch we're handling deliberately (Option B — "Tracked → Verified"):** the
+product's differentiator, `VerifiedOutcome`, requires a *succeeded payment* as one
+of its four pillars (see docs/DATA_MODEL.md). With payments off, no outcome is
+"Verified". Rather than lose the moat in v1, the free phase surfaces the same
+journeys labeled **"Tracked results"** (relationship + activity + consent +
+progress, honestly *not* claiming the payment pillar), and the **"Verified" badge
+only lights up once real payments are on**. This keeps the badge's integrity and
+turns "turn on payments" into an upgrade coaches *want*. Crucially, this does NOT
+change the Domain invariant: a `VerifiedOutcome` is still only ever constructed via
+`Domain.derive` (all four pillars); a "Tracked" journey is a separate,
+clearly-labeled Features-level view type, never a `VerifiedOutcome`.
+
+**The switch:** a `PaymentsMode` flag (`.free` default / `.live`) read in the
+composition root. `.free` hides charge/pay flows and renders outcomes as
+"Tracked"; `.live` restores the mock/Stripe charge flows and "Verified" outcomes.
+Flipping to `.live` is one line once Prompt 14 lands.
+
+| Phase | Ships | Cost | Payments | Backend |
+|---|---|---|---|---|
+| **1 — Private beta** | `v0.1.0` on TestFlight | Apple $99/yr + Supabase free | **Off** (`PaymentsMode.free`), outcomes = "Tracked" | Supabase (Prompt 13) — a runnable Release backend is required; `InMemoryStore` is DEBUG-only mock data |
+| **2 — Public launch** | Same app, App Store | + Supabase Pro $25/mo *if* you outgrow free | Still off — grow both sides | Supabase |
+| **3 — Monetize** | Flip `PaymentsMode` to `.live` + build Prompt 14 (Stripe) | Stripe per-transaction only (2.9% + \$0.30; Connect ~\$2/mo per active coach) | **On** — "Verified" activates, platform fee collected | Supabase + Stripe edge functions |
+
+Client-facing app code doesn't change between phases 2→3 — you build the Stripe
+adapter behind the existing protocol and flip the flag.
 
 ## 🚀 Runbook C — Archive → TestFlight → App Store (owner-run, needs your Apple account)
 
