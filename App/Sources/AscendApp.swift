@@ -24,6 +24,20 @@ struct AscendApp: App {
     }
 }
 
+/// Which side of the app is currently active. Ascend's product model is one
+/// `Person` with role modes `consumer`/`professional`/`both` (see
+/// docs/PRODUCT.md) — a real implementation would derive this from the
+/// signed-in person's `roles` and a persisted preference, not a
+/// composition-root toggle. Until sign-in supports both roles on one
+/// account, this is the App's own demo mechanism for reaching the consumer
+/// experience against the same seeded backend as the coach side, switchable
+/// via each root's "Switch role" affordance (see docs/design/DESIGN_SPEC.md
+/// §4 "Role switch").
+enum DemoRole {
+    case professional
+    case consumer
+}
+
 /// Root view: switches on live authentication state from `container.backend.auth`.
 /// The seeded `InMemoryStore` backend (see `AppContainer`) starts **signed in**
 /// as the demo professional (Jordan Ellis), so the coach dashboard renders
@@ -31,12 +45,13 @@ struct AscendApp: App {
 struct RootView: View {
     @Environment(AppContainer.self) private var container
     @State private var authState: AuthState = .signedOut
+    @State private var activeRole: DemoRole = .professional
 
     var body: some View {
         Group {
             switch authState {
             case let .signedIn(user):
-                CoachRootView(backend: container.backend, professionalID: user.personID, clock: Self.demoClock)
+                roleRoot(for: user)
             case .signedOut:
                 SignedOutView()
             }
@@ -45,6 +60,26 @@ struct RootView: View {
             for await state in container.auth.currentAuth {
                 authState = state
             }
+        }
+    }
+
+    @ViewBuilder
+    private func roleRoot(for user: AuthenticatedUser) -> some View {
+        switch activeRole {
+        case .professional:
+            CoachRootView(
+                backend: container.backend,
+                professionalID: user.personID,
+                clock: Self.demoClock,
+                onSwitchRole: { activeRole = .consumer }
+            )
+        case .consumer:
+            ConsumerRootView(
+                backend: container.backend,
+                clientID: Self.demoClientPersonID,
+                clock: Self.demoClock,
+                onSwitchRole: { activeRole = .professional }
+            )
         }
     }
 
@@ -60,6 +95,21 @@ struct RootView: View {
         { InMemoryStore.referenceDate }
         #else
         { Date() }
+        #endif
+    }
+
+    /// The seeded consumer the demo client experience runs against (see
+    /// `InMemoryStore.demoClientPersonID`) — a coherent, hand-picked seeded
+    /// client (an active engagement, an assigned program, an upcoming
+    /// session, coach messages, and consent granted), not an arbitrary or
+    /// empty one. Only meaningful against the seeded `InMemoryStore`
+    /// backend; a future production backend would resolve the signed-in
+    /// person's own client identity instead.
+    private static var demoClientPersonID: Identifier<Person> {
+        #if DEBUG
+        InMemoryStore.demoClientPersonID
+        #else
+        Identifier<Person>()
         #endif
     }
 }

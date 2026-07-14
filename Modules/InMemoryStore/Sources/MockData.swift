@@ -43,6 +43,18 @@ public enum MockData {
     /// a fixed instant keeps the fixture reproducible.
     static let referenceDate = Date(timeIntervalSince1970: 1_700_000_000) // 2023-11-14T22:13:20Z
 
+    /// The seeded consumer the demo consumer/client experience runs
+    /// against (see docs/ROADMAP.md Prompt 15): Morgan Chen — an `.active`
+    /// engagement with an assigned program (`Fat Loss Kickstart`), a
+    /// completed-session history plus one upcoming `.scheduled` session,
+    /// self-reported and coach-recorded `bodyweight` progress, coach
+    /// messages, and outcome-derivation consent granted. Exposed publicly
+    /// (unlike most `MockData` internals) so the App composition root — the
+    /// only place allowed to know this is a demo backend — can wire the
+    /// consumer role's entry point to a coherent seeded client rather than
+    /// an arbitrary/empty one.
+    public static let demoClientPersonID = clientPersonID(1)
+
     /// `referenceDate` offset by `days` (negative = past, positive = future).
     static func date(_ days: Int) -> Date {
         referenceDate.addingTimeInterval(Double(days) * 86_400)

@@ -10,15 +10,18 @@ public struct CoachProfileView: View {
     private let backend: any Backend
     private let professionalID: Identifier<Person>
     private let clock: @Sendable () -> Date
+    private let onSwitchRole: (() -> Void)?
 
     public init(
         backend: any Backend,
         professionalID: Identifier<Person>,
-        clock: @escaping @Sendable () -> Date = { Date() }
+        clock: @escaping @Sendable () -> Date = { Date() },
+        onSwitchRole: (() -> Void)? = nil
     ) {
         self.backend = backend
         self.professionalID = professionalID
         self.clock = clock
+        self.onSwitchRole = onSwitchRole
     }
 
     public var body: some View {
@@ -77,6 +80,20 @@ public struct CoachProfileView: View {
                     }
                 }
                 .padding(.horizontal, Spacing.space4)
+
+                if let onSwitchRole {
+                    SectionHeader("Demo")
+                    Card {
+                        ListRow(
+                            title: "Switch to client view",
+                            subtitle: "Demo role switch — see the same data as a client",
+                            action: onSwitchRole,
+                            leading: { Image(systemName: "arrow.left.arrow.right").foregroundStyle(Color.Ascend.textSecondary) },
+                            trailing: { chevron }
+                        )
+                    }
+                    .padding(.horizontal, Spacing.space4)
+                }
             }
             .padding(.vertical, Spacing.space4)
         }

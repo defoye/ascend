@@ -6,7 +6,7 @@ up. Prompt numbers follow the source build sequence (`Ascend-Build-Prompts.md`).
 `docs/ROADMAP.md` remains the detailed per-prompt checklist; this file is the
 at-a-glance "done / next / needs-you" view.
 
-_Last updated: 2026-07-14 (through Prompt 12)._
+_Last updated: 2026-07-14 (through Prompt 15)._
 
 ## ✅ Done — shipped, built clean, tests green on `InMemoryStore` ($0, no backend)
 
@@ -25,6 +25,7 @@ _Last updated: 2026-07-14 (through Prompt 12)._
 | 10 | Messaging | stream-first chat UI per engagement |
 | 11 | Payments behind a `PaymentGateway` protocol (mock) | `MockPaymentGateway`, coach price-set/charge/history, client pay stub, fee-aware revenue |
 | 12 | Verified Outcomes surface (coach Proof Profile) | derives outcomes via `Domain.derive`, consent-respecting, journeys-not-causation copy |
+| 15 | Consumer/client experience slice | `ConsumerRootView` (4-tab: Today, Progress, Coach, Me), workout player + progress logging, "My Progress" dashboard w/ milestones, outcome-sharing consent toggle (Invariant-1 proof both directions), goal-first onboarding intake — all on `InMemoryStore`, reachable via a demo role switch |
 
 > Note: `docs/ROADMAP.md` carries a stray unchecked "Prompt 10 — Progress logging
 > capture UI" line that duplicates work already delivered in Prompt 9 (a
@@ -36,7 +37,6 @@ _Last updated: 2026-07-14 (through Prompt 12)._
 |---|--------|------------------------------|----------------|
 | 13 | `SupabaseBackend` adapter | Adapter code, SQL migrations, config wiring, build clean on `InMemoryStore` default, skippable integration test | **Supabase project** + `SUPABASE_URL`/`SUPABASE_ANON_KEY` in `Config/Secrets.xcconfig` → then the live round-trip |
 | 14 | Server: Stripe Connect + edge functions | Edge-function code (TS/Deno), `SupabaseBackend`'s `PaymentGateway` wiring, outcomes view/derivation, deploy+secrets docs | **Stripe (Connect test mode) + Supabase** deploy → live charge that writes a `Payment` row |
-| 15 | Consumer/client experience slice | Everything (backend-agnostic, runs on `InMemoryStore`) — client home, workout player, progress, consent, onboarding | — |
 | 16 | Polish, accessibility, App Store readiness | Everything on `InMemoryStore`: a11y, error/empty states, privacy manifest, settings, Debug+Release build, full suite green, tag `v0.1.0` | **Apple Developer account** → archive + TestFlight/App Store upload |
 
 ## 🙋 What needs you (owner action items)

@@ -21,4 +21,8 @@ public enum InMemoryStore {
     /// show upcoming sessions should inject this as its clock rather than
     /// `Date()` (see docs/BACKEND.md, docs/TESTING.md).
     public static let referenceDate = MockData.referenceDate
+
+    /// The seeded consumer the demo consumer/client experience (see
+    /// docs/ROADMAP.md Prompt 15) runs against — mirrors `MockData.demoClientPersonID`.
+    public static let demoClientPersonID = MockData.demoClientPersonID
 }

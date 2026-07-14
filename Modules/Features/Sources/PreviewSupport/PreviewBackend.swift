@@ -31,6 +31,10 @@ struct PreviewBackend: Backend {
     /// `ClientDetailView`) can reference this fixture's primary engagement.
     var engagementAID: Identifier<Engagement> { engagementA }
 
+    /// Exposed so previews of client-facing screens (e.g. `ConsumerHomeView`)
+    /// can reference this fixture's primary client, "Morgan Chen".
+    var clientAID: Identifier<Person> { clientA }
+
     init(professionalID: Identifier<Person> = Identifier()) {
         self.professionalID = professionalID
         let engagementA = Identifier<Engagement>()

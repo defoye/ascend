@@ -16,15 +16,18 @@ public struct CoachRootView: View {
     private let backend: any Backend
     private let professionalID: Identifier<Person>
     private let clock: @Sendable () -> Date
+    private let onSwitchRole: (() -> Void)?
 
     public init(
         backend: any Backend,
         professionalID: Identifier<Person>,
-        clock: @escaping @Sendable () -> Date = { Date() }
+        clock: @escaping @Sendable () -> Date = { Date() },
+        onSwitchRole: (() -> Void)? = nil
     ) {
         self.backend = backend
         self.professionalID = professionalID
         self.clock = clock
+        self.onSwitchRole = onSwitchRole
     }
 
     public var body: some View {
@@ -66,7 +69,7 @@ public struct CoachRootView: View {
             .tabItem { Label("Messages", systemImage: "bubble.left") }
 
             NavigationStack {
-                CoachProfileView(backend: backend, professionalID: professionalID, clock: clock)
+                CoachProfileView(backend: backend, professionalID: professionalID, clock: clock, onSwitchRole: onSwitchRole)
             }
             .tabItem { Label("Profile", systemImage: "person.crop.circle") }
         }

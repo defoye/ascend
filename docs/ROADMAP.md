@@ -134,8 +134,54 @@ contract — adjust as the product dictates.
       documented in docs/BACKEND.md (server work stays Prompt 14).
 - [ ] **Prompt 14** — Payments: Stripe integration via Supabase Edge Functions
       (`Payment` lifecycle, platform fee handling); no Stripe secret keys in the app.
-- [ ] **Prompt 15** — Consumer-facing discovery/marketplace surface (Phase 2 per
-      docs/PRODUCT.md): browsing verified professionals and their outcomes.
+- [x] **Prompt 15** — Consumer/client experience slice, backend-agnostic and
+      built entirely on `InMemoryStore` (see docs/BUILD_STATUS.md — this is
+      the client-facing daily-use surface, distinct from the *discovery/
+      marketplace* surface the founding vision's Phase 2 describes, which
+      remains a later, deliberately deferred layer per docs/PRODUCT.md's
+      provider-first sequencing). `ConsumerRootView` is a 4-tab `TabView`
+      (Today, Progress, Coach, Me) per docs/design/DESIGN_SPEC.md §3,
+      reachable from the App composition root's demo `DemoRole` toggle
+      (`RootView` in `App/Sources/AscendApp.swift`, switchable via a
+      "Switch role" row on each side's Profile/Me tab) against the same
+      seeded backend as the coach side, resolved to a coherent seeded
+      client (`InMemoryStore.demoClientPersonID` / `MockData.demoClientPersonID`
+      — Morgan Chen: an active engagement, an assigned program, an upcoming
+      session, coach messages, and consent granted). Client "Today"
+      (`ConsumerHomeView`/`ConsumerHomeViewModel`) surfaces today's assigned
+      workout (`ConsumerProgramSummaries.currentWorkout`, picked from the
+      engagement's `ProgramAssignment` by elapsed weeks since `startDate`),
+      the next upcoming session (reusing `TodaySummaries.upcomingSessions`),
+      and a coach nudge (the latest coach-authored message), each with a
+      graceful empty state. A workout player
+      (`WorkoutPlayerView`/`WorkoutPlayerViewModel`) steps through the
+      workout's `ExercisePrescription`s with per-set reps/weight logging and
+      a rest timer, and "Finish workout" persists `.clientSelfReported`
+      `ProgressEntry`s (bodyweight check-in, plus any barbell lift whose
+      name maps to a `MetricKind` via
+      `ConsumerProgramSummaries.metricKind(forExerciseNamed:)`) and
+      opportunistically completes a same-day `.scheduled` `Session` via
+      `SessionRepository` — the "activity" pillar `VerifiedOutcome.derive`
+      needs. A "My Progress" dashboard (`ClientProgressView`) reuses
+      `ProgressChart` and `ProgressViewModel` for the client's own charts
+      plus milestone/streak tiles from a pure, unit-tested
+      `ConsumerProgressSummaries` (current/longest logging streaks,
+      per-metric deltas). Consent management (`ConsentView`/
+      `ConsentViewModel`) gives the client an explicit, reversible toggle on
+      `EngagementRepository.consent(for:)`/`setConsent(_:for:)` — the
+      outcome-derivation grant, distinct from photo consent — and toggling
+      it demonstrably flips whether `Domain.VerifiedOutcome.derive` yields
+      an outcome for their engagement in both directions. Goal-first
+      onboarding (`ConsumerOnboardingView`/`ConsumerOnboardingViewModel`)
+      captures a structured intake (goal, experience level, injuries,
+      preferences — no AI assessment, per docs/PRODUCT.md's deferred-AI
+      track) that appends a real `Goal` to `Person.goals` and sends the rest
+      as a summary message to the coach's thread. The "Coach" tab reuses
+      `MessageThreadView` directly for the coaching thread. New tests:
+      `ConsumerProgramSummariesTests`, `ConsumerProgressSummariesTests`,
+      `WorkoutPlayerViewModelTests`, `ConsentEligibilityTests` (the
+      Invariant-1 consent->eligibility proof, both directions),
+      `ConsumerOnboardingViewModelTests`, `ConsumerHomeViewModelTests`.
 - [ ] **Prompt 16** — Polish pass: accessibility audit, performance pass, error/empty
       state coverage, App Store metadata/screenshots.
 
