@@ -31,6 +31,10 @@ public struct TodayView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.space6) {
+                    if let loadErrorMessage = viewModel.loadErrorMessage {
+                        ErrorBanner(message: loadErrorMessage, retry: { Task { await viewModel.load() } })
+                            .padding(.horizontal, Spacing.space4)
+                    }
                     upcomingSection
                     activitySection
                     revenueSection

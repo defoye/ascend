@@ -41,26 +41,39 @@ public struct ConversationsListView: View {
     @ViewBuilder
     private var content: some View {
         if viewModel.conversations.isEmpty && !viewModel.isLoading {
-            EmptyState(
-                systemImage: "bubble.left",
-                title: "No conversations yet",
-                message: "Message threads with your clients will show up here."
-            )
+            VStack(spacing: Spacing.space4) {
+                if let loadErrorMessage = viewModel.loadErrorMessage {
+                    ErrorBanner(message: loadErrorMessage, retry: { Task { await viewModel.load() } })
+                        .padding(.horizontal, Spacing.space4)
+                }
+                EmptyState(
+                    systemImage: "bubble.left",
+                    title: "No conversations yet",
+                    message: "Message threads with your clients will show up here."
+                )
+            }
             .frame(maxHeight: .infinity)
             .background(Color.Ascend.background)
         } else {
             ScrollView {
-                Card {
-                    VStack(spacing: 0) {
-                        ForEach(Array(viewModel.conversations.enumerated()), id: \.element.id) { index, conversation in
-                            if index > 0 {
-                                Divider()
+                VStack(spacing: Spacing.space4) {
+                    if let loadErrorMessage = viewModel.loadErrorMessage {
+                        ErrorBanner(message: loadErrorMessage, retry: { Task { await viewModel.load() } })
+                            .padding(.horizontal, Spacing.space4)
+                    }
+                    Card {
+                        VStack(spacing: 0) {
+                            ForEach(Array(viewModel.conversations.enumerated()), id: \.element.id) { index, conversation in
+                                if index > 0 {
+                                    Divider()
+                                }
+                                conversationRow(conversation)
                             }
-                            conversationRow(conversation)
                         }
                     }
+                    .padding(.horizontal, Spacing.space4)
                 }
-                .padding(Spacing.space4)
+                .padding(.vertical, Spacing.space4)
             }
             .background(Color.Ascend.background)
         }

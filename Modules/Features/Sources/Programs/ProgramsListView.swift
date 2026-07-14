@@ -50,18 +50,28 @@ public struct ProgramsListView: View {
     @ViewBuilder
     private var content: some View {
         if viewModel.programs.isEmpty && !viewModel.isLoading {
-            EmptyState(
-                systemImage: "dumbbell",
-                title: "No programs yet",
-                message: "Build a training program to assign to your clients.",
-                actionTitle: "Create program",
-                action: { showingNewProgram = true }
-            )
+            VStack(spacing: Spacing.space4) {
+                if let loadErrorMessage = viewModel.loadErrorMessage {
+                    ErrorBanner(message: loadErrorMessage, retry: { Task { await viewModel.load() } })
+                        .padding(.horizontal, Spacing.space4)
+                }
+                EmptyState(
+                    systemImage: "dumbbell",
+                    title: "No programs yet",
+                    message: "Build a training program to assign to your clients.",
+                    actionTitle: "Create program",
+                    action: { showingNewProgram = true }
+                )
+            }
             .frame(maxHeight: .infinity)
             .background(Color.Ascend.background)
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.space4) {
+                    if let loadErrorMessage = viewModel.loadErrorMessage {
+                        ErrorBanner(message: loadErrorMessage, retry: { Task { await viewModel.load() } })
+                            .padding(.horizontal, Spacing.space4)
+                    }
                     programsCard
                 }
                 .padding(.vertical, Spacing.space4)

@@ -23,6 +23,10 @@ public struct ChargeClientView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.space6) {
+                    if let loadErrorMessage = viewModel.loadErrorMessage {
+                        ErrorBanner(message: loadErrorMessage, retry: { Task { await viewModel.load() } })
+                            .padding(.horizontal, Spacing.space4)
+                    }
                     clientSection
                     amountSection
                     if let chargeErrorMessage = viewModel.chargeErrorMessage {

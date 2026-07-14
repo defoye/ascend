@@ -38,6 +38,12 @@ public actor InMemoryBackend: Backend {
     var currentAuthState: AuthState = .signedOut
     var registeredUsers: [String: (password: String, user: AuthenticatedUser)] = [:]
 
+    /// The tracker vended by `analytics`. A `RecordingAnalyticsTracker` by
+    /// default so previews/tests/the DEBUG demo build can assert against it
+    /// without any real analytics SDK; a production adapter would inject a
+    /// live one instead (see docs/BACKEND.md).
+    let analyticsTracker: any AnalyticsTracking
+
     // MARK: - Live view registries
 
     var engagementRegistry = StreamRegistry<Identifier<Person>, [Engagement]>()
@@ -51,13 +57,16 @@ public actor InMemoryBackend: Backend {
 
     /// An empty backend with no seed data. Prefer `InMemoryBackend.seeded()` for
     /// DEBUG builds, previews, and tests.
-    public init() {}
+    public init(analyticsTracker: any AnalyticsTracking = RecordingAnalyticsTracker()) {
+        self.analyticsTracker = analyticsTracker
+    }
 
     /// Builds a backend preloaded with `MockData`, synchronously — no `await`
     /// needed at the call site. Safe because actor initializers run their body
     /// before the actor is shared with any other task, so direct stored-property
     /// assignment here never races with a concurrent isolated call.
-    init(mockData: MockData.Snapshot) {
+    init(mockData: MockData.Snapshot, analyticsTracker: any AnalyticsTracking = RecordingAnalyticsTracker()) {
+        self.analyticsTracker = analyticsTracker
         peopleByID = Dictionary(uniqueKeysWithValues: mockData.people.map { ($0.id, $0) })
         professionalProfilesByID = Dictionary(uniqueKeysWithValues: mockData.professionalProfiles.map { ($0.id, $0) })
         engagementsByID = Dictionary(uniqueKeysWithValues: mockData.engagements.map { ($0.id, $0) })
@@ -78,8 +87,13 @@ public actor InMemoryBackend: Backend {
 
     /// A backend preloaded with deterministic `MockData` — the default DEBUG
     /// backend (see docs/BACKEND.md).
-    public static func seeded() -> InMemoryBackend {
-        InMemoryBackend(mockData: MockData.build())
+    ///
+    /// - Parameter analyticsTracker: The analytics seam to vend from
+    ///   `analytics`. Defaults to a `RecordingAnalyticsTracker` so tests can
+    ///   inject their own recording spy and assert exactly which events fired
+    ///   (with no PII) against seeded data — see `AnalyticsNoPIITests`.
+    public static func seeded(analyticsTracker: any AnalyticsTracking = RecordingAnalyticsTracker()) -> InMemoryBackend {
+        InMemoryBackend(mockData: MockData.build(), analyticsTracker: analyticsTracker)
     }
 
     // MARK: - Backend
@@ -98,4 +112,5 @@ public actor InMemoryBackend: Backend {
     nonisolated public var notes: any NotesRepository { self }
     nonisolated public var availability: any AvailabilityRepository { self }
     nonisolated public var auth: any AuthGateway { self }
+    nonisolated public var analytics: any AnalyticsTracking { analyticsTracker }
 }

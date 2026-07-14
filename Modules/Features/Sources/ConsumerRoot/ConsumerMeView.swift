@@ -62,9 +62,7 @@ public struct ConsumerMeView: View {
                 header
                 consentRow
                 onboardingRow
-                if let onSwitchRole {
-                    switchRoleRow(onSwitchRole)
-                }
+                settingsRow
             }
             .padding(.vertical, Spacing.space4)
         }
@@ -138,15 +136,24 @@ public struct ConsumerMeView: View {
         .padding(.horizontal, Spacing.space4)
     }
 
-    private func switchRoleRow(_ action: @escaping () -> Void) -> some View {
+    private var settingsRow: some View {
         Card {
-            ListRow(
-                title: "Switch to coach view",
-                subtitle: "Demo role switch — see the same data as the professional",
-                action: action,
-                leading: { Image(systemName: "arrow.left.arrow.right").foregroundStyle(Color.Ascend.textSecondary) },
-                trailing: { chevron }
-            )
+            NavigationLink {
+                SettingsView(
+                    backend: backend,
+                    personID: clientID,
+                    roleLabel: "Client",
+                    onSwitchRole: onSwitchRole
+                )
+            } label: {
+                ListRow(
+                    title: "Settings",
+                    subtitle: "Notifications, sign out, and account deletion",
+                    leading: { Image(systemName: "gearshape").foregroundStyle(Color.Ascend.textSecondary) },
+                    trailing: { chevron }
+                )
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, Spacing.space4)
     }

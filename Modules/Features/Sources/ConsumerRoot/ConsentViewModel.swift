@@ -49,8 +49,12 @@ public final class ConsentViewModel {
             try await backend.engagements.setConsent(granted, for: engagementID)
             isGranted = granted
             errorMessage = nil
+            // Carries only the engagement id + the resulting boolean — never
+            // a client/coach name (see `AnalyticsTracking`'s no-PII invariant).
+            backend.analytics.track(.consentChanged(engagementID: engagementID, granted: granted))
         } catch {
             errorMessage = "Couldn't update your sharing settings. Try again."
+            backend.analytics.track(.errorOccurred(context: .updateConsent))
         }
     }
 }

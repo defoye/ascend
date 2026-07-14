@@ -81,19 +81,26 @@ public struct CoachProfileView: View {
                 }
                 .padding(.horizontal, Spacing.space4)
 
-                if let onSwitchRole {
-                    SectionHeader("Demo")
-                    Card {
+                SectionHeader("Account")
+                Card {
+                    NavigationLink {
+                        SettingsView(
+                            backend: backend,
+                            personID: professionalID,
+                            roleLabel: "Coach",
+                            onSwitchRole: onSwitchRole
+                        )
+                    } label: {
                         ListRow(
-                            title: "Switch to client view",
-                            subtitle: "Demo role switch — see the same data as a client",
-                            action: onSwitchRole,
-                            leading: { Image(systemName: "arrow.left.arrow.right").foregroundStyle(Color.Ascend.textSecondary) },
+                            title: "Settings",
+                            subtitle: "Notifications, sign out, and account deletion",
+                            leading: { Image(systemName: "gearshape").foregroundStyle(Color.Ascend.textSecondary) },
                             trailing: { chevron }
                         )
                     }
-                    .padding(.horizontal, Spacing.space4)
+                    .buttonStyle(.plain)
                 }
+                .padding(.horizontal, Spacing.space4)
             }
             .padding(.vertical, Spacing.space4)
         }

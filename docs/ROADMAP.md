@@ -182,8 +182,38 @@ contract — adjust as the product dictates.
       `WorkoutPlayerViewModelTests`, `ConsentEligibilityTests` (the
       Invariant-1 consent->eligibility proof, both directions),
       `ConsumerOnboardingViewModelTests`, `ConsumerHomeViewModelTests`.
-- [ ] **Prompt 16** — Polish pass: accessibility audit, performance pass, error/empty
-      state coverage, App Store metadata/screenshots.
+- [x] **Prompt 16** — Polish, accessibility, App Store readiness. Accessibility
+      sweep across the real screens (VoiceOver labels/traits, Dynamic Type via
+      `.ascendType` text styles, >=44pt tap targets, reduce-motion handling on
+      every animation — `AscendButton`, `WorkoutPlayerView`, and the message
+      thread's auto-scroll). Error/empty/loading coverage: a reusable
+      `ErrorBanner` (`DesignSystem`) now surfaces each view model's
+      `loadErrorMessage`/`sendErrorMessage` inline on every list/detail screen
+      instead of a misleading empty state, and view models degrade gracefully
+      (no crashes) on load/write failure. App icon + launch screen + an
+      `App/Resources/Assets.xcassets` catalog (1024² `AppIcon`, dynamic
+      `LaunchBackground` color), wired via a `Project.swift` `resources` glob
+      and `ASSETCATALOG_COMPILER_APPICON_NAME`. Privacy: a
+      `PrivacyInfo.xcprivacy` manifest declaring collected data honestly
+      (fitness metrics + progress photos as SENSITIVE, no tracking), a bundled
+      `docs/PRIVACY_POLICY.md` + in-app `PrivacyPolicyView`, and progress
+      photos confirmed still consent-gated (no regression — verified by the
+      unchanged `photoConsent` gate and `ConsentEligibilityTests`).
+      Analytics/crash behind a mockable `AnalyticsTracking` protocol
+      (`DataInterfaces`) with an `AnalyticsEvent` enum carrying only
+      ids/enums — never names/bodies/photo refs — a `NoOpAnalyticsTracker`
+      Live default and a `RecordingAnalyticsTracker` spy (`InMemoryStore`),
+      proven PII-free by `AnalyticsNoPIITests`. Settings screen
+      (`SettingsView`/`SettingsViewModel`, reachable from both the coach
+      Profile and consumer Me tabs): account, role switch, notification
+      permission toggle, privacy policy, sign out, and IN-APP ACCOUNT
+      DELETION via a pure, unit-tested `AccountDeletionEffect` that actually
+      removes the person's data through the repositories on `InMemoryStore`
+      (`AccountDeletionEffectTests`). Release build configuration builds
+      clean; bundle id/version/entitlements sane. The archive + TestFlight +
+      App Store Connect upload steps (which need the owner's Apple account)
+      are documented in docs/BUILD_STATUS.md's owner action items — Claude
+      cannot run them. Tagged `v0.1.0`.
 
 ## AI capabilities (deferred track)
 

@@ -23,6 +23,10 @@ public struct PaymentHistoryView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.space6) {
+                if let loadErrorMessage = viewModel.loadErrorMessage {
+                    ErrorBanner(message: loadErrorMessage, retry: { Task { await viewModel.load() } })
+                        .padding(.horizontal, Spacing.space4)
+                }
                 revenueSection
                 historySection
             }

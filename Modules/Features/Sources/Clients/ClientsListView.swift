@@ -57,18 +57,28 @@ public struct ClientsListView: View {
     @ViewBuilder
     private var content: some View {
         if viewModel.roster.isEmpty && !viewModel.isLoading {
-            EmptyState(
-                systemImage: "person.2",
-                title: "No clients yet",
-                message: "When you start an engagement with a client, it will show up here.",
-                actionTitle: "Add client",
-                action: { showingAddClient = true }
-            )
+            VStack(spacing: Spacing.space4) {
+                if let loadErrorMessage = viewModel.loadErrorMessage {
+                    ErrorBanner(message: loadErrorMessage, retry: { Task { await viewModel.load() } })
+                        .padding(.horizontal, Spacing.space4)
+                }
+                EmptyState(
+                    systemImage: "person.2",
+                    title: "No clients yet",
+                    message: "When you start an engagement with a client, it will show up here.",
+                    actionTitle: "Add client",
+                    action: { showingAddClient = true }
+                )
+            }
             .frame(maxHeight: .infinity)
             .background(Color.Ascend.background)
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.space4) {
+                    if let loadErrorMessage = viewModel.loadErrorMessage {
+                        ErrorBanner(message: loadErrorMessage, retry: { Task { await viewModel.load() } })
+                            .padding(.horizontal, Spacing.space4)
+                    }
                     filterRow
                     rosterCard
                 }

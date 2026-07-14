@@ -10,6 +10,7 @@ import SwiftUI
 /// `MessageThreadViewModel.send()` (see docs/design/DESIGN_SPEC.md §3, §5).
 public struct MessageThreadView: View {
     @State private var viewModel: MessageThreadViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(viewModel: MessageThreadViewModel) {
         _viewModel = State(wrappedValue: viewModel)
@@ -17,6 +18,10 @@ public struct MessageThreadView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
+            if let loadErrorMessage = viewModel.loadErrorMessage {
+                ErrorBanner(message: loadErrorMessage, retry: { Task { await viewModel.load() } })
+                    .padding(Spacing.space4)
+            }
             threadScrollView
             Divider()
             composeBar
@@ -54,7 +59,7 @@ public struct MessageThreadView: View {
 
     private func scrollToNewest(proxy: ScrollViewProxy, animated: Bool = true) {
         guard let lastID = viewModel.visibleMessages.last?.id else { return }
-        if animated {
+        if animated && !reduceMotion {
             withAnimation {
                 proxy.scrollTo(lastID, anchor: .bottom)
             }
@@ -101,9 +106,16 @@ public struct MessageThreadView: View {
     // MARK: - Compose
 
     private var composeBar: some View {
-        HStack(alignment: .bottom, spacing: Spacing.space2) {
-            AscendTextField(placeholder: "Message", text: $viewModel.draft)
-            sendButton
+        VStack(alignment: .leading, spacing: Spacing.space2) {
+            if let sendErrorMessage = viewModel.sendErrorMessage {
+                Text(sendErrorMessage)
+                    .ascendType(.footnote)
+                    .foregroundStyle(Color.Ascend.danger)
+            }
+            HStack(alignment: .bottom, spacing: Spacing.space2) {
+                AscendTextField(placeholder: "Message", text: $viewModel.draft)
+                sendButton
+            }
         }
         .padding(Spacing.space4)
         .background(Color.Ascend.surface)

@@ -264,6 +264,7 @@ struct PreviewBackend: Backend {
     var notes: any NotesRepository { PreviewNotesRepository(notesByEngagement: notesByEngagement) }
     var availability: any AvailabilityRepository { PreviewAvailabilityRepository(windowsList: availabilityWindowsList) }
     var auth: any AuthGateway { PreviewAuthGateway() }
+    var analytics: any AnalyticsTracking { NoOpAnalyticsTracker() }
 }
 
 private struct PreviewPersonRepository: PersonRepository {

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	Ascend's privacy manifest (App Store requirement — see
+	docs/PRIVACY_POLICY.md for the human-readable policy and
+	`Modules/Features/Sources/Settings/PrivacyPolicyView.swift` for the
+	in-app copy). Declared honestly against what the product actually
+	collects once connected to its production backend (Supabase — see
+	docs/BACKEND.md), not merely against the current $0 InMemoryStore demo
+	build, which persists nothing beyond process memory.
+
+	Ascend does not track users across apps/websites owned by other
+	companies, does not use tracking domains, and does not sell or share
+	data with data brokers. Every data type below is collected solely to
+	provide the coaching relationship the person explicitly asked for
+	(App Functionality), and progress metrics / progress photos are
+	treated as sensitive: photos are consent-gated per engagement (see
+	`EngagementRepository.photoConsent`) and outcome-derivation from
+	progress metrics is separately consent-gated (see
+	`EngagementRepository.consent`) — both must be explicitly granted by
+	the client and are revocable at any time, verified in
+	`ConsentEligibilityTests` and `EngagementProgressView+Photos.swift`'s
+	consent-gating.
+	-->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<!-- Person.displayName — identifies the account within a coaching relationship. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeName</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!-- ProgressEntry metrics: bodyweight, 1RMs, body-fat %, resting heart rate, etc.
+		     (Domain.MetricKind) — sensitive health/fitness data, consent-gated per
+		     engagement (EngagementRepository.consent). -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeFitness</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!-- ProgressPhoto references: consent-gated separately from progress metrics
+		     (EngagementRepository.photoConsent) and never surfaced without it — sensitive. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePhotosorVideos</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!-- Coach<->client Message bodies and CoachNote bodies. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array/>
+</dict>
+</plist>

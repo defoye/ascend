@@ -13,13 +13,23 @@ import ProjectDescriptionHelpers
 // Never hand-edit the generated .xcodeproj / .xcworkspace.
 
 let appInfoPlist: [String: InfoPlist.Value] = [
-    "CFBundleShortVersionString": "1.0",
+    "CFBundleShortVersionString": "0.1.0",
     "CFBundleVersion": "1",
-    "UILaunchScreen": .dictionary([:]),
+    "UILaunchScreen": .dictionary([
+        "UIColorName": .string("LaunchBackground"),
+    ]),
     "UIApplicationSceneManifest": .dictionary([
         "UIApplicationSupportsMultipleScenes": .boolean(false),
     ]),
 ]
+
+// App Store Connect requires an explicit app-icon asset-catalog name (Xcode
+// project templates set this automatically; Tuist-generated targets need it
+// spelled out) — see App/Resources/Assets.xcassets/AppIcon.appiconset.
+let appSettings: Settings = .settings(
+    base: AscendSettings.base.merging(["ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon"]) { _, new in new },
+    defaultSettings: .recommended
+)
 
 let appTarget = Target(
     name: "Ascend",
@@ -29,6 +39,7 @@ let appTarget = Target(
     deploymentTarget: AscendSettings.deploymentTarget,
     infoPlist: .extendingDefault(with: appInfoPlist),
     sources: ["App/Sources/**"],
+    resources: ["App/Resources/**"],
     dependencies: [
         .target(name: "Features"),
         .target(name: "DesignSystem"),
@@ -36,7 +47,7 @@ let appTarget = Target(
         .target(name: "DataInterfaces"),
         .target(name: "Domain"),
     ],
-    settings: AscendSettings.settings
+    settings: appSettings
 )
 
 let domainTarget = Target.ascendFramework(name: "Domain")

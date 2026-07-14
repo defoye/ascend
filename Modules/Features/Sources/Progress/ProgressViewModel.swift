@@ -114,8 +114,12 @@ public final class ProgressViewModel {
             try await backend.engagements.setPhotoConsent(granted, for: engagementID)
             photoConsentGranted = granted
             refreshPhotoSubscription()
+            // Engagement id + boolean only — never a client name or photo
+            // reference (see `AnalyticsTracking`'s no-PII invariant).
+            backend.analytics.track(.photoConsentChanged(engagementID: engagementID, granted: granted))
         } catch {
             loadErrorMessage = "Couldn't update photo sharing. Try again."
+            backend.analytics.track(.errorOccurred(context: .updateConsent))
         }
     }
 

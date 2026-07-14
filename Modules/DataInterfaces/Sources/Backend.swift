@@ -19,4 +19,5 @@ public protocol Backend: Sendable {
     var notes: any NotesRepository { get }
     var availability: any AvailabilityRepository { get }
     var auth: any AuthGateway { get }
+    var analytics: any AnalyticsTracking { get }
 }

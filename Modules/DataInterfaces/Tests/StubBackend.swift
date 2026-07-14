@@ -160,4 +160,5 @@ struct StubBackend: Backend {
     let notes: any NotesRepository = StubNotesRepository()
     let availability: any AvailabilityRepository = StubAvailabilityRepository()
     let auth: any AuthGateway = StubAuthGateway()
+    let analytics: any AnalyticsTracking = NoOpAnalyticsTracker()
 }

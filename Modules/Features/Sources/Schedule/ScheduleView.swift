@@ -82,6 +82,11 @@ public struct ScheduleView: View {
                     .padding(.horizontal, Spacing.space4)
                     .padding(.top, Spacing.space2)
             }
+            if let loadErrorMessage = viewModel.loadErrorMessage {
+                ErrorBanner(message: loadErrorMessage, retry: { Task { await viewModel.load() } })
+                    .padding(.horizontal, Spacing.space4)
+                    .padding(.top, Spacing.space2)
+            }
             if viewModel.groupedDisplayedSessions.isEmpty && !viewModel.isLoading {
                 EmptyState(
                     systemImage: "calendar",

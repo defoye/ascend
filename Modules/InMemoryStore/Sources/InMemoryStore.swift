@@ -10,8 +10,15 @@ import Foundation
 public enum InMemoryStore {
     /// A backend preloaded with deterministic `MockData` — the default DEBUG
     /// backend (see docs/BACKEND.md). Equivalent to `InMemoryBackend.seeded()`.
-    public static func seeded() -> InMemoryBackend {
-        InMemoryBackend.seeded()
+    ///
+    /// - Parameter analyticsTracker: The analytics seam to vend from the
+    ///   backend's `analytics`. Defaults to a `RecordingAnalyticsTracker`;
+    ///   tests inject their own recording spy to assert emitted events carry
+    ///   no PII (see `AnalyticsNoPIITests`).
+    public static func seeded(
+        analyticsTracker: any DataInterfaces.AnalyticsTracking = RecordingAnalyticsTracker()
+    ) -> InMemoryBackend {
+        InMemoryBackend.seeded(analyticsTracker: analyticsTracker)
     }
 
     /// The fixed instant all seeded `MockData` fixture dates are anchored to
