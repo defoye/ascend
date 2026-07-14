@@ -1,3 +1,4 @@
+import DataInterfaces
 import DesignSystem
 import Domain
 import SwiftUI
@@ -11,9 +12,11 @@ import SwiftUI
 /// coach caused the result.
 public struct ConsentView: View {
     @State private var viewModel: ConsentViewModel
+    private let paymentsMode: PaymentsMode
 
-    public init(viewModel: ConsentViewModel) {
+    public init(viewModel: ConsentViewModel, paymentsMode: PaymentsMode = .live) {
         _viewModel = State(wrappedValue: viewModel)
+        self.paymentsMode = paymentsMode
     }
 
     public var body: some View {
@@ -32,7 +35,7 @@ public struct ConsentView: View {
 
     private var toggleCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SectionHeader("Verified journeys")
+            SectionHeader(paymentsMode == .live ? "Verified journeys" : "Tracked results")
             Card {
                 VStack(alignment: .leading, spacing: Spacing.space3) {
                     Toggle(isOn: consentBinding) {
@@ -40,7 +43,7 @@ public struct ConsentView: View {
                             Text("Share my progress")
                                 .ascendType(.headline)
                                 .foregroundStyle(Color.Ascend.textPrimary)
-                            Text("Lets your tracked measurements count toward your coach's verified journeys.")
+                            Text(shareDescription)
                                 .ascendType(.footnote)
                                 .foregroundStyle(Color.Ascend.textSecondary)
                         }
@@ -64,6 +67,13 @@ public struct ConsentView: View {
         )
     }
 
+    private var shareDescription: String {
+        switch paymentsMode {
+        case .live: "Lets your tracked measurements count toward your coach's verified journeys."
+        case .free: "Lets your tracked measurements count toward your coach's tracked results."
+        }
+    }
+
     private var explainerCard: some View {
         VStack(alignment: .leading, spacing: 0) {
             SectionHeader("How this works")
@@ -71,23 +81,52 @@ public struct ConsentView: View {
                 VStack(alignment: .leading, spacing: Spacing.space3) {
                     explainerRow(
                         systemImage: "person.2.badge.gearshape",
-                        text: "A verified journey only exists once you've had a real, established coaching relationship."
+                        text: relationshipRequirementText
                     )
                     explainerRow(
                         systemImage: "checkmark.circle",
-                        text: "It also needs a completed, paid session and at least two measurements over time."
+                        text: sessionRequirementText
                     )
                     explainerRow(
                         systemImage: "eye.slash",
-                        text: "Journeys are shown anonymously — your name is never attached."
+                        text: anonymityText
                     )
                     explainerRow(
                         systemImage: "arrow.uturn.backward",
-                        text: "You can turn this off at any time; it stops new journeys immediately."
+                        text: revocationText
                     )
                 }
             }
             .padding(.horizontal, Spacing.space4)
+        }
+    }
+
+    private var relationshipRequirementText: String {
+        switch paymentsMode {
+        case .live: "A verified journey only exists once you've had a real, established coaching relationship."
+        case .free: "A tracked result only exists once you've had a real, established coaching relationship."
+        }
+    }
+
+    private var sessionRequirementText: String {
+        switch paymentsMode {
+        case .live: "It also needs a completed, paid session and at least two measurements over time."
+        case .free: "It also needs a completed session and at least two measurements over time — "
+            + "a completed payment upgrades it to \u{201C}Verified\u{201D} once payments are turned on."
+        }
+    }
+
+    private var anonymityText: String {
+        switch paymentsMode {
+        case .live: "Journeys are shown anonymously — your name is never attached."
+        case .free: "Results are shown anonymously — your name is never attached."
+        }
+    }
+
+    private var revocationText: String {
+        switch paymentsMode {
+        case .live: "You can turn this off at any time; it stops new journeys immediately."
+        case .free: "You can turn this off at any time; it stops new results immediately."
         }
     }
 

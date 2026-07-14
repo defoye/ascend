@@ -4,20 +4,27 @@ import Foundation
 import Observation
 
 /// View model for the coach's "Today" dashboard: upcoming sessions, recent
-/// client activity, and a platform-fee-aware revenue snapshot, aggregated
-/// across every engagement of a single professional.
+/// client activity, and — while `paymentsMode == .live` — a platform-fee-aware
+/// revenue snapshot, aggregated across every engagement of a single
+/// professional.
 ///
 /// Depends only on `any Backend` (see docs/ARCHITECTURE.md) — never a
 /// concrete backend adapter — so it works unchanged against `InMemoryStore`
-/// today and any future adapter.
+/// today and any future adapter. While `paymentsMode == .free` (see
+/// docs/BUILD_STATUS.md "Rollout strategy — free first, monetize later"),
+/// `revenueSummary` stays `.zero` and no payments are even fetched — there's
+/// no live income to imply yet.
 @MainActor
 @Observable
 public final class TodayViewModel {
     public private(set) var upcomingSessions: [UpcomingSession] = []
     public private(set) var recentActivity: [ActivityItem] = []
+    /// Stays `.zero` while `paymentsMode == .free`.
     public private(set) var revenueSummary: RevenueSummary = .zero
     public private(set) var isLoading = false
     public private(set) var loadErrorMessage: String?
+
+    public let paymentsMode: PaymentsMode
 
     private let backend: any Backend
     private let professionalID: Identifier<Person>
@@ -31,14 +38,16 @@ public final class TodayViewModel {
     public init(
         backend: any Backend,
         professionalID: Identifier<Person>,
+        paymentsMode: PaymentsMode = .live,
         clock: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.backend = backend
         self.professionalID = professionalID
+        self.paymentsMode = paymentsMode
         self.clock = clock
     }
 
-    /// Loads and aggregates the dashboard's three sections from `backend`.
+    /// Loads and aggregates the dashboard's sections from `backend`.
     public func load() async {
         isLoading = true
         defer { isLoading = false }
@@ -54,7 +63,6 @@ public final class TodayViewModel {
             for engagement in engagements {
                 let sessions = try await backend.sessions.fetchSessions(forEngagement: engagement.id)
                 let progress = try await backend.progress.fetchEntries(forEngagement: engagement.id)
-                let payments = try await backend.payments.payments(forEngagement: engagement.id)
                 let messages = await firstSnapshot(of: backend.messages.messages(in: engagement.id))
                 let client = try await backend.people.get(engagement.clientID)
                 let clientName = client?.displayName ?? "Client"
@@ -72,12 +80,14 @@ public final class TodayViewModel {
                     )
                 )
 
-                allPayments.append(contentsOf: payments)
+                if paymentsMode == .live {
+                    allPayments.append(contentsOf: try await backend.payments.payments(forEngagement: engagement.id))
+                }
             }
 
             upcomingSessions = upcoming.sorted { $0.scheduledAt < $1.scheduledAt }
             recentActivity = TodaySummaries.recentActivity(from: activitySources)
-            revenueSummary = TodaySummaries.revenueSummary(from: allPayments, now: now)
+            revenueSummary = paymentsMode == .live ? TodaySummaries.revenueSummary(from: allPayments, now: now) : .zero
             loadErrorMessage = nil
         } catch {
             loadErrorMessage = "Couldn't load your dashboard. Pull to refresh to try again."

@@ -99,6 +99,7 @@ struct ComponentSmokeTests {
         _ = Chip(StatusTone.active.rawValue, style: .status(.active))
         _ = StatTile(label: "Sessions", value: "128", delta: .up("12"))
         _ = VerifiedBadge(style: .filled)
+        _ = TrackedBadge()
         _ = Avatar(name: "Jordan Lee")
         _ = AvatarStack(names: ["Jordan Lee", "Priya Nair", "Sam Okafor", "Ana Costa"])
         _ = EmptyState(systemImage: "tray", title: "Nothing yet", message: "Come back later.")

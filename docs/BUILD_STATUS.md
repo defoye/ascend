@@ -91,6 +91,36 @@ composition root. `.free` hides charge/pay flows and renders outcomes as
 "Tracked"; `.live` restores the mock/Stripe charge flows and "Verified" outcomes.
 Flipping to `.live` is one line once Prompt 14 lands.
 
+**Status: implemented.** `PaymentsMode` (`DataInterfaces/Sources/PaymentsMode.swift`)
+is a two-case enum (`.free`/`.live`) alongside `PaymentGateway` — both `App`
+and `Features` already depend on `DataInterfaces`, so it's visible everywhere
+it's needed without either side depending on a concrete backend. The
+composition root's single switch is `AppContainer.paymentsMode`
+(`App/Sources/AppContainer.swift`), a `static let` defaulted to `.free`;
+`AppContainer.makeBackend(paymentsMode:)` wraps whichever concrete backend it
+builds in `PaymentsModeBackend` (`App/Sources/PaymentsModeBackend.swift`), a
+`Backend` decorator that forwards every repository through unchanged and
+swaps `paymentGateway` for `DataInterfaces.NoOpPaymentGateway` (always
+throws) while `.free`, or the wrapped backend's real gateway while `.live`.
+`RootView` passes `container.paymentsMode` down into `CoachRootView` /
+`ConsumerRootView`, which thread it into the view models/views that branch
+on it: `TodayViewModel`/`TodayView` (revenue snapshot hidden + never fetched
+while `.free`), `CoachProfileView` (the whole "Business" section — pricing,
+charge, payment history — skipped while `.free`), and `ProofProfileViewModel`/
+`ProofProfileView` (Verified journeys via `Domain.VerifiedOutcome.derive`
+while `.live`; "Tracked results" via the new pure `TrackedJourneySummaries`
+— mirrors `derive`'s non-payment pillars verbatim, never constructs a
+`VerifiedOutcome` — while `.free`, rendered with a distinct `TrackedBadge`
+instead of `VerifiedBadge`). The client-facing consent screen
+(`ConsentView`) and "Me" tab copy are mode-aware too, for cohesiveness. A
+DEBUG-only *runtime* toggle in Settings was considered but skipped: making
+`paymentsMode` reactively togglable would require `Backend.paymentGateway`
+(a `nonisolated` synchronous requirement) to read `@MainActor`-isolated
+state, which Swift 6 strict concurrency disallows without `await`. Both
+directions are still fully previewable — every affected View has paired
+`.live`/`.free` `#Preview`s — and switching modes for real is the
+documented one-line change to `AppContainer.paymentsMode`.
+
 | Phase | Ships | Cost | Payments | Backend |
 |---|---|---|---|---|
 | **1 — Private beta** | `v0.1.0` on TestFlight | Apple $99/yr + Supabase free | **Off** (`PaymentsMode.free`), outcomes = "Tracked" | Supabase (Prompt 13) — a runnable Release backend is required; `InMemoryStore` is DEBUG-only mock data |

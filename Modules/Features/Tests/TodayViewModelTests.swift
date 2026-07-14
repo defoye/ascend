@@ -14,7 +14,7 @@ struct TodayViewModelTests {
         let professional = try #require(people.first { $0.roles.contains(.professional) })
 
         let now = InMemoryStore.referenceDate
-        let viewModel = TodayViewModel(backend: backend, professionalID: professional.id, clock: { now })
+        let viewModel = TodayViewModel(backend: backend, professionalID: professional.id, paymentsMode: .live, clock: { now })
         await viewModel.load()
 
         // Upcoming: exactly the two seeded `.scheduled` sessions at
@@ -48,7 +48,7 @@ struct TodayViewModelTests {
     func emptyProfessionalSeesEmptyDashboard() async {
         let backend = InMemoryStore.seeded()
         let now = InMemoryStore.referenceDate
-        let viewModel = TodayViewModel(backend: backend, professionalID: Identifier(), clock: { now })
+        let viewModel = TodayViewModel(backend: backend, professionalID: Identifier(), paymentsMode: .live, clock: { now })
 
         await viewModel.load()
 
@@ -56,5 +56,28 @@ struct TodayViewModelTests {
         #expect(viewModel.recentActivity.isEmpty)
         #expect(viewModel.revenueSummary == .zero)
         #expect(viewModel.loadErrorMessage == nil)
+    }
+
+    @Test(".free mode never surfaces revenue, even though the seeded professional has succeeded payments")
+    func freeModeRevenueStaysZero() async throws {
+        let backend = InMemoryStore.seeded()
+        let people = try await backend.people.list()
+        let professional = try #require(people.first { $0.roles.contains(.professional) })
+        let now = InMemoryStore.referenceDate
+
+        // Sanity: this professional genuinely has revenue in `.live` mode —
+        // otherwise this test wouldn't be isolating the mode's effect.
+        let liveViewModel = TodayViewModel(backend: backend, professionalID: professional.id, paymentsMode: .live, clock: { now })
+        await liveViewModel.load()
+        #expect(!liveViewModel.revenueSummary.isEmpty)
+
+        let freeViewModel = TodayViewModel(backend: backend, professionalID: professional.id, paymentsMode: .free, clock: { now })
+        await freeViewModel.load()
+
+        #expect(freeViewModel.revenueSummary == .zero)
+        #expect(freeViewModel.loadErrorMessage == nil)
+        // Upcoming sessions and activity are unaffected by payments mode.
+        #expect(freeViewModel.upcomingSessions.count == liveViewModel.upcomingSessions.count)
+        #expect(freeViewModel.recentActivity.count == liveViewModel.recentActivity.count)
     }
 }

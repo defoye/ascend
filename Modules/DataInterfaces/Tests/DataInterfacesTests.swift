@@ -44,3 +44,23 @@ struct DataInterfacesTests {
         #expect(sawFinish)
     }
 }
+
+@Suite("PaymentsMode / NoOpPaymentGateway")
+struct PaymentsModeTests {
+    @Test("PaymentsMode has exactly the two documented cases")
+    func paymentsModeCases() {
+        #expect(PaymentsMode.allCases == [.free, .live])
+    }
+
+    @Test("NoOpPaymentGateway throws for every operation — it never fabricates a successful charge")
+    func noOpGatewayAlwaysThrows() async {
+        let gateway = NoOpPaymentGateway()
+
+        await #expect(throws: NoOpPaymentGateway.GatewayError.paymentsNotEnabled) {
+            _ = try await gateway.charge(engagementID: Identifier(), amountCents: 1_000, currency: "USD")
+        }
+        await #expect(throws: NoOpPaymentGateway.GatewayError.paymentsNotEnabled) {
+            _ = try await gateway.refund(paymentID: Identifier())
+        }
+    }
+}

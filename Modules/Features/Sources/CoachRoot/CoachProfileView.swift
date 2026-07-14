@@ -10,17 +10,20 @@ public struct CoachProfileView: View {
     private let backend: any Backend
     private let professionalID: Identifier<Person>
     private let clock: @Sendable () -> Date
+    private let paymentsMode: PaymentsMode
     private let onSwitchRole: (() -> Void)?
 
     public init(
         backend: any Backend,
         professionalID: Identifier<Person>,
         clock: @escaping @Sendable () -> Date = { Date() },
+        paymentsMode: PaymentsMode = .live,
         onSwitchRole: (() -> Void)? = nil
     ) {
         self.backend = backend
         self.professionalID = professionalID
         self.clock = clock
+        self.paymentsMode = paymentsMode
         self.onSwitchRole = onSwitchRole
     }
 
@@ -31,12 +34,16 @@ public struct CoachProfileView: View {
                 Card {
                     NavigationLink {
                         ProofProfileView(
-                            viewModel: ProofProfileViewModel(backend: backend, professionalID: professionalID)
+                            viewModel: ProofProfileViewModel(
+                                backend: backend,
+                                professionalID: professionalID,
+                                paymentsMode: paymentsMode
+                            )
                         )
                     } label: {
                         ListRow(
                             title: "Proof Profile",
-                            subtitle: "Verification, stats, and verified client journeys",
+                            subtitle: proofProfileSubtitle,
                             leading: { Image(systemName: "checkmark.seal").foregroundStyle(Color.Ascend.verified) },
                             trailing: { chevron }
                         )
@@ -45,41 +52,9 @@ public struct CoachProfileView: View {
                 }
                 .padding(.horizontal, Spacing.space4)
 
-                SectionHeader("Business")
-                Card {
-                    VStack(spacing: 0) {
-                        NavigationLink {
-                            ServicePricingView(
-                                viewModel: ServicePricingViewModel(backend: backend, professionalID: professionalID)
-                            )
-                        } label: {
-                            ListRow(
-                                title: "Services & pricing",
-                                subtitle: "Set what you charge for each service",
-                                leading: { Image(systemName: "tag").foregroundStyle(Color.Ascend.primary) },
-                                trailing: { chevron }
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        Divider()
-                        NavigationLink {
-                            PaymentHistoryView(
-                                viewModel: PaymentHistoryViewModel(backend: backend, professionalID: professionalID, clock: clock),
-                                backend: backend,
-                                professionalID: professionalID
-                            )
-                        } label: {
-                            ListRow(
-                                title: "Payments",
-                                subtitle: "Charge clients and view payment history",
-                                leading: { Image(systemName: "creditcard").foregroundStyle(Color.Ascend.primary) },
-                                trailing: { chevron }
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
+                if paymentsMode == .live {
+                    businessSection
                 }
-                .padding(.horizontal, Spacing.space4)
 
                 SectionHeader("Account")
                 Card {
@@ -108,6 +83,59 @@ public struct CoachProfileView: View {
         .navigationTitle("Profile")
     }
 
+    /// The money-flow UI (charge a client, price-setting, payment history)
+    /// is hidden entirely in `.free` mode — see docs/BUILD_STATUS.md
+    /// "Rollout strategy — free first, monetize later": there's no live
+    /// income to charge for or show yet, so the coach's "Business" section
+    /// (and its sole `.live`-only entry point into `ChargeClientView` /
+    /// `PaymentHistoryView` / `ServicePricingView`) is skipped rather than
+    /// shown disabled.
+    @ViewBuilder
+    private var businessSection: some View {
+        SectionHeader("Business")
+        Card {
+            VStack(spacing: 0) {
+                NavigationLink {
+                    ServicePricingView(
+                        viewModel: ServicePricingViewModel(backend: backend, professionalID: professionalID)
+                    )
+                } label: {
+                    ListRow(
+                        title: "Services & pricing",
+                        subtitle: "Set what you charge for each service",
+                        leading: { Image(systemName: "tag").foregroundStyle(Color.Ascend.primary) },
+                        trailing: { chevron }
+                    )
+                }
+                .buttonStyle(.plain)
+                Divider()
+                NavigationLink {
+                    PaymentHistoryView(
+                        viewModel: PaymentHistoryViewModel(backend: backend, professionalID: professionalID, clock: clock),
+                        backend: backend,
+                        professionalID: professionalID
+                    )
+                } label: {
+                    ListRow(
+                        title: "Payments",
+                        subtitle: "Charge clients and view payment history",
+                        leading: { Image(systemName: "creditcard").foregroundStyle(Color.Ascend.primary) },
+                        trailing: { chevron }
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, Spacing.space4)
+    }
+
+    private var proofProfileSubtitle: String {
+        switch paymentsMode {
+        case .live: "Verification, stats, and verified client journeys"
+        case .free: "Verification, stats, and tracked client results"
+        }
+    }
+
     private var chevron: some View {
         Image(systemName: "chevron.right")
             .foregroundStyle(Color.Ascend.textTertiary)
@@ -115,21 +143,32 @@ public struct CoachProfileView: View {
     }
 }
 
-#Preview("CoachProfileView - Light") {
-    CoachProfilePreview()
+#Preview("CoachProfileView - Live - Light") {
+    CoachProfilePreview(paymentsMode: .live)
         .preferredColorScheme(.light)
 }
 
-#Preview("CoachProfileView - Dark") {
-    CoachProfilePreview()
+#Preview("CoachProfileView - Live - Dark") {
+    CoachProfilePreview(paymentsMode: .live)
         .preferredColorScheme(.dark)
 }
 
+#Preview("CoachProfileView - Free - Light") {
+    CoachProfilePreview(paymentsMode: .free)
+        .preferredColorScheme(.light)
+}
+
 private struct CoachProfilePreview: View {
+    let paymentsMode: PaymentsMode
+
     var body: some View {
         let professionalID = Identifier<Person>()
         NavigationStack {
-            CoachProfileView(backend: PreviewBackend(professionalID: professionalID), professionalID: professionalID)
+            CoachProfileView(
+                backend: PreviewBackend(professionalID: professionalID),
+                professionalID: professionalID,
+                paymentsMode: paymentsMode
+            )
         }
     }
 }

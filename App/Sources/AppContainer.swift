@@ -12,9 +12,11 @@ import Observation
 @Observable
 final class AppContainer {
     let backend: any Backend
+    let paymentsMode: PaymentsMode
 
-    init(backend: any Backend) {
+    init(backend: any Backend, paymentsMode: PaymentsMode) {
         self.backend = backend
+        self.paymentsMode = paymentsMode
     }
 
     /// Convenience accessor for the backend's authentication gateway.
@@ -22,14 +24,24 @@ final class AppContainer {
         backend.auth
     }
 
+    /// The single switch for Option B (see docs/BUILD_STATUS.md "Rollout
+    /// strategy — free first, monetize later"): `.free` ships first with no
+    /// live payment flows and "Tracked results" instead of "Verified
+    /// journeys"; flipping this one line to `.live` restores the charge/pay
+    /// UI and the "Verified" badge. Nothing else in the app hardcodes a
+    /// mode — every Features view model that branches on it is handed this
+    /// value from here.
+    static let paymentsMode: PaymentsMode = .free
+
     /// The default container for this build configuration.
     static func live() -> AppContainer {
-        AppContainer(backend: makeBackend())
+        let paymentsMode = Self.paymentsMode
+        return AppContainer(backend: makeBackend(paymentsMode: paymentsMode), paymentsMode: paymentsMode)
     }
 
-    private static func makeBackend() -> any Backend {
+    private static func makeBackend(paymentsMode: PaymentsMode) -> any Backend {
         #if DEBUG
-        return InMemoryStore.seeded()
+        return PaymentsModeBackend(wrapped: InMemoryStore.seeded(), paymentsMode: paymentsMode)
         #else
         fatalError("No production backend configured yet — see docs/BACKEND.md (Prompt 13: SupabaseBackend).")
         #endif

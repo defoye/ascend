@@ -102,13 +102,13 @@ struct PaymentsViewModelTests {
         )
         _ = try await backend.engagements.upsert(engagement)
 
-        let before = TodayViewModel(backend: backend, professionalID: professionalID)
+        let before = TodayViewModel(backend: backend, professionalID: professionalID, paymentsMode: .live)
         await before.load()
         #expect(before.revenueSummary == .zero)
 
         let charged = try await backend.paymentGateway.charge(engagementID: engagement.id, amountCents: 20_000, currency: "USD")
 
-        let after = TodayViewModel(backend: backend, professionalID: professionalID)
+        let after = TodayViewModel(backend: backend, professionalID: professionalID, paymentsMode: .live)
         await after.load()
 
         #expect(after.revenueSummary.count == 1)

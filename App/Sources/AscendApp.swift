@@ -71,6 +71,7 @@ struct RootView: View {
                 backend: container.backend,
                 professionalID: user.personID,
                 clock: Self.demoClock,
+                paymentsMode: container.paymentsMode,
                 onSwitchRole: { activeRole = .consumer }
             )
         case .consumer:
@@ -78,6 +79,7 @@ struct RootView: View {
                 backend: container.backend,
                 clientID: Self.demoClientPersonID,
                 clock: Self.demoClock,
+                paymentsMode: container.paymentsMode,
                 onSwitchRole: { activeRole = .professional }
             )
         }

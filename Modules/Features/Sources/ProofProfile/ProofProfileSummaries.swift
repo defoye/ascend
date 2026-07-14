@@ -82,12 +82,22 @@ public enum ProofProfileSummaries {
     /// claims the coach caused the result. "Client" is a generic role label,
     /// not an identity.
     public static func journeyDescription(for outcome: VerifiedOutcome) -> String {
-        let weeks = max(1, outcome.durationDays / 7)
+        journeyDescription(metric: outcome.metric, start: outcome.start, end: outcome.end, durationDays: outcome.durationDays)
+    }
+
+    /// The same journey copy as `journeyDescription(for:)`, built from
+    /// primitives instead of a `VerifiedOutcome`. Exists so a "Tracked
+    /// results" journey (`TrackedJourneySummaries`, surfaced while
+    /// `PaymentsMode` is `.free`) can render **identical** phrasing without
+    /// ever constructing a `VerifiedOutcome` — Tracked journeys deliberately
+    /// don't have one (Option B, docs/BUILD_STATUS.md).
+    public static func journeyDescription(metric: MetricKind, start: MetricValue, end: MetricValue, durationDays: Int) -> String {
+        let weeks = max(1, durationDays / 7)
         let weekWord = weeks == 1 ? "week" : "weeks"
-        let start = formattedNumber(outcome.start.value)
-        let end = formattedNumber(outcome.end.value)
-        let unit = outcome.end.unit.shortLabel
-        return "Client · \(outcome.metric.displayName) \(start) → \(end) \(unit) · \(weeks) \(weekWord)"
+        let startText = formattedNumber(start.value)
+        let endText = formattedNumber(end.value)
+        let unit = end.unit.shortLabel
+        return "Client · \(metric.displayName) \(startText) → \(endText) \(unit) · \(weeks) \(weekWord)"
     }
 
     private static func formattedNumber(_ value: Double) -> String {

@@ -16,24 +16,27 @@ public struct CoachRootView: View {
     private let backend: any Backend
     private let professionalID: Identifier<Person>
     private let clock: @Sendable () -> Date
+    private let paymentsMode: PaymentsMode
     private let onSwitchRole: (() -> Void)?
 
     public init(
         backend: any Backend,
         professionalID: Identifier<Person>,
         clock: @escaping @Sendable () -> Date = { Date() },
+        paymentsMode: PaymentsMode = .live,
         onSwitchRole: (() -> Void)? = nil
     ) {
         self.backend = backend
         self.professionalID = professionalID
         self.clock = clock
+        self.paymentsMode = paymentsMode
         self.onSwitchRole = onSwitchRole
     }
 
     public var body: some View {
         TabView {
             TodayView(
-                viewModel: TodayViewModel(backend: backend, professionalID: professionalID, clock: clock),
+                viewModel: TodayViewModel(backend: backend, professionalID: professionalID, paymentsMode: paymentsMode, clock: clock),
                 backend: backend,
                 professionalID: professionalID,
                 now: clock
@@ -69,7 +72,13 @@ public struct CoachRootView: View {
             .tabItem { Label("Messages", systemImage: "bubble.left") }
 
             NavigationStack {
-                CoachProfileView(backend: backend, professionalID: professionalID, clock: clock, onSwitchRole: onSwitchRole)
+                CoachProfileView(
+                    backend: backend,
+                    professionalID: professionalID,
+                    clock: clock,
+                    paymentsMode: paymentsMode,
+                    onSwitchRole: onSwitchRole
+                )
             }
             .tabItem { Label("Profile", systemImage: "person.crop.circle") }
         }

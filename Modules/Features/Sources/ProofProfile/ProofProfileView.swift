@@ -122,10 +122,10 @@ public struct ProofProfileView: View {
     @ViewBuilder
     private var explainerSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SectionHeader("How verification works")
+            SectionHeader(viewModel.paymentsMode == .live ? "How verification works" : "How Tracked results work")
             Card {
                 VStack(alignment: .leading, spacing: Spacing.space3) {
-                    Text("A journey only appears here once every one of these is true:")
+                    Text(explainerIntro)
                         .ascendType(.subheadline)
                         .foregroundStyle(Color.Ascend.textSecondary)
                     ForEach(explainerPoints, id: \.self) { point in
@@ -144,18 +144,52 @@ public struct ProofProfileView: View {
         }
     }
 
-    private let explainerPoints = [
-        "An established, ongoing coaching relationship",
-        "At least one completed session together",
-        "At least one succeeded payment",
-        "The client's explicit consent to share their journey",
-        "Two or more measurements of the same metric, recorded over time"
-    ]
+    private var explainerIntro: String {
+        switch viewModel.paymentsMode {
+        case .live: "A journey only appears here once every one of these is true:"
+        case .free: "A tracked result appears here once every one of these is true:"
+        }
+    }
 
-    // MARK: - Verified journeys
+    /// The four non-payment pillars are identical to `VerifiedOutcome.derive`'s
+    /// in both modes (see docs/DATA_MODEL.md) — only the payment pillar's
+    /// framing changes: in `.live` it's a requirement already satisfied by
+    /// every journey shown; in `.free` it's named as what upgrades a Tracked
+    /// result to "Verified" once payments are turned on (Option B, see
+    /// docs/BUILD_STATUS.md "Rollout strategy — free first, monetize later").
+    private var explainerPoints: [String] {
+        switch viewModel.paymentsMode {
+        case .live:
+            [
+                "An established, ongoing coaching relationship",
+                "At least one completed session together",
+                "At least one succeeded payment",
+                "The client's explicit consent to share their journey",
+                "Two or more measurements of the same metric, recorded over time"
+            ]
+        case .free:
+            [
+                "An established, ongoing coaching relationship",
+                "At least one completed session together",
+                "The client's explicit consent to share their journey",
+                "Two or more measurements of the same metric, recorded over time",
+                "A completed payment — activates the \u{201C}Verified\u{201D} badge once payments are turned on"
+            ]
+        }
+    }
+
+    // MARK: - Verified journeys / Tracked results
 
     @ViewBuilder
     private var journeysSection: some View {
+        switch viewModel.paymentsMode {
+        case .live: verifiedJourneysSection
+        case .free: trackedJourneysSection
+        }
+    }
+
+    @ViewBuilder
+    private var verifiedJourneysSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             SectionHeader("Verified journeys")
             Card {
@@ -172,7 +206,7 @@ public struct ProofProfileView: View {
                             if index > 0 {
                                 Divider()
                             }
-                            journeyRow(journey)
+                            journeyRow(description: journey.description, badge: AnyView(VerifiedBadge(style: .compact)))
                         }
                     }
                 }
@@ -181,10 +215,37 @@ public struct ProofProfileView: View {
         }
     }
 
-    private func journeyRow(_ journey: VerifiedJourney) -> some View {
+    @ViewBuilder
+    private var trackedJourneysSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SectionHeader("Tracked results")
+            Card {
+                if viewModel.trackedJourneys.isEmpty {
+                    EmptyState(
+                        systemImage: "chart.line.uptrend.xyaxis",
+                        title: "No tracked results yet",
+                        message: "Results appear here once a client's progress is measured "
+                            + "and consented to be shown. Turn payments on to activate Verified."
+                    )
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(Array(viewModel.trackedJourneys.enumerated()), id: \.element.id) { index, journey in
+                            if index > 0 {
+                                Divider()
+                            }
+                            journeyRow(description: journey.description, badge: AnyView(TrackedBadge()))
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, Spacing.space4)
+        }
+    }
+
+    private func journeyRow(description: String, badge: AnyView) -> some View {
         HStack(spacing: Spacing.space3) {
-            VerifiedBadge(style: .compact)
-            Text(journey.description)
+            badge
+            Text(description)
                 .ascendType(.subheadline)
                 .foregroundStyle(Color.Ascend.textPrimary)
             Spacer(minLength: 0)
@@ -246,24 +307,37 @@ extension VerificationStatus {
     }
 }
 
-#Preview("ProofProfileView - Light") {
-    ProofProfilePreview()
+#Preview("ProofProfileView - Live - Light") {
+    ProofProfilePreview(paymentsMode: .live)
         .preferredColorScheme(.light)
 }
 
-#Preview("ProofProfileView - Dark") {
-    ProofProfilePreview()
+#Preview("ProofProfileView - Live - Dark") {
+    ProofProfilePreview(paymentsMode: .live)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("ProofProfileView - Free (Tracked) - Light") {
+    ProofProfilePreview(paymentsMode: .free)
+        .preferredColorScheme(.light)
+}
+
+#Preview("ProofProfileView - Free (Tracked) - Dark") {
+    ProofProfilePreview(paymentsMode: .free)
         .preferredColorScheme(.dark)
 }
 
 private struct ProofProfilePreview: View {
+    let paymentsMode: PaymentsMode
+
     var body: some View {
         let professionalID = Identifier<Person>()
         NavigationStack {
             ProofProfileView(
                 viewModel: ProofProfileViewModel(
                     backend: PreviewBackend(professionalID: professionalID),
-                    professionalID: professionalID
+                    professionalID: professionalID,
+                    paymentsMode: paymentsMode
                 )
             )
         }

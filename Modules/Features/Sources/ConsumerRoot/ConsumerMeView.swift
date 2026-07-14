@@ -39,6 +39,7 @@ public struct ConsumerMeView: View {
     private let clientID: Identifier<Person>
     private let engagementID: Identifier<Engagement>?
     private let clock: @Sendable () -> Date
+    private let paymentsMode: PaymentsMode
     private let onSwitchRole: (() -> Void)?
 
     public init(
@@ -46,6 +47,7 @@ public struct ConsumerMeView: View {
         clientID: Identifier<Person>,
         engagementID: Identifier<Engagement>?,
         clock: @escaping @Sendable () -> Date = { Date() },
+        paymentsMode: PaymentsMode = .live,
         onSwitchRole: (() -> Void)? = nil
     ) {
         _viewModel = State(wrappedValue: ConsumerMeViewModel(backend: backend, clientID: clientID))
@@ -53,6 +55,7 @@ public struct ConsumerMeView: View {
         self.clientID = clientID
         self.engagementID = engagementID
         self.clock = clock
+        self.paymentsMode = paymentsMode
         self.onSwitchRole = onSwitchRole
     }
 
@@ -108,11 +111,14 @@ public struct ConsumerMeView: View {
         if let engagementID {
             Card {
                 NavigationLink {
-                    ConsentView(viewModel: ConsentViewModel(backend: backend, engagementID: engagementID))
+                    ConsentView(
+                        viewModel: ConsentViewModel(backend: backend, engagementID: engagementID),
+                        paymentsMode: paymentsMode
+                    )
                 } label: {
                     ListRow(
                         title: "Share progress",
-                        subtitle: "Control whether your progress counts toward verified journeys",
+                        subtitle: consentRowSubtitle,
                         leading: { Image(systemName: "checkmark.seal").foregroundStyle(Color.Ascend.verified) },
                         trailing: { chevron }
                     )
@@ -156,6 +162,13 @@ public struct ConsumerMeView: View {
             .buttonStyle(.plain)
         }
         .padding(.horizontal, Spacing.space4)
+    }
+
+    private var consentRowSubtitle: String {
+        switch paymentsMode {
+        case .live: "Control whether your progress counts toward verified journeys"
+        case .free: "Control whether your progress counts toward tracked results"
+        }
     }
 
     private var chevron: some View {

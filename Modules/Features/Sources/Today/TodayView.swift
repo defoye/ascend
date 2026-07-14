@@ -37,7 +37,9 @@ public struct TodayView: View {
                     }
                     upcomingSection
                     activitySection
-                    revenueSection
+                    if viewModel.paymentsMode == .live {
+                        revenueSection
+                    }
                 }
                 .padding(.vertical, Spacing.space4)
             }
@@ -253,13 +255,18 @@ extension MetricKind {
 }
 
 #Preview("TodayView - Light") {
-    TodayPreview()
+    TodayPreview(paymentsMode: .live)
         .preferredColorScheme(.light)
 }
 
 #Preview("TodayView - Dark") {
-    TodayPreview()
+    TodayPreview(paymentsMode: .live)
         .preferredColorScheme(.dark)
+}
+
+#Preview("TodayView - Free (no revenue) - Light") {
+    TodayPreview(paymentsMode: .free)
+        .preferredColorScheme(.light)
 }
 
 /// A self-contained preview fixture, independent of any backend module (see
@@ -267,11 +274,13 @@ extension MetricKind {
 /// the view model's observable state directly rather than loading it, since
 /// `TodayViewModel` only depends on `any Backend`.
 private struct TodayPreview: View {
+    let paymentsMode: PaymentsMode
+
     var body: some View {
         let professionalID = Identifier<Person>()
         let backend = PreviewBackend(professionalID: professionalID)
         TodayView(
-            viewModel: TodayViewModel(backend: backend, professionalID: professionalID),
+            viewModel: TodayViewModel(backend: backend, professionalID: professionalID, paymentsMode: paymentsMode),
             backend: backend,
             professionalID: professionalID,
             reminders: MockSessionReminderScheduler()

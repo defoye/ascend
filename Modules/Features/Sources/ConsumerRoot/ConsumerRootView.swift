@@ -20,6 +20,7 @@ public struct ConsumerRootView: View {
     private let backend: any Backend
     private let clientID: Identifier<Person>
     private let clock: @Sendable () -> Date
+    private let paymentsMode: PaymentsMode
     private let onSwitchRole: (() -> Void)?
 
     @State private var engagement: Engagement?
@@ -29,11 +30,13 @@ public struct ConsumerRootView: View {
         backend: any Backend,
         clientID: Identifier<Person>,
         clock: @escaping @Sendable () -> Date = { Date() },
+        paymentsMode: PaymentsMode = .live,
         onSwitchRole: (() -> Void)? = nil
     ) {
         self.backend = backend
         self.clientID = clientID
         self.clock = clock
+        self.paymentsMode = paymentsMode
         self.onSwitchRole = onSwitchRole
     }
 
@@ -108,6 +111,7 @@ public struct ConsumerRootView: View {
                     clientID: clientID,
                     engagementID: engagement.id,
                     clock: clock,
+                    paymentsMode: paymentsMode,
                     onSwitchRole: onSwitchRole
                 )
             }
