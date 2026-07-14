@@ -107,7 +107,7 @@ contract — adjust as the product dictates.
       capture flow that stores only a reference, never image bytes.
 - [ ] **Prompt 10** — Progress logging: `ProgressEntry` capture UI for coaches and
       clients, per metric.
-- [ ] **Prompt 11** — Messaging: stream-first chat UI per engagement.
+- [x] **Prompt 11** — Messaging: stream-first chat UI per engagement.
 - [ ] **Prompt 12** — Verified Outcomes surface: showing derived outcomes on a
       provider's profile, respecting Invariant 2 (journeys, not causation) in all
       copy.
