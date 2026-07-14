@@ -1,3 +1,4 @@
+import DataInterfaces
 import DesignSystem
 import Domain
 import SwiftUI
@@ -6,11 +7,24 @@ import SwiftUI
 /// activity, and a revenue snapshot (see docs/design/DESIGN_SPEC.md).
 public struct TodayView: View {
     @State private var viewModel: TodayViewModel
-    private let now: () -> Date
+    @State private var showingSchedule = false
+    private let now: @Sendable () -> Date
+    private let backend: any Backend
+    private let professionalID: Identifier<Person>
+    private let reminders: any SessionReminderScheduling
 
-    public init(viewModel: TodayViewModel, now: @escaping () -> Date = { Date() }) {
+    public init(
+        viewModel: TodayViewModel,
+        backend: any Backend,
+        professionalID: Identifier<Person>,
+        now: @escaping @Sendable () -> Date = { Date() },
+        reminders: any SessionReminderScheduling = LiveSessionReminderScheduler()
+    ) {
         _viewModel = State(wrappedValue: viewModel)
+        self.backend = backend
+        self.professionalID = professionalID
         self.now = now
+        self.reminders = reminders
     }
 
     public var body: some View {
@@ -25,6 +39,23 @@ public struct TodayView: View {
             }
             .background(Color.Ascend.background)
             .navigationTitle("Today")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { showingSchedule = true } label: {
+                        Image(systemName: "calendar")
+                    }
+                    .accessibilityLabel("Schedule")
+                }
+            }
+            .navigationDestination(isPresented: $showingSchedule) {
+                ScheduleView(
+                    viewModel: ScheduleViewModel(backend: backend, professionalID: professionalID, clock: now, reminders: reminders),
+                    backend: backend,
+                    professionalID: professionalID,
+                    clock: now,
+                    reminders: reminders
+                )
+            }
             .refreshable { await viewModel.load() }
             .task { await viewModel.load() }
         }
@@ -35,7 +66,7 @@ public struct TodayView: View {
     @ViewBuilder
     private var upcomingSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SectionHeader("Upcoming sessions")
+            SectionHeader("Upcoming sessions", actionTitle: "See all") { showingSchedule = true }
             Card {
                 if viewModel.upcomingSessions.isEmpty {
                     EmptyState(
@@ -234,6 +265,12 @@ extension MetricKind {
 private struct TodayPreview: View {
     var body: some View {
         let professionalID = Identifier<Person>()
-        TodayView(viewModel: TodayViewModel(backend: PreviewBackend(professionalID: professionalID), professionalID: professionalID))
+        let backend = PreviewBackend(professionalID: professionalID)
+        TodayView(
+            viewModel: TodayViewModel(backend: backend, professionalID: professionalID),
+            backend: backend,
+            professionalID: professionalID,
+            reminders: MockSessionReminderScheduler()
+        )
     }
 }

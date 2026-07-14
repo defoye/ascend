@@ -194,6 +194,31 @@ struct InMemoryStoreTests {
         #expect(assignments == [assignment])
     }
 
+    // MARK: - AvailabilityWindow
+
+    @Test("AvailabilityWindow: upsert/fetch/delete round-trip")
+    func availabilityCRUD() async throws {
+        let backend = InMemoryBackend()
+        let professionalID = Identifier<Person>()
+        let window = AvailabilityWindow(id: Identifier(), professionalID: professionalID, weekday: 2, startMinute: 540, endMinute: 1_020)
+
+        _ = try await backend.availability.upsert(window)
+        let fetched = try await backend.availability.windows(forProfessional: professionalID)
+        #expect(fetched == [window])
+
+        try await backend.availability.delete(window.id)
+        let afterDelete = try await backend.availability.windows(forProfessional: professionalID)
+        #expect(afterDelete.isEmpty)
+    }
+
+    @Test("AvailabilityWindow: delete of an unknown id throws")
+    func availabilityDeleteUnknownThrows() async throws {
+        let backend = InMemoryBackend()
+        await #expect(throws: InMemoryStoreError.self) {
+            try await backend.availability.delete(Identifier())
+        }
+    }
+
     // MARK: - Auth
 
     @Test("AuthGateway: sign up, sign in, sign out transitions currentAuthState")

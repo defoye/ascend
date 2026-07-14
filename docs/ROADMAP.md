@@ -50,7 +50,37 @@ contract — adjust as the product dictates.
       `AssignProgramViewModel` → `ProgramRepository.assign(_:)`), is surfaced
       from client detail's Program section and refreshes
       `ClientDetailViewModel` to show the newly-assigned program.
-- [ ] **Prompt 8** — Sessions: scheduling, marking completed/cancelled/no-show.
+- [x] **Prompt 8** — Sessions, scheduling, and coach availability. A pure,
+      unit-tested `SessionTransitions.allowed(from:)` rule governs the
+      `Session` lifecycle (`.scheduled` -> `.completed`/`.cancelled`/
+      `.noShow`, each terminal): `ScheduleViewModel` applies a transition by
+      building a fresh `Session` and persisting it via
+      `SessionRepository.upsert(_:)` — completing a session is the "activity"
+      pillar for `VerifiedOutcome.derive`, and completed sessions stay
+      queryable per engagement via `fetchSessions(forEngagement:)`. A
+      day/week schedule (`ScheduleView`/`ScheduleViewModel`) aggregates every
+      session across all of a professional's engagements, navigable
+      forward/back and centered on an injected clock (reusing
+      `InMemoryStore.referenceDate` in DEBUG so seeded sessions render
+      in-range), with swipe actions to complete/cancel/mark a no-show on
+      `.scheduled` rows. Booking a new session
+      (`BookSessionView`/`BookSessionViewModel`) picks a client engagement and
+      a date/time and creates a `.scheduled` `Session`, which then appears on
+      both the schedule and Today. Added a minimal `AvailabilityWindow`
+      domain type and `AvailabilityRepository` (`DataInterfaces`/
+      `InMemoryStore`, mirroring Prompt 6's `CoachNote`/`NotesRepository`) —
+      see docs/DATA_MODEL.md — backing an availability editor
+      (`AvailabilityEditorView`/`AvailabilityViewModel`) for weekly recurring
+      windows, reachable from the schedule's toolbar and reflected as context
+      on the day/week views. Local session reminders are scheduled behind a
+      mockable `SessionReminderScheduling` protocol: a real
+      `LiveSessionReminderScheduler` (`UNUserNotificationCenter`-backed) is
+      the production default, and a `MockSessionReminderScheduler` spy backs
+      previews and tests — booking schedules a reminder, cancelling removes
+      it, and no test ever touches real notification permission. Today's
+      "Upcoming sessions" section gets a "See all" action (plus a toolbar
+      calendar button) pushing the full `ScheduleView` onto Today's existing
+      `NavigationStack`, keeping the coach tab bar at 5 tabs.
 - [ ] **Prompt 9** — Programs: authoring `Program`/`ProgramWeek`/`Workout`, and
       assigning programs to engagements.
 - [ ] **Prompt 10** — Progress logging: `ProgressEntry` capture UI for coaches and

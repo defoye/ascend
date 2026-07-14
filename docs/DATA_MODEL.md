@@ -70,6 +70,21 @@ that collides with `Identifiable.ID`. Codable as a bare string. `Hashable`,
   (`InMemoryBackend+NotesRepository.swift`), seeded with a note each on two
   engagements in `MockData` (`MockData+Notes.swift`).
 
+## Coach availability
+
+- `AvailabilityWindow(id, professionalID: Identifier<Person>, weekday: Int
+  /* 1=Sun...7=Sat, matching Calendar's `weekday` component */, startMinute: Int
+  /* minutes from midnight */, endMinute: Int)` — a coach's recurring weekly
+  availability window (e.g. "Mondays 9am-5pm"), used to give the schedule
+  view context for when the professional is generally open for sessions.
+  Purely descriptive — it does not block booking a session outside a window.
+  `AvailabilityRepository` (`DataInterfaces`) provides
+  `windows(forProfessional:)`, `upsert(_:)`, and `delete(_:)`; `Backend` vends
+  it as `var availability: any AvailabilityRepository`. Implemented in-memory
+  by `InMemoryBackend` (`InMemoryBackend+AvailabilityRepository.swift`),
+  seeded with a few weekday windows for the professional in `MockData`
+  (`MockData+Availability.swift`).
+
 ## Messaging & payments
 
 - `Message(id, engagementID, authorID: Identifier<Person>, body, sentAt)`

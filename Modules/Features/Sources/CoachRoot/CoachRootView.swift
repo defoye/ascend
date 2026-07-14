@@ -29,8 +29,13 @@ public struct CoachRootView: View {
 
     public var body: some View {
         TabView {
-            TodayView(viewModel: TodayViewModel(backend: backend, professionalID: professionalID, clock: clock), now: clock)
-                .tabItem { Label("Today", systemImage: "calendar") }
+            TodayView(
+                viewModel: TodayViewModel(backend: backend, professionalID: professionalID, clock: clock),
+                backend: backend,
+                professionalID: professionalID,
+                now: clock
+            )
+            .tabItem { Label("Today", systemImage: "calendar") }
 
             NavigationStack {
                 ClientsListView(

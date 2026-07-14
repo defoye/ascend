@@ -23,6 +23,7 @@ struct PreviewBackend: Backend {
     private let notesByEngagement: [Identifier<Engagement>: [CoachNote]]
     private let programsByID: [Identifier<Program>: Program]
     private let assignmentsByEngagement: [Identifier<Engagement>: [ProgramAssignment]]
+    private let availabilityWindowsList: [AvailabilityWindow]
 
     /// Exposed so previews of screens that need a concrete engagement (e.g.
     /// `ClientDetailView`) can reference this fixture's primary engagement.
@@ -53,6 +54,7 @@ struct PreviewBackend: Backend {
         let strengthProgramID = Identifier<Program>()
         programsByID = Self.makePrograms(professionalID: professionalID, strengthProgramID: strengthProgramID)
         assignmentsByEngagement = Self.makeAssignments(engagementA: engagementA, programID: strengthProgramID, now: now)
+        availabilityWindowsList = Self.makeAvailabilityWindows(professionalID: professionalID)
     }
 
     // MARK: - Fixture factories
@@ -208,6 +210,7 @@ struct PreviewBackend: Backend {
     var messages: any MessageRepository { PreviewMessageRepository(messagesByEngagement: messagesByEngagement) }
     var outcomes: any OutcomeRepository { PreviewOutcomeRepository() }
     var notes: any NotesRepository { PreviewNotesRepository(notesByEngagement: notesByEngagement) }
+    var availability: any AvailabilityRepository { PreviewAvailabilityRepository(windowsList: availabilityWindowsList) }
     var auth: any AuthGateway { PreviewAuthGateway() }
 }
 

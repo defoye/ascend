@@ -91,6 +91,12 @@ struct StubNotesRepository: NotesRepository {
     func delete(_ id: Identifier<CoachNote>) async throws {}
 }
 
+struct StubAvailabilityRepository: AvailabilityRepository {
+    func windows(forProfessional professionalID: Identifier<Person>) async throws -> [AvailabilityWindow] { [] }
+    func upsert(_ window: AvailabilityWindow) async throws -> AvailabilityWindow { window }
+    func delete(_ id: Identifier<AvailabilityWindow>) async throws {}
+}
+
 struct StubAuthGateway: AuthGateway {
     var currentAuth: AsyncStream<AuthState> { AsyncStream { $0.finish() } }
     func signIn(email: String, password: String) async throws {}
@@ -109,5 +115,6 @@ struct StubBackend: Backend {
     let messages: any MessageRepository = StubMessageRepository()
     let outcomes: any OutcomeRepository = StubOutcomeRepository()
     let notes: any NotesRepository = StubNotesRepository()
+    let availability: any AvailabilityRepository = StubAvailabilityRepository()
     let auth: any AuthGateway = StubAuthGateway()
 }
