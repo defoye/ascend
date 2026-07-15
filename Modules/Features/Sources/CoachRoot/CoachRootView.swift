@@ -19,6 +19,7 @@ public struct CoachRootView: View {
     private let paymentsMode: PaymentsMode
     private let onSwitchRole: (() -> Void)?
     private let otherRoleHasUpdates: Bool
+    private let onRolesChanged: (() -> Void)?
 
     @State private var selectedTab: Tab = .today
 
@@ -32,7 +33,8 @@ public struct CoachRootView: View {
         clock: @escaping @Sendable () -> Date = { Date() },
         paymentsMode: PaymentsMode = .live,
         onSwitchRole: (() -> Void)? = nil,
-        otherRoleHasUpdates: Bool = false
+        otherRoleHasUpdates: Bool = false,
+        onRolesChanged: (() -> Void)? = nil
     ) {
         self.backend = backend
         self.professionalID = professionalID
@@ -40,6 +42,7 @@ public struct CoachRootView: View {
         self.paymentsMode = paymentsMode
         self.onSwitchRole = onSwitchRole
         self.otherRoleHasUpdates = otherRoleHasUpdates
+        self.onRolesChanged = onRolesChanged
     }
 
     public var body: some View {
@@ -91,7 +94,8 @@ public struct CoachRootView: View {
                     clock: clock,
                     paymentsMode: paymentsMode,
                     onSwitchRole: onSwitchRole,
-                    otherRoleHasUpdates: otherRoleHasUpdates
+                    otherRoleHasUpdates: otherRoleHasUpdates,
+                    onRolesChanged: onRolesChanged
                 )
             }
             .tabItem {

@@ -71,7 +71,7 @@ enum DemoScenarioFactory {
     private static func makeEmptyCoach() async -> DemoBackendBundle {
         let backend = InMemoryBackend()
         let email = "demo-empty-\(UUID().uuidString.prefix(8))@ascend.coach"
-        try? await backend.auth.signUp(email: email, password: "password123", displayName: "New Coach")
+        try? await backend.auth.signUp(email: email, password: "password123", displayName: "New Coach", roles: [.professional])
         guard let personID = await signedInPersonID(backend) else {
             return DemoBackendBundle(backend: backend, professionalID: Identifier<Person>(), clientID: Identifier<Person>())
         }

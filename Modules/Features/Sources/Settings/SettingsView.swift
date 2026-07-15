@@ -23,6 +23,7 @@ public struct SettingsView: View {
     private let onSwitchRole: (() -> Void)?
     private let otherRoleHasUpdates: Bool
     private let otherRoleUpdateSubtitle: String
+    private let onRolesChanged: (() -> Void)?
 
     public init(
         backend: any Backend,
@@ -31,7 +32,8 @@ public struct SettingsView: View {
         reminderScheduler: any SessionReminderScheduling = LiveSessionReminderScheduler(),
         onSwitchRole: (() -> Void)? = nil,
         otherRoleHasUpdates: Bool = false,
-        otherRoleUpdateSubtitle: String = "New activity"
+        otherRoleUpdateSubtitle: String = "New activity",
+        onRolesChanged: (() -> Void)? = nil
     ) {
         _viewModel = State(wrappedValue: SettingsViewModel(backend: backend, personID: personID))
         _reminderScheduler = State(wrappedValue: reminderScheduler)
@@ -39,11 +41,17 @@ public struct SettingsView: View {
         self.onSwitchRole = onSwitchRole
         self.otherRoleHasUpdates = otherRoleHasUpdates
         self.otherRoleUpdateSubtitle = otherRoleUpdateSubtitle
+        self.onRolesChanged = onRolesChanged
     }
 
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                if let errorMessage = viewModel.errorMessage {
+                    ErrorBanner(message: errorMessage)
+                        .padding(.horizontal, Spacing.space4)
+                        .padding(.bottom, Spacing.space4)
+                }
                 accountSection
                 if onSwitchRole != nil {
                     roleSection
@@ -94,21 +102,61 @@ public struct SettingsView: View {
         VStack(alignment: .leading, spacing: 0) {
             SectionHeader("Account")
             Card {
-                HStack(spacing: Spacing.space3) {
-                    Avatar(name: viewModel.displayName.isEmpty ? "You" : viewModel.displayName, size: .md)
-                    VStack(alignment: .leading, spacing: Spacing.space1) {
-                        Text(viewModel.displayName.isEmpty ? "You" : viewModel.displayName)
-                            .ascendType(.headline)
-                            .foregroundStyle(Color.Ascend.textPrimary)
-                        Text(roleLabel)
-                            .ascendType(.subheadline)
-                            .foregroundStyle(Color.Ascend.textSecondary)
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: Spacing.space3) {
+                        Avatar(name: viewModel.displayName.isEmpty ? "You" : viewModel.displayName, size: .md)
+                        VStack(alignment: .leading, spacing: Spacing.space1) {
+                            Text(viewModel.displayName.isEmpty ? "You" : viewModel.displayName)
+                                .ascendType(.headline)
+                                .foregroundStyle(Color.Ascend.textPrimary)
+                            Text(roleLabel)
+                                .ascendType(.subheadline)
+                                .foregroundStyle(Color.Ascend.textSecondary)
+                        }
+                        Spacer(minLength: Spacing.space2)
                     }
-                    Spacer(minLength: Spacing.space2)
+                    .padding(.vertical, Spacing.space1)
+                    .accessibilityElement(children: .combine)
+                    roleUpgradeRow
                 }
-                .accessibilityElement(children: .combine)
             }
             .padding(.horizontal, Spacing.space4)
+        }
+    }
+
+    /// Lets a single-role person add the role they're missing (turning them
+    /// into a both-role person, which unlocks the Prompt-17 role switcher —
+    /// see `onRolesChanged`); a both-role person sees a static status row
+    /// instead, since there's nothing left to add.
+    @ViewBuilder
+    private var roleUpgradeRow: some View {
+        if viewModel.roles.count > 1 {
+            Divider()
+            ListRow(
+                title: "Coach & client",
+                subtitle: "Your account works as both",
+                leading: { Image(systemName: "person.2.fill").foregroundStyle(Color.Ascend.textSecondary) },
+                trailing: { EmptyView() }
+            )
+        } else if let missingRole = viewModel.missingRole {
+            Divider()
+            ListRow(
+                title: missingRole == .professional ? "Also use Ascend as a coach" : "Also use Ascend as a client",
+                subtitle: "Switch between coaching and training anytime",
+                action: {
+                    Task {
+                        if await viewModel.addOtherRole() {
+                            onRolesChanged?()
+                        }
+                    }
+                },
+                leading: { Image(systemName: "person.badge.plus").foregroundStyle(Color.Ascend.primary) },
+                trailing: {
+                    if viewModel.isAddingRole {
+                        ProgressView()
+                    }
+                }
+            )
         }
     }
 

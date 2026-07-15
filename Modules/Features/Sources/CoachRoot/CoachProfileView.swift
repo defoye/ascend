@@ -13,6 +13,7 @@ public struct CoachProfileView: View {
     private let paymentsMode: PaymentsMode
     private let onSwitchRole: (() -> Void)?
     private let otherRoleHasUpdates: Bool
+    private let onRolesChanged: (() -> Void)?
 
     public init(
         backend: any Backend,
@@ -20,7 +21,8 @@ public struct CoachProfileView: View {
         clock: @escaping @Sendable () -> Date = { Date() },
         paymentsMode: PaymentsMode = .live,
         onSwitchRole: (() -> Void)? = nil,
-        otherRoleHasUpdates: Bool = false
+        otherRoleHasUpdates: Bool = false,
+        onRolesChanged: (() -> Void)? = nil
     ) {
         self.backend = backend
         self.professionalID = professionalID
@@ -28,6 +30,7 @@ public struct CoachProfileView: View {
         self.paymentsMode = paymentsMode
         self.onSwitchRole = onSwitchRole
         self.otherRoleHasUpdates = otherRoleHasUpdates
+        self.onRolesChanged = onRolesChanged
     }
 
     public var body: some View {
@@ -68,7 +71,8 @@ public struct CoachProfileView: View {
                             roleLabel: "Coach",
                             onSwitchRole: onSwitchRole,
                             otherRoleHasUpdates: otherRoleHasUpdates,
-                            otherRoleUpdateSubtitle: "New client activity"
+                            otherRoleUpdateSubtitle: "New client activity",
+                            onRolesChanged: onRolesChanged
                         )
                     } label: {
                         ListRow(

@@ -23,6 +23,7 @@ public struct ConsumerRootView: View {
     private let paymentsMode: PaymentsMode
     private let onSwitchRole: (() -> Void)?
     private let otherRoleHasUpdates: Bool
+    private let onRolesChanged: (() -> Void)?
 
     @State private var engagement: Engagement?
     @State private var isResolvingEngagement = true
@@ -38,7 +39,8 @@ public struct ConsumerRootView: View {
         clock: @escaping @Sendable () -> Date = { Date() },
         paymentsMode: PaymentsMode = .live,
         onSwitchRole: (() -> Void)? = nil,
-        otherRoleHasUpdates: Bool = false
+        otherRoleHasUpdates: Bool = false,
+        onRolesChanged: (() -> Void)? = nil
     ) {
         self.backend = backend
         self.clientID = clientID
@@ -46,6 +48,7 @@ public struct ConsumerRootView: View {
         self.paymentsMode = paymentsMode
         self.onSwitchRole = onSwitchRole
         self.otherRoleHasUpdates = otherRoleHasUpdates
+        self.onRolesChanged = onRolesChanged
     }
 
     public var body: some View {
@@ -124,7 +127,8 @@ public struct ConsumerRootView: View {
                     clock: clock,
                     paymentsMode: paymentsMode,
                     onSwitchRole: onSwitchRole,
-                    otherRoleHasUpdates: otherRoleHasUpdates
+                    otherRoleHasUpdates: otherRoleHasUpdates,
+                    onRolesChanged: onRolesChanged
                 )
             }
             .tabItem {

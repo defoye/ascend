@@ -46,7 +46,7 @@ struct PreviewBackend: Backend {
         let clientA = self.clientA
         let clientB = self.clientB
 
-        peopleByID = Self.makePeople(clientA: clientA, clientB: clientB)
+        peopleByID = Self.makePeople(professionalID: professionalID, clientA: clientA, clientB: clientB)
         engagementsList = Self.makeEngagements(
             engagementA: engagementA, engagementB: engagementB,
             clientA: clientA, clientB: clientB,
@@ -67,8 +67,13 @@ struct PreviewBackend: Backend {
 
     // MARK: - Fixture factories
 
-    private static func makePeople(clientA: Identifier<Person>, clientB: Identifier<Person>) -> [Identifier<Person>: Person] {
+    private static func makePeople(
+        professionalID: Identifier<Person>,
+        clientA: Identifier<Person>,
+        clientB: Identifier<Person>
+    ) -> [Identifier<Person>: Person] {
         [
+            professionalID: Person(id: professionalID, displayName: "Jordan Ellis", roles: [.professional], goals: []),
             clientA: Person(id: clientA, displayName: "Morgan Chen", roles: [.consumer], goals: []),
             clientB: Person(id: clientB, displayName: "Sam Patel", roles: [.consumer], goals: [])
         ]
@@ -374,9 +379,9 @@ private struct PreviewNotesRepository: NotesRepository {
     func delete(_ id: Identifier<CoachNote>) async throws {}
 }
 
-private struct PreviewAuthGateway: AuthGateway {
+struct PreviewAuthGateway: AuthGateway {
     var currentAuth: AsyncStream<AuthState> { AsyncStream { $0.finish() } }
     func signIn(email: String, password: String) async throws {}
-    func signUp(email: String, password: String, displayName: String) async throws {}
+    func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws {}
     func signOut() async throws {}
 }

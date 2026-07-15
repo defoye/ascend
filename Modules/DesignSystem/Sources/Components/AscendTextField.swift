@@ -15,7 +15,21 @@ public struct AscendTextFieldStyle: TextFieldStyle {
     // `_body` is SwiftUI's required `TextFieldStyle` protocol method name.
     // swiftlint:disable:next identifier_name
     public func _body(configuration: TextField<Self._Label>) -> some View {
-        configuration
+        configuration.modifier(AscendFieldChrome(isFocused: isFocused, hasError: hasError))
+    }
+}
+
+/// The visual chrome shared by `AscendTextFieldStyle` (for `TextField`) and
+/// `AscendTextField`'s `SecureField` branch: a custom `TextFieldStyle`'s
+/// `_body(configuration:)` is typed to `TextField<Label>` specifically and
+/// is not honored by `SecureField`, so the secure branch applies this same
+/// modifier directly instead of going through `.textFieldStyle(_:)`.
+private struct AscendFieldChrome: ViewModifier {
+    let isFocused: Bool
+    let hasError: Bool
+
+    func body(content: Content) -> some View {
+        content
             .ascendType(.body)
             .foregroundStyle(Color.Ascend.textPrimary)
             .padding(.horizontal, Spacing.space3)
@@ -42,6 +56,7 @@ public struct AscendTextFieldStyle: TextFieldStyle {
 public struct AscendTextField: View {
     private let label: String?
     private let placeholder: String
+    private let isSecure: Bool
     private let helperText: String?
     private let errorText: String?
     @Binding private var text: String
@@ -51,12 +66,14 @@ public struct AscendTextField: View {
         label: String? = nil,
         placeholder: String = "",
         text: Binding<String>,
+        isSecure: Bool = false,
         helperText: String? = nil,
         errorText: String? = nil
     ) {
         self.label = label
         self.placeholder = placeholder
         self._text = text
+        self.isSecure = isSecure
         self.helperText = helperText
         self.errorText = errorText
     }
@@ -69,15 +86,10 @@ public struct AscendTextField: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(Color.Ascend.textSecondary)
             }
-            TextField(
-                "",
-                text: $text,
-                prompt: Text(placeholder).foregroundStyle(Color.Ascend.textTertiary)
-            )
-            .focused($isFocused)
-            .textFieldStyle(AscendTextFieldStyle(isFocused: isFocused, hasError: errorText != nil))
-            .accessibilityLabel(label ?? placeholder)
-            .accessibilityHint(errorText ?? helperText ?? "")
+            field
+                .focused($isFocused)
+                .accessibilityLabel(label ?? placeholder)
+                .accessibilityHint(errorText ?? helperText ?? "")
             if let errorText {
                 Text(errorText)
                     .ascendType(.footnote)
@@ -87,6 +99,25 @@ public struct AscendTextField: View {
                     .ascendType(.footnote)
                     .foregroundStyle(Color.Ascend.textSecondary)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var field: some View {
+        if isSecure {
+            SecureField(
+                "",
+                text: $text,
+                prompt: Text(placeholder).foregroundStyle(Color.Ascend.textTertiary)
+            )
+            .modifier(AscendFieldChrome(isFocused: isFocused, hasError: errorText != nil))
+        } else {
+            TextField(
+                "",
+                text: $text,
+                prompt: Text(placeholder).foregroundStyle(Color.Ascend.textTertiary)
+            )
+            .textFieldStyle(AscendTextFieldStyle(isFocused: isFocused, hasError: errorText != nil))
         }
     }
 }
@@ -110,7 +141,13 @@ private struct AscendTextFieldPreviewGallery: View {
         VStack(spacing: Spacing.space4) {
             AscendTextField(label: "Full name", placeholder: "Jordan Lee", text: $name, helperText: "Shown on your public profile")
             AscendTextField(label: "Email", text: $email)
-            AscendTextField(label: "Password", placeholder: "Required", text: $password, errorText: "Password must be at least 8 characters")
+            AscendTextField(
+                label: "Password",
+                placeholder: "Required",
+                text: $password,
+                isSecure: true,
+                errorText: "Password must be at least 8 characters"
+            )
         }
         .padding(Spacing.space4)
         .background(Color.Ascend.background)

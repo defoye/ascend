@@ -27,7 +27,11 @@ struct AscendApp: App {
 /// Root view: switches on live authentication state from `container.backend.auth`.
 /// The seeded `InMemoryStore` backend (see `AppContainer`) starts **signed in**
 /// as the demo professional (Jordan Ellis), so the coach dashboard renders
-/// immediately at launch. A real sign-in flow for `.signedOut` is a later prompt.
+/// immediately at launch. Signing out (Settings ▸ Sign out) lands on
+/// `Features`' `AuthView` — a real sign-in/sign-up flow with a role picker
+/// (see `AuthViewModel`) that creates a `Person` with the chosen `roles` on
+/// sign-up; `currentAuth` transitions back to `.signedIn` automatically on
+/// success.
 ///
 /// The active role is persisted and roles-gated (see `RolePresenceStore`,
 /// `RoleGating`): a person who holds only one `PersonRole` is forced onto it
@@ -61,7 +65,7 @@ struct RootView: View {
                 roleRoot(for: user)
                 #endif
             case .signedOut:
-                SignedOutView()
+                AuthView(viewModel: AuthViewModel(auth: container.auth))
             }
         }
         .task {
@@ -133,6 +137,15 @@ struct RootView: View {
         rolePresence.activeRole = role
     }
 
+    /// Re-resolves role gating for the signed-in person against the
+    /// `Backend` (rather than a stale in-memory value), so a role added via
+    /// Settings (`SettingsViewModel.addOtherRole`) unlocks the Prompt-17
+    /// role switcher immediately — no reinstall or relaunch required.
+    private func refreshRoleGating() {
+        guard let personID = signedInPersonID else { return }
+        Task { await resolveRoleGating(personID: personID) }
+    }
+
     #if DEBUG
     @ViewBuilder
     private var demoRoot: some View {
@@ -174,7 +187,8 @@ struct RootView: View {
                 clock: Self.demoClock,
                 paymentsMode: container.paymentsMode,
                 onSwitchRole: switcherAvailable ? { switchRole(to: .consumer) } : nil,
-                otherRoleHasUpdates: otherRoleHasUpdates
+                otherRoleHasUpdates: otherRoleHasUpdates,
+                onRolesChanged: refreshRoleGating
             )
         case .consumer:
             ConsumerRootView(
@@ -183,7 +197,8 @@ struct RootView: View {
                 clock: Self.demoClock,
                 paymentsMode: container.paymentsMode,
                 onSwitchRole: switcherAvailable ? { switchRole(to: .professional) } : nil,
-                otherRoleHasUpdates: otherRoleHasUpdates
+                otherRoleHasUpdates: otherRoleHasUpdates,
+                onRolesChanged: refreshRoleGating
             )
         }
     }
@@ -216,25 +231,6 @@ struct RootView: View {
         #else
         Identifier<Person>()
         #endif
-    }
-}
-
-/// Minimal placeholder shown while signed out. A real sign-in screen is a
-/// later prompt; this just keeps the composition root's auth-state switch
-/// exhaustive.
-private struct SignedOutView: View {
-    var body: some View {
-        VStack(spacing: Spacing.space4) {
-            Text("Signed out")
-                .ascendType(.title2)
-                .foregroundStyle(Color.Ascend.textPrimary)
-            Text("Sign-in is coming in a later prompt.")
-                .ascendType(.subheadline)
-                .foregroundStyle(Color.Ascend.textSecondary)
-        }
-        .padding(Spacing.space6)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.Ascend.background)
     }
 }
 

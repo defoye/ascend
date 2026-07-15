@@ -35,8 +35,16 @@ extension SupabaseBackend: AuthGateway {
         try await client.auth.signIn(email: email, password: password)
     }
 
-    public func signUp(email: String, password: String, displayName: String) async throws {
-        try await client.auth.signUp(email: email, password: password, data: ["display_name": .string(displayName)])
+    public func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws {
+        guard !roles.isEmpty else { throw AuthGatewayError.rolesRequired }
+        try await client.auth.signUp(
+            email: email,
+            password: password,
+            data: [
+                "display_name": .string(displayName),
+                "roles": .array(roles.map { .string($0.rawValue) })
+            ]
+        )
     }
 
     public func signOut() async throws {
@@ -56,7 +64,8 @@ extension SupabaseBackend: AuthGateway {
 
         let table = SupabaseTable<PersonRow>(client: client, queue: queue, table: "people")
         if try await table.fetchOne(id: personID.rawValue) == nil {
-            try await table.upsert(PersonRow(id: personID, displayName: displayName, roles: [.consumer]))
+            let roles = roles(from: session.user.userMetadata) ?? [.consumer]
+            try await table.upsert(PersonRow(id: personID, displayName: displayName, roles: roles))
         }
 
         return AuthenticatedUser(personID: personID, displayName: displayName, email: email)
@@ -65,5 +74,19 @@ extension SupabaseBackend: AuthGateway {
     private static func displayName(from metadata: [String: AnyJSON]) -> String? {
         guard case .string(let name) = metadata["display_name"] else { return nil }
         return name
+    }
+
+    /// Reads the role(s) chosen at sign-up back out of `user_metadata` (see
+    /// `signUp`, which stashes them there — Supabase Auth has no first-class
+    /// "roles" field). `nil` when absent (e.g. an identity created directly
+    /// in the Supabase dashboard, or a legacy sign-up predating this field),
+    /// so the caller can fall back to a sane default.
+    private static func roles(from metadata: [String: AnyJSON]) -> Set<PersonRole>? {
+        guard case .array(let values) = metadata["roles"] else { return nil }
+        let roles = values.compactMap { value -> PersonRole? in
+            guard case .string(let raw) = value else { return nil }
+            return PersonRole(rawValue: raw)
+        }
+        return roles.isEmpty ? nil : Set(roles)
     }
 }

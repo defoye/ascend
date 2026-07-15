@@ -1,3 +1,5 @@
+import Domain
+
 /// Authentication, independent of any concrete provider (Supabase Auth, etc. — see
 /// docs/BACKEND.md).
 public protocol AuthGateway: Sendable {
@@ -6,6 +8,12 @@ public protocol AuthGateway: Sendable {
     var currentAuth: AsyncStream<AuthState> { get }
 
     func signIn(email: String, password: String) async throws
-    func signUp(email: String, password: String, displayName: String) async throws
+    /// Creates a new `Person` and signs them in. `roles` is the role(s) they
+    /// chose at sign-up (see docs/PRODUCT.md "Roles") — "Coach" ->
+    /// `[.professional]`, "Training with a coach" -> `[.consumer]`, "Both"
+    /// -> both. Must be non-empty; implementations throw
+    /// `AuthGatewayError.rolesRequired` otherwise. Roles are editable later
+    /// via `PersonRepository.upsert`.
+    func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws
     func signOut() async throws
 }

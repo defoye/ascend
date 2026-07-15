@@ -224,7 +224,7 @@ struct InMemoryStoreTests {
     @Test("AuthGateway: sign up, sign in, sign out transitions currentAuthState")
     func authFlow() async throws {
         let backend = InMemoryBackend()
-        try await backend.signUp(email: "new@example.com", password: "secret", displayName: "New User")
+        try await backend.signUp(email: "new@example.com", password: "secret", displayName: "New User", roles: [.consumer])
         try await backend.signOut()
 
         await #expect(throws: InMemoryStoreError.self) {
@@ -232,5 +232,57 @@ struct InMemoryStoreTests {
         }
 
         try await backend.signIn(email: "new@example.com", password: "secret")
+    }
+
+    @Test("AuthGateway: signUp(roles:) sets exactly the coach-only roles on the created Person")
+    func signUpCoachOnlySetsRoles() async throws {
+        let backend = InMemoryBackend()
+        try await backend.signUp(email: "coach@example.com", password: "secret", displayName: "Coach Only", roles: [.professional])
+
+        guard case let .signedIn(user) = await backend.currentAuthState else {
+            Issue.record("Expected signed-in state after sign-up")
+            return
+        }
+        let person = try await backend.people.get(user.personID)
+        #expect(person?.roles == [.professional])
+    }
+
+    @Test("AuthGateway: signUp(roles:) sets exactly the client-only roles on the created Person")
+    func signUpClientOnlySetsRoles() async throws {
+        let backend = InMemoryBackend()
+        try await backend.signUp(email: "client@example.com", password: "secret", displayName: "Client Only", roles: [.consumer])
+
+        guard case let .signedIn(user) = await backend.currentAuthState else {
+            Issue.record("Expected signed-in state after sign-up")
+            return
+        }
+        let person = try await backend.people.get(user.personID)
+        #expect(person?.roles == [.consumer])
+    }
+
+    @Test("AuthGateway: signUp(roles:) sets both roles when both are chosen")
+    func signUpBothSetsRoles() async throws {
+        let backend = InMemoryBackend()
+        try await backend.signUp(
+            email: "both@example.com",
+            password: "secret",
+            displayName: "Both Roles",
+            roles: [.professional, .consumer]
+        )
+
+        guard case let .signedIn(user) = await backend.currentAuthState else {
+            Issue.record("Expected signed-in state after sign-up")
+            return
+        }
+        let person = try await backend.people.get(user.personID)
+        #expect(person?.roles == [.professional, .consumer])
+    }
+
+    @Test("AuthGateway: signUp with an empty roles set is rejected")
+    func signUpEmptyRolesRejected() async throws {
+        let backend = InMemoryBackend()
+        await #expect(throws: AuthGatewayError.rolesRequired) {
+            try await backend.signUp(email: "norole@example.com", password: "secret", displayName: "No Role", roles: [])
+        }
     }
 }

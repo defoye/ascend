@@ -42,6 +42,7 @@ public struct ConsumerMeView: View {
     private let paymentsMode: PaymentsMode
     private let onSwitchRole: (() -> Void)?
     private let otherRoleHasUpdates: Bool
+    private let onRolesChanged: (() -> Void)?
 
     public init(
         backend: any Backend,
@@ -50,7 +51,8 @@ public struct ConsumerMeView: View {
         clock: @escaping @Sendable () -> Date = { Date() },
         paymentsMode: PaymentsMode = .live,
         onSwitchRole: (() -> Void)? = nil,
-        otherRoleHasUpdates: Bool = false
+        otherRoleHasUpdates: Bool = false,
+        onRolesChanged: (() -> Void)? = nil
     ) {
         _viewModel = State(wrappedValue: ConsumerMeViewModel(backend: backend, clientID: clientID))
         self.backend = backend
@@ -60,6 +62,7 @@ public struct ConsumerMeView: View {
         self.paymentsMode = paymentsMode
         self.onSwitchRole = onSwitchRole
         self.otherRoleHasUpdates = otherRoleHasUpdates
+        self.onRolesChanged = onRolesChanged
     }
 
     public var body: some View {
@@ -154,7 +157,8 @@ public struct ConsumerMeView: View {
                     roleLabel: "Client",
                     onSwitchRole: onSwitchRole,
                     otherRoleHasUpdates: otherRoleHasUpdates,
-                    otherRoleUpdateSubtitle: "New from your coach"
+                    otherRoleUpdateSubtitle: "New from your coach",
+                    onRolesChanged: onRolesChanged
                 )
             } label: {
                 ListRow(

@@ -280,6 +280,28 @@ contract — adjust as the product dictates.
       both-role path — and the existing demo "Switch role" flow — stays
       exercised. New tests: `RoleActivitySummaryTests` (`FeaturesTests`),
       `RolePresenceStoreTests`/`RoleGatingTests` (`AscendTests`).
+- [x] **Prompt 18** — Real sign-in / sign-up flow with role selection, plus
+      editable roles in Settings. `AuthGateway.signUp` now carries
+      `roles: Set<PersonRole>` (validated non-empty via a shared
+      `AuthGatewayError.rolesRequired`); both adapters honor it — InMemoryStore
+      creates the `Person` with exactly those roles, and SupabaseBackend stashes
+      them in Auth `user_metadata` and reads them back when it first
+      materializes the `people` row. A new `AuthView`/`AuthViewModel`
+      (`Features`) replaces the old `SignedOutView` placeholder: a sign-in ↔
+      sign-up toggle built from DesignSystem components (`AscendTextField` — now
+      with a secure-entry variant — `AscendButton`, `ErrorBanner`), inline field
+      validation, a loading state on the submit button, and a role picker
+      ("Coach" -> `[.professional]`, "Training with a coach" -> `[.consumer]`,
+      "Both" -> both). Wired into `RootView`'s `.signedOut` branch;
+      `currentAuth` transitions the root automatically on success. Settings gains
+      an "Account" affordance: a single-role person can add the role they lack
+      (`SettingsViewModel.addOtherRole` -> `PersonRepository.upsert`), and
+      `RootView` re-resolves role gating via a threaded `onRolesChanged` callback
+      so the Prompt-17 switcher unlocks with no reinstall; a both-role person
+      sees a static "Coach & client" status instead. New tests:
+      `AuthViewModelTests` + `SettingsViewModelTests` (`FeaturesTests`), plus
+      `signUp(roles:)` coverage (coach/client/both + empty-rejected) in
+      `InMemoryStoreTests`.
 
 ## AI capabilities (deferred track)
 
