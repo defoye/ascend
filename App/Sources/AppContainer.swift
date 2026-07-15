@@ -1,6 +1,7 @@
 import DataInterfaces
 import InMemoryStore
 import Observation
+import SupabaseBackend
 
 /// The App target's composition root state (see docs/ARCHITECTURE.md): the one
 /// place that knows which concrete `Backend` adapter is in use.
@@ -41,9 +42,26 @@ final class AppContainer {
 
     private static func makeBackend(paymentsMode: PaymentsMode) -> any Backend {
         #if DEBUG
+        // DEBUG always uses InMemoryStore — zero-cost, offline, and what
+        // every preview/unit test runs against (see docs/BACKEND.md,
+        // docs/TESTING.md). This is unconditional: DEBUG never reads
+        // Supabase credentials, so a fresh checkout with no
+        // Config/Secrets.xcconfig still builds and runs Debug with zero setup.
         return PaymentsModeBackend(wrapped: InMemoryStore.seeded(), paymentsMode: paymentsMode)
         #else
-        fatalError("No production backend configured yet — see docs/BACKEND.md (Prompt 13: SupabaseBackend).")
+        // Release is the only configuration backed by Config/Secrets.xcconfig
+        // (see Project.swift's `appSettings`) — SupabaseBackend is the
+        // production adapter (docs/BACKEND.md, docs/ARCHITECTURE.md). A
+        // missing/invalid SUPABASE_URL or SUPABASE_ANON_KEY fails loudly
+        // rather than silently falling back to a demo backend in a shipped
+        // build.
+        do {
+            let credentials = try SupabaseConfig.read()
+            let supabase = SupabaseBackend(supabaseURL: credentials.url, supabaseKey: credentials.anonKey)
+            return PaymentsModeBackend(wrapped: supabase, paymentsMode: paymentsMode)
+        } catch {
+            fatalError("SupabaseBackend configuration failed: \(error). See docs/BACKEND.md.")
+        }
         #endif
     }
 }

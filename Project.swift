@@ -2,10 +2,11 @@ import ProjectDescription
 import ProjectDescriptionHelpers
 
 // Ascend — dependency rule (see docs/ARCHITECTURE.md):
-//   App          -> Features, DesignSystem, InMemoryStore, DataInterfaces, Domain
+//   App          -> Features, DesignSystem, InMemoryStore, SupabaseBackend, DataInterfaces, Domain
 //   Domain       -> (none; Foundation only)
 //   DataInterfaces -> Domain
 //   InMemoryStore  -> DataInterfaces, Domain
+//   SupabaseBackend -> DataInterfaces, Domain, supabase-swift (package; App-only production adapter)
 //   DesignSystem   -> (none)
 //   Features       -> DesignSystem, DataInterfaces, Domain
 //
@@ -21,13 +22,29 @@ let appInfoPlist: [String: InfoPlist.Value] = [
     "UIApplicationSceneManifest": .dictionary([
         "UIApplicationSupportsMultipleScenes": .boolean(false),
     ]),
+    // Supabase configuration (see docs/BACKEND.md, Config/Secrets.xcconfig).
+    // Only populated in Release, where SupabaseBackend is the composition
+    // root's backend — Debug has no xcconfig backing these keys (Debug always
+    // uses InMemoryStore, never reads them) and Xcode substitutes an empty
+    // string for an undefined build setting, which is fine.
+    "SUPABASE_URL": .string("$(SUPABASE_URL)"),
+    "SUPABASE_ANON_KEY": .string("$(SUPABASE_ANON_KEY)"),
 ]
 
 // App Store Connect requires an explicit app-icon asset-catalog name (Xcode
 // project templates set this automatically; Tuist-generated targets need it
 // spelled out) — see App/Resources/Assets.xcassets/AppIcon.appiconset.
+//
+// Only the Release configuration is backed by Config/Secrets.xcconfig
+// (gitignored, owner-provided — see docs/BACKEND.md): Debug intentionally has
+// no xcconfig here so a fresh checkout without Supabase credentials still
+// builds and runs Debug (InMemoryStore, $0, offline) with zero setup.
 let appSettings: Settings = .settings(
     base: AscendSettings.base.merging(["ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon"]) { _, new in new },
+    configurations: [
+        .debug(name: "Debug"),
+        .release(name: "Release", xcconfig: "Config/Secrets.xcconfig"),
+    ],
     defaultSettings: .recommended
 )
 
@@ -44,6 +61,7 @@ let appTarget = Target(
         .target(name: "Features"),
         .target(name: "DesignSystem"),
         .target(name: "InMemoryStore"),
+        .target(name: "SupabaseBackend"),
         .target(name: "DataInterfaces"),
         .target(name: "Domain"),
     ],
@@ -64,6 +82,42 @@ let inMemoryStoreTarget = Target.ascendFramework(
     dependencies: [.target(name: "DataInterfaces"), .target(name: "Domain")]
 )
 let inMemoryStoreTestsTarget = Target.ascendTests(name: "InMemoryStoreTests", testing: "InMemoryStore")
+
+// SupabaseBackend: the production `Backend` adapter (see docs/BACKEND.md,
+// docs/ARCHITECTURE.md). Only this module depends on the supabase-swift
+// package — Domain/DataInterfaces/InMemoryStore/Features stay backend-agnostic,
+// and only the `Ascend` App composition root depends on this module.
+let supabaseBackendTarget = Target.ascendFramework(
+    name: "SupabaseBackend",
+    dependencies: [
+        .target(name: "DataInterfaces"),
+        .target(name: "Domain"),
+        .package(product: "Supabase"),
+    ]
+)
+let supabaseBackendTestsTarget = Target.ascendTests(name: "SupabaseBackendTests", testing: "SupabaseBackend")
+
+// A SEPARATE, skippable integration-test target: it round-trips real data
+// against a live Supabase project when SUPABASE_URL/SUPABASE_ANON_KEY are
+// present in the environment, and no-ops cleanly (no failures) otherwise —
+// see Modules/SupabaseBackend/IntegrationTests/README in-file docs. Never
+// runs live in CI/local default `xcodebuild test` because it requires the
+// owner's live project credentials to do anything beyond skip.
+let supabaseBackendIntegrationTestsTarget = Target(
+    name: "SupabaseBackendIntegrationTests",
+    platform: .iOS,
+    product: .unitTests,
+    bundleId: "com.ascend.SupabaseBackendIntegrationTests",
+    deploymentTarget: AscendSettings.deploymentTarget,
+    infoPlist: .default,
+    sources: ["Modules/SupabaseBackend/IntegrationTests/**"],
+    dependencies: [
+        .target(name: "SupabaseBackend"),
+        .target(name: "DataInterfaces"),
+        .target(name: "Domain"),
+    ],
+    settings: AscendSettings.settings
+)
 
 let designSystemTarget = Target.ascendFramework(
     name: "DesignSystem",
@@ -98,6 +152,9 @@ let project = Project(
         disableBundleAccessors: true,
         disableSynthesizedResourceAccessors: true
     ),
+    packages: [
+        .package(url: "https://github.com/supabase/supabase-swift", .upToNextMajor(from: "2.51.0")),
+    ],
     settings: AscendSettings.settings,
     targets: [
         appTarget,
@@ -107,6 +164,9 @@ let project = Project(
         dataInterfacesTestsTarget,
         inMemoryStoreTarget,
         inMemoryStoreTestsTarget,
+        supabaseBackendTarget,
+        supabaseBackendTestsTarget,
+        supabaseBackendIntegrationTestsTarget,
         designSystemTarget,
         designSystemTestsTarget,
         featuresTarget,

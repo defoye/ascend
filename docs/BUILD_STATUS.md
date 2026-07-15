@@ -6,7 +6,7 @@ up. Prompt numbers follow the source build sequence (`Ascend-Build-Prompts.md`).
 `docs/ROADMAP.md` remains the detailed per-prompt checklist; this file is the
 at-a-glance "done / next / needs-you" view.
 
-_Last updated: 2026-07-14 (through Prompt 16 — tagged `v0.1.0`; + free-first rollout plan)._
+_Last updated: 2026-07-14 (through Prompt 13 — `SupabaseBackend` adapter code, migrations, and config wiring; live DB round-trip is your follow-up)._
 
 ## ✅ Done — shipped, built clean, tests green on `InMemoryStore` ($0, no backend)
 
@@ -25,6 +25,7 @@ _Last updated: 2026-07-14 (through Prompt 16 — tagged `v0.1.0`; + free-first r
 | 10 | Messaging | stream-first chat UI per engagement |
 | 11 | Payments behind a `PaymentGateway` protocol (mock) | `MockPaymentGateway`, coach price-set/charge/history, client pay stub, fee-aware revenue |
 | 12 | Verified Outcomes surface (coach Proof Profile) | derives outcomes via `Domain.derive`, consent-respecting, journeys-not-causation copy |
+| 13 | `SupabaseBackend` adapter (code) | New module implementing every `DataInterfaces` repository + `AuthGateway` against Postgres/Auth/Storage/Realtime, a generic `SupabaseTable<Row>` CRUD gateway + disk-backed `OfflineWriteQueue` (docs/BACKEND.md's offline-write-queue contract), stream-first messaging via Realtime `postgres_changes`, consent-gated progress-photo signed URLs, 12 timestamped SQL migrations (`Server/supabase/migrations/`) with RLS on every table, composition-root wiring (DEBUG unconditionally `InMemoryStore`, Release reads `Config/Secrets.xcconfig` via Info.plist). Debug **and** Release build clean, full suite green (206 tests, `SupabaseBackendIntegrationTests` skipping cleanly with no credentials), SwiftLint `--strict` 0 violations. **The live DB round-trip needs your `supabase db push` — see the runbook below.** |
 | 15 | Consumer/client experience slice | `ConsumerRootView` (4-tab: Today, Progress, Coach, Me), workout player + progress logging, "My Progress" dashboard w/ milestones, outcome-sharing consent toggle (Invariant-1 proof both directions), goal-first onboarding intake — all on `InMemoryStore`, reachable via a demo role switch |
 | 16 | Polish, accessibility, App Store readiness (code) | a11y sweep (VoiceOver/Dynamic Type/44pt targets/reduce-motion), `ErrorBanner` error/empty/loading coverage, app icon + launch screen + `Assets.xcassets`, `PrivacyInfo.xcprivacy` + privacy-policy stub, `AnalyticsTracking` seam (no-PII, mockable), `SettingsView` w/ in-app account deletion (`AccountDeletionEffect`), Debug **and** Release build clean, full suite green (179 tests), SwiftLint `--strict` 0 violations. **Archive/upload to App Store still needs the owner's Apple account — see action items below.** |
 
@@ -36,21 +37,23 @@ _Last updated: 2026-07-14 (through Prompt 16 — tagged `v0.1.0`; + free-first r
 
 | # | Prompt | Can be done now (by Claude) | Blocked on you |
 |---|--------|------------------------------|----------------|
-| 13 | `SupabaseBackend` adapter | Adapter code, SQL migrations, config wiring, build clean on `InMemoryStore` default, skippable integration test | **Supabase project** + `SUPABASE_URL`/`SUPABASE_ANON_KEY` in `Config/Secrets.xcconfig` → then the live round-trip |
+| 13 | `SupabaseBackend` adapter | ✅ **Code done**: adapter, migrations, config wiring, offline queue, Debug+Release build clean, full suite green, skippable integration test | **`supabase db push`** (your project already exists — see **Runbook D** below) → then the live round-trip |
 | 14 | Server: Stripe Connect + edge functions | Edge-function code (TS/Deno), `SupabaseBackend`'s `PaymentGateway` wiring, outcomes view/derivation, deploy+secrets docs | **Stripe (Connect test mode) + Supabase** deploy → live charge that writes a `Payment` row |
 | 16 | Polish, accessibility, App Store readiness | ✅ **Done + tagged `v0.1.0`**: a11y, error/empty states, privacy manifest, analytics seam, settings + in-app account deletion, Debug+Release build clean, full suite green, SwiftLint clean | **Apple Developer account** → archive + TestFlight/App Store upload (Runbook C below) |
 
 ## 🙋 What needs you (owner action items)
 
 These gate the *live* portions of 13/14/16. The code for each lands first;
-these are the steps only you can do (see `Ascend-Build-Prompts.md` §3 Runbooks A/B):
+these are the steps only you can do:
 
-1. **Supabase project** (Runbook A) — create the project, then put `SUPABASE_URL`
-   and `SUPABASE_ANON_KEY` into `Config/Secrets.xcconfig` (gitignored, never
-   committed). Unblocks Prompt 13's live DB round-trip.
-2. **Stripe account, Connect enabled in test mode** (Runbook B) — provides the
-   test keys stored as *server-side* Supabase secrets (never in the app).
-   Unblocks Prompt 14's live charge flow.
+1. **Apply the Prompt 13 migrations to your Supabase project** (Runbook D
+   below) — your project + `Config/Secrets.xcconfig` already exist; this is
+   just running `supabase db push` to create the tables/RLS/Storage bucket
+   the adapter code expects. Unblocks Prompt 13's live DB round-trip.
+2. **Stripe account, Connect enabled in test mode** (Runbook B in
+   `Ascend-Build-Prompts.md`) — provides the test keys stored as
+   *server-side* Supabase secrets (never in the app). Unblocks Prompt 14's
+   live charge flow.
 3. **Apple Developer account** — signing/provisioning for archiving and
    TestFlight/App Store upload. Prompt 16's *code* is done and tagged
    `v0.1.0` (a11y, privacy manifest, settings + account deletion, Debug &
@@ -58,8 +61,55 @@ these are the steps only you can do (see `Ascend-Build-Prompts.md` §3 Runbooks 
    is the archive/upload, which Claude cannot do — it needs your Apple
    account and signing identity. Follow **Runbook C** below.
 
-After you complete 1 & 2, run the follow-up prompt Claude hands you to execute the
-live verification and finalize `SupabaseBackend`/Stripe wiring.
+After you complete 1, run the follow-up prompt to prove the live round-trip and
+wire up anything the live test surfaces (e.g. a table/RLS tweak).
+
+## 🚀 Runbook D — Apply the Prompt 13 migrations + prove the live round-trip
+
+**One-time, from the repo root (needs the Supabase CLI: `brew install
+supabase/tap/supabase`):**
+
+```
+supabase login
+supabase link --project-ref zrpkrknqcxmgibizrisg
+supabase db push
+```
+
+`supabase login` opens a browser for interactive auth (you must run this —
+Claude cannot). `link` points the CLI at your existing project (its ref is in
+`Config/Secrets.xcconfig`'s `SUPABASE_URL`:
+`https://zrpkrknqcxmgibizrisg.supabase.co`). `db push` applies every
+migration in `Server/supabase/migrations/` in order — creates all 19 tables
+plus the `outcomes` view and the `progress-photos` Storage bucket, and turns
+on every RLS policy. Safe to re-run; already-applied migrations are skipped.
+
+**Enable email/password sign-up** (Supabase dashboard ▸ Authentication ▸
+Providers ▸ Email) if it isn't already — `SupabaseBackend+AuthGateway.swift`
+uses plain email/password.
+
+**Prove the round-trip** (the skippable integration test target — see
+Project.swift's `supabaseBackendIntegrationTestsTarget`):
+
+```
+ASCEND_TEST_SUPABASE_URL=https://zrpkrknqcxmgibizrisg.supabase.co \
+ASCEND_TEST_SUPABASE_ANON_KEY=<the SUPABASE_ANON_KEY from Config/Secrets.xcconfig> \
+xcodebuild test \
+  -workspace Ascend.xcworkspace -scheme SupabaseBackendIntegrationTests \
+  -destination 'id=562AA1B2-9625-48E3-B064-BB2B386C1131'
+```
+
+With those two env vars unset (the CI/local default), the same command
+passes trivially — every test in that target returns immediately without
+touching the network. With them set, it writes and reads back real rows in
+your project (and cleans up after itself). If a test in there fails against
+real RLS, that's signal to adjust either the migration or the test fixture —
+hand it back for a follow-up fix.
+
+**Then flip Release to actually run against Supabase**: `tuist generate`,
+then `xcodebuild build -scheme Ascend -configuration Release -destination
+'generic/platform=iOS'` (or run it on a device/simulator) — Release already
+reads `Config/Secrets.xcconfig` via Info.plist (see
+`App/Sources/SupabaseConfig.swift`), so no further code change is needed.
 
 ## 🧭 Rollout strategy — free first, monetize later
 

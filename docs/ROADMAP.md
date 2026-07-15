@@ -123,9 +123,54 @@ contract — adjust as the product dictates.
       aggregation split into `ProofProfileSummaries` (mirroring
       `TodaySummaries`), covering stat math, journey-copy formatting (no
       client/coach names, no causal verbs), and sort order.
-- [ ] **Prompt 13** — `SupabaseBackend` adapter implementing `DataInterfaces`
+- [x] **Prompt 13** — `SupabaseBackend` adapter implementing `DataInterfaces`
       against real Supabase tables/auth; `Config/Secrets.xcconfig` wiring; offline
-      write queue per docs/BACKEND.md.
+      write queue per docs/BACKEND.md. New module `SupabaseBackend` (depends
+      only on `DataInterfaces`, `Domain`, and the `supabase-swift` package —
+      Domain/DataInterfaces/InMemoryStore/Features stay backend-agnostic)
+      implements every repository protocol plus `AuthGateway` against
+      Postgres/Auth/Storage/Realtime: a generic `SupabaseTable<Row>` gateway
+      backs most single-row CRUD repositories with an `OfflineWriteQueue`
+      (durable, per-row-ordered, disk-backed) satisfying docs/BACKEND.md's
+      offline-write-queue contract — a write attempts the network first and
+      only queues on a transient (offline/timeout) failure, never on a real
+      server rejection; multi-table aggregates (`ProfessionalProfile`'s
+      services/verifications, `Program`'s weeks/workouts/exercise
+      prescriptions) replace their children directly instead of going through
+      the queue. Messaging stays stream-first via a genuine Supabase Realtime
+      subscription (`postgres_changes` on `messages`); every other live view
+      polls (`pollingStream`), a deliberate, documented choice. Progress
+      photos store only a Storage object key, resolved to a short-lived
+      signed URL on every read — never bytes, never a durable public URL.
+      `OutcomeRepository` gathers evidence from Postgres and calls
+      `Domain.VerifiedOutcome.derive` client-side, exactly like
+      `InMemoryBackend` — the DB's `outcomes` view mirrors the same
+      eligibility rules for reporting/debugging only, never a code path the
+      app depends on. 12 timestamped SQL migrations
+      (`Server/supabase/migrations/`) create every table plus the view and
+      Storage bucket, with Row Level Security throughout: a coach sees only
+      their own engagements/clients, a client sees only their own data,
+      `coach_notes` are professional-only, and `progress_photos` are
+      consent-gated in the database itself (mirroring
+      `EngagementRepository.photoConsent`) in addition to the existing
+      Features-level gate. The composition root
+      (`App/Sources/AppContainer.swift`) selects `InMemoryStore.seeded()` in
+      DEBUG unconditionally (zero-cost, offline, unchanged) and
+      `SupabaseBackend` in Release, reading `SUPABASE_URL`/`SUPABASE_ANON_KEY`
+      from Info.plist (`App/Sources/SupabaseConfig.swift`) — populated only in
+      Release via `Config/Secrets.xcconfig` (`Project.swift`'s `appSettings`
+      now uses per-configuration xcconfig). A separate, skippable
+      `SupabaseBackendIntegrationTests` target round-trips real data when
+      `ASCEND_TEST_SUPABASE_URL`/`ASCEND_TEST_SUPABASE_ANON_KEY` are present
+      in the environment and no-ops cleanly otherwise — never part of the
+      ordinary offline test suite. `SupabaseBackendTests` covers the
+      offline-write-queue's ordering contract and Row DTO <-> Domain
+      `Identifier`/snake_case mapping, pure and network-free. Debug and
+      Release both build clean; the full suite (206 tests) passes with the
+      integration target skipping cleanly; SwiftLint `--strict` 0 violations.
+      The live DB round trip itself is the owner's follow-up — see
+      docs/BUILD_STATUS.md for the exact `supabase login`/`link`/`db push`
+      runbook.
 - [x] **Prompt 11 (payments, mock)** — Payments behind a `PaymentGateway`
       protocol: `DataInterfaces` protocol + `MockPaymentGateway` in
       `InMemoryStore` writing `Payment` records (success/refund), coach

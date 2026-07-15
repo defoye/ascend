@@ -26,6 +26,7 @@ Config/Secrets.xcconfig
 .swiftpm/
 Packages/
 Package.resolved
+.package.resolved
 
 # macOS
 .DS_Store
