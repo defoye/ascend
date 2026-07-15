@@ -46,12 +46,24 @@ struct RootView: View {
     @Environment(AppContainer.self) private var container
     @State private var authState: AuthState = .signedOut
     @State private var activeRole: DemoRole = .professional
+    #if DEBUG
+    @State private var demoModeStore = DemoModeStore()
+    @State private var demoHarnessState = DemoHarnessState()
+    #endif
 
     var body: some View {
         Group {
             switch authState {
             case let .signedIn(user):
+                #if DEBUG
+                if demoModeStore.isEnabled {
+                    demoRoot
+                } else {
+                    roleRoot(for: user)
+                }
+                #else
                 roleRoot(for: user)
+                #endif
             case .signedOut:
                 SignedOutView()
             }
@@ -61,7 +73,46 @@ struct RootView: View {
                 authState = state
             }
         }
+        #if DEBUG
+        .task(id: demoModeStore.isEnabled ? demoModeStore.scenario.rawValue : "off") {
+            guard demoModeStore.isEnabled else { return }
+            await demoHarnessState.load(scenario: demoModeStore.scenario)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            DemoLauncherButton(demoModeStore: demoModeStore, harnessState: demoHarnessState, activeRole: $activeRole)
+        }
+        #endif
     }
+
+    #if DEBUG
+    @ViewBuilder
+    private var demoRoot: some View {
+        if let bundle = demoHarnessState.bundle {
+            switch activeRole {
+            case .professional:
+                CoachRootView(
+                    backend: bundle.backend,
+                    professionalID: bundle.professionalID,
+                    clock: demoHarnessState.clockController.clock,
+                    paymentsMode: .live,
+                    onSwitchRole: { activeRole = .consumer }
+                )
+            case .consumer:
+                ConsumerRootView(
+                    backend: bundle.backend,
+                    clientID: bundle.clientID,
+                    clock: demoHarnessState.clockController.clock,
+                    paymentsMode: .live,
+                    onSwitchRole: { activeRole = .professional }
+                )
+            }
+        } else {
+            ProgressView("Loading demo scenario…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.Ascend.background)
+        }
+    }
+    #endif
 
     @ViewBuilder
     private func roleRoot(for user: AuthenticatedUser) -> some View {

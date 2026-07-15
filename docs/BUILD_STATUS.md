@@ -244,8 +244,16 @@ Device**.
 
 ## 🧪 Aside: making it easy to see & test the app end-to-end
 
-Independent of the backend work: see `docs/E2E_TESTABILITY_PROMPT.md` — a
-paste-and-go prompt to build a DEBUG-only demo/testability harness (screen
-catalog, scenario + role switcher, on-demand mock-data generation, controllable
-clock and payment outcomes) so the whole app can be exercised and eyeballed on
-mock data with zero production constraints.
+**Status: implemented.** See `docs/TESTABILITY.md` for the full brainstorm +
+usage guide. A DEBUG-only demo/testability harness (`App/Sources/Demo/**`)
+lives behind a wrench button that floats on every DEBUG launch: it opens a
+persisted (`UserDefaults`, default **off**) on/off switch, and once on, a
+scenario switcher (`richDemo`/`showcase`/`emptyCoach`/`errorStates`), the
+existing coach/consumer role switch, a live clock control, a live
+succeed/refund/fail payment-outcome control, and a screen catalog reaching
+~20 coach and consumer screens. Release is unaffected (`#if DEBUG`
+throughout). Proven via a real tap-driven `AscendUITests` UI test
+(`App/UITests/DemoHarnessUITests.swift`) that opens the panel, flips the
+toggle, relaunches the app, and asserts the state persisted — plus a new
+`AscendTests` unit target covering the persisted store, the demo clock, the
+scenario factory, and the error-injecting/payment-outcome decorators.

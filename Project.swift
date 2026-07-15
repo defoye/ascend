@@ -68,6 +68,47 @@ let appTarget = Target(
     settings: appSettings
 )
 
+// Unit tests for the App target's own composition-root logic — notably the
+// DEBUG-only demo/testability harness (`App/Sources/Demo/**`, see
+// docs/TESTABILITY.md): the persisted demo-mode toggle, scenario fixture
+// selection, the demo clock, and the demo payment-outcome gateway. Hosted
+// against the `Ascend` app target itself (the only place these types live),
+// the same way every other module's tests are hosted against their module.
+let appTestsTarget = Target(
+    name: "AscendTests",
+    platform: .iOS,
+    product: .unitTests,
+    bundleId: "com.ascend.AscendTests",
+    deploymentTarget: AscendSettings.deploymentTarget,
+    infoPlist: .default,
+    sources: ["App/Tests/**"],
+    dependencies: [
+        .target(name: "Ascend"),
+        .target(name: "InMemoryStore"),
+        .target(name: "DataInterfaces"),
+        .target(name: "Domain"),
+    ],
+    settings: AscendSettings.settings
+)
+
+// A real, tap-driven UI test proving the demo harness's toggle works end to
+// end (see docs/TESTABILITY.md and `App/UITests/DemoHarnessUITests.swift`):
+// the wrench button opens the control panel, the toggle flips demo mode on,
+// and that persists across a relaunch. Runs against the `Ascend` app target
+// via the simulator's real accessibility tree, independent of host-machine
+// screen/mouse access.
+let appUITestsTarget = Target(
+    name: "AscendUITests",
+    platform: .iOS,
+    product: .uiTests,
+    bundleId: "com.ascend.AscendUITests",
+    deploymentTarget: AscendSettings.deploymentTarget,
+    infoPlist: .default,
+    sources: ["App/UITests/**"],
+    dependencies: [.target(name: "Ascend")],
+    settings: AscendSettings.settings
+)
+
 let domainTarget = Target.ascendFramework(name: "Domain")
 let domainTestsTarget = Target.ascendTests(name: "DomainTests", testing: "Domain")
 
@@ -158,6 +199,8 @@ let project = Project(
     settings: AscendSettings.settings,
     targets: [
         appTarget,
+        appTestsTarget,
+        appUITestsTarget,
         domainTarget,
         domainTestsTarget,
         dataInterfacesTarget,
