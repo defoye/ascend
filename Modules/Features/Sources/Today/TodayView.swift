@@ -8,6 +8,7 @@ import SwiftUI
 public struct TodayView: View {
     @State private var viewModel: TodayViewModel
     @State private var showingSchedule = false
+    @State private var todayDestination: TodayDestination?
     private let now: @Sendable () -> Date
     private let backend: any Backend
     private let professionalID: Identifier<Person>
@@ -62,6 +63,18 @@ public struct TodayView: View {
                     reminders: reminders
                 )
             }
+            .navigationDestination(item: $todayDestination) { destination in
+                switch destination {
+                case let .client(engagementID):
+                    ClientDetailView(
+                        viewModel: ClientDetailViewModel(backend: backend, engagementID: engagementID, professionalID: professionalID)
+                    )
+                case let .messageThread(engagementID):
+                    MessageThreadView(
+                        viewModel: MessageThreadViewModel(backend: backend, engagementID: engagementID, selfID: professionalID)
+                    )
+                }
+            }
             .refreshable { await viewModel.load() }
             .task { await viewModel.load() }
         }
@@ -89,7 +102,7 @@ public struct TodayView: View {
                             ListRow(
                                 title: upcoming.clientName,
                                 subtitle: sessionSubtitle(for: upcoming),
-                                action: {},
+                                action: { todayDestination = .client(engagementID: upcoming.session.engagementID) },
                                 leading: {
                                     Avatar(name: upcoming.clientName, size: .md)
                                 },
@@ -131,6 +144,7 @@ public struct TodayView: View {
                             ListRow(
                                 title: item.clientName,
                                 subtitle: activitySubtitle(for: item),
+                                action: { todayDestination = activityDestination(for: item) },
                                 leading: {
                                     Image(systemName: activityIcon(for: item))
                                         .foregroundStyle(Color.Ascend.primary)
@@ -162,6 +176,17 @@ public struct TodayView: View {
             "Logged \(metric.displayName): \(MetricFormatter.format(value))"
         case let .message(preview):
             preview
+        }
+    }
+
+    /// A progress log opens the client's detail screen (where progress
+    /// lives); a client message opens that engagement's message thread.
+    private func activityDestination(for item: ActivityItem) -> TodayDestination {
+        switch item.kind {
+        case .progress:
+            .client(engagementID: item.engagementID)
+        case .message:
+            .messageThread(engagementID: item.engagementID)
         }
     }
 
@@ -205,13 +230,32 @@ public struct TodayView: View {
     }
 }
 
+/// Where a tapped "Today" row navigates: an upcoming-session row and a
+/// progress-log activity row both open the client's detail screen; a
+/// client-message activity row opens that engagement's message thread.
+private enum TodayDestination: Identifiable, Hashable {
+    case client(engagementID: Identifier<Engagement>)
+    case messageThread(engagementID: Identifier<Engagement>)
+
+    var id: Self { self }
+}
+
 /// USD cents -> dollars formatting with tabular figures (see
 /// docs/design/DESIGN_SPEC.md §2.3).
 enum CurrencyFormatter {
-    static func dollars(fromCents cents: Int) -> String {
+    /// `NumberFormatter` construction is expensive; built once and reused
+    /// across every call rather than per-invocation. `nonisolated(unsafe)`:
+    /// never mutated after initialization, and `NumberFormatter.string(from:)`
+    /// is safe to call concurrently for reads (see `ProgressViewModel` for
+    /// the same pattern applied to `Task` properties).
+    nonisolated(unsafe) private static let formatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = "USD"
+        return formatter
+    }()
+
+    static func dollars(fromCents cents: Int) -> String {
         let value = Double(cents) / 100
         return formatter.string(from: NSNumber(value: value)) ?? "$\(value)"
     }

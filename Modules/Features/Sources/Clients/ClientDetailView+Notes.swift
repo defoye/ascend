@@ -98,8 +98,8 @@ extension ClientDetailView {
             Card {
                 ListRow(
                     title: "Message \(viewModel.clientName)",
-                    subtitle: "Chat is coming in a later prompt",
-                    action: { showingMessageStub = true },
+                    subtitle: "Open the conversation",
+                    action: { showingMessageThread = true },
                     leading: {
                         Image(systemName: "bubble.left")
                             .foregroundStyle(Color.Ascend.primary)

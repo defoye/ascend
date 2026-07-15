@@ -11,7 +11,10 @@ import SwiftUI
 public struct SettingsView: View {
     @State private var viewModel: SettingsViewModel
     @State private var reminderScheduler: any SessionReminderScheduling
-    @State private var remindersEnabled = false
+    /// Persisted via `UserDefaults` (mirroring `RolePresenceStore`/
+    /// `DemoModeStore`'s persistence convention) so the toggle survives
+    /// relaunch; only the authorization-request side effect stays session-scoped.
+    @AppStorage("com.ascend.reminders.enabled") private var remindersEnabled = false
     @State private var showingDeleteConfirmation = false
     @State private var showingDeletedAlert = false
     @Environment(\.dismiss) private var dismiss

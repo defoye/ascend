@@ -54,7 +54,7 @@ public struct ClientPayView: View {
     }
 
     private var priceLabel: String {
-        "$\(String(format: "%.2f", Double(viewModel.service.priceCents) / 100)) \(viewModel.service.currency)"
+        "\(CurrencyFormatter.dollars(fromCents: viewModel.service.priceCents)) \(viewModel.service.currency)"
     }
 
     private var payButton: some View {

@@ -4,15 +4,15 @@ import SwiftUI
 
 /// A single client's detail screen: header (name, goal, editable status),
 /// goals/metrics overview, assigned program summary, per-metric progress
-/// charts + recent entries, coach notes, and a stubbed message shortcut
-/// (see docs/design/DESIGN_SPEC.md). Pushed from `ClientsListView` onto the
-/// Clients tab's `NavigationStack`.
+/// charts + recent entries, coach notes, and a message shortcut into this
+/// client's `MessageThreadView` (see docs/design/DESIGN_SPEC.md). Pushed
+/// from `ClientsListView` onto the Clients tab's `NavigationStack`.
 public struct ClientDetailView: View {
     // Not `private`: `ClientDetailView+Notes.swift` (a same-type extension in
     // a different file, split out purely to stay under SwiftLint's
     // `file_length`) needs access — `private` is file-scoped in Swift.
     @State var viewModel: ClientDetailViewModel
-    @State var showingMessageStub = false
+    @State var showingMessageThread = false
     @State private var showingAssignProgram = false
     @State var showingLogProgress = false
     @State var showingFullProgress = false
@@ -44,10 +44,14 @@ public struct ClientDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await viewModel.load() }
         .task { await viewModel.load() }
-        .alert("Messaging coming soon", isPresented: $showingMessageStub) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Chat with \(viewModel.clientName) will be available in a future update.")
+        .navigationDestination(isPresented: $showingMessageThread) {
+            MessageThreadView(
+                viewModel: MessageThreadViewModel(
+                    backend: viewModel.backend,
+                    engagementID: viewModel.engagementID,
+                    selfID: viewModel.professionalID
+                )
+            )
         }
         .sheet(isPresented: $showingAssignProgram) {
             AssignProgramView(
