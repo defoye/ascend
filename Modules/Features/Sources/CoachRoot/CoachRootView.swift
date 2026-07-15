@@ -18,23 +18,32 @@ public struct CoachRootView: View {
     private let clock: @Sendable () -> Date
     private let paymentsMode: PaymentsMode
     private let onSwitchRole: (() -> Void)?
+    private let otherRoleHasUpdates: Bool
+
+    @State private var selectedTab: Tab = .today
+
+    private enum Tab: Hashable {
+        case today, clients, programs, messages, profile
+    }
 
     public init(
         backend: any Backend,
         professionalID: Identifier<Person>,
         clock: @escaping @Sendable () -> Date = { Date() },
         paymentsMode: PaymentsMode = .live,
-        onSwitchRole: (() -> Void)? = nil
+        onSwitchRole: (() -> Void)? = nil,
+        otherRoleHasUpdates: Bool = false
     ) {
         self.backend = backend
         self.professionalID = professionalID
         self.clock = clock
         self.paymentsMode = paymentsMode
         self.onSwitchRole = onSwitchRole
+        self.otherRoleHasUpdates = otherRoleHasUpdates
     }
 
     public var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             TodayView(
                 viewModel: TodayViewModel(backend: backend, professionalID: professionalID, paymentsMode: paymentsMode, clock: clock),
                 backend: backend,
@@ -42,6 +51,7 @@ public struct CoachRootView: View {
                 now: clock
             )
             .tabItem { Label("Today", systemImage: "calendar") }
+            .tag(Tab.today)
 
             NavigationStack {
                 ClientsListView(
@@ -52,6 +62,7 @@ public struct CoachRootView: View {
                 )
             }
             .tabItem { Label("Clients", systemImage: "person.2") }
+            .tag(Tab.clients)
 
             NavigationStack {
                 ProgramsListView(
@@ -61,6 +72,7 @@ public struct CoachRootView: View {
                 )
             }
             .tabItem { Label("Programs", systemImage: "dumbbell") }
+            .tag(Tab.programs)
 
             NavigationStack {
                 ConversationsListView(
@@ -70,6 +82,7 @@ public struct CoachRootView: View {
                 )
             }
             .tabItem { Label("Messages", systemImage: "bubble.left") }
+            .tag(Tab.messages)
 
             NavigationStack {
                 CoachProfileView(
@@ -77,10 +90,15 @@ public struct CoachRootView: View {
                     professionalID: professionalID,
                     clock: clock,
                     paymentsMode: paymentsMode,
-                    onSwitchRole: onSwitchRole
+                    onSwitchRole: onSwitchRole,
+                    otherRoleHasUpdates: otherRoleHasUpdates
                 )
             }
-            .tabItem { Label("Profile", systemImage: "person.crop.circle") }
+            .tabItem {
+                TabIconWithDot(systemName: "person.crop.circle", isSelected: selectedTab == .profile, showDot: otherRoleHasUpdates)
+                Text("Profile")
+            }
+            .tag(Tab.profile)
         }
         .tint(Color.Ascend.primary)
     }
@@ -96,9 +114,21 @@ public struct CoachRootView: View {
         .preferredColorScheme(.dark)
 }
 
+#Preview("CoachRootView - Both roles, new client activity") {
+    CoachRootPreview(otherRoleHasUpdates: true)
+        .preferredColorScheme(.light)
+}
+
 private struct CoachRootPreview: View {
+    var otherRoleHasUpdates = false
+
     var body: some View {
         let professionalID = Identifier<Person>()
-        CoachRootView(backend: PreviewBackend(professionalID: professionalID), professionalID: professionalID)
+        CoachRootView(
+            backend: PreviewBackend(professionalID: professionalID),
+            professionalID: professionalID,
+            onSwitchRole: otherRoleHasUpdates ? {} : nil,
+            otherRoleHasUpdates: otherRoleHasUpdates
+        )
     }
 }

@@ -13,7 +13,7 @@ import SwiftUI
 struct DemoScreenCatalogView: View {
     let bundle: DemoBackendBundle
     let clock: @Sendable () -> Date
-    @Binding var activeRole: DemoRole
+    @Binding var activeRole: PersonRole
 
     @State private var firstEngagementID: Identifier<Engagement>?
     @State private var clientEngagementID: Identifier<Engagement>?

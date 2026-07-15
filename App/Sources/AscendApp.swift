@@ -24,28 +24,24 @@ struct AscendApp: App {
     }
 }
 
-/// Which side of the app is currently active. Ascend's product model is one
-/// `Person` with role modes `consumer`/`professional`/`both` (see
-/// docs/PRODUCT.md) — a real implementation would derive this from the
-/// signed-in person's `roles` and a persisted preference, not a
-/// composition-root toggle. Until sign-in supports both roles on one
-/// account, this is the App's own demo mechanism for reaching the consumer
-/// experience against the same seeded backend as the coach side, switchable
-/// via each root's "Switch role" affordance (see docs/design/DESIGN_SPEC.md
-/// §4 "Role switch").
-enum DemoRole {
-    case professional
-    case consumer
-}
-
 /// Root view: switches on live authentication state from `container.backend.auth`.
 /// The seeded `InMemoryStore` backend (see `AppContainer`) starts **signed in**
 /// as the demo professional (Jordan Ellis), so the coach dashboard renders
 /// immediately at launch. A real sign-in flow for `.signedOut` is a later prompt.
+///
+/// The active role is persisted and roles-gated (see `RolePresenceStore`,
+/// `RoleGating`): a person who holds only one `PersonRole` is forced onto it
+/// with no switcher; a person who holds both sees the "Switch role"
+/// affordance (docs/design/DESIGN_SPEC.md §4), and a quiet dot lights up
+/// when the other role has new inbound activity since it was last visited
+/// (`RoleActivitySummary`, in `Features`).
 struct RootView: View {
     @Environment(AppContainer.self) private var container
     @State private var authState: AuthState = .signedOut
-    @State private var activeRole: DemoRole = .professional
+    @State private var rolePresence = RolePresenceStore()
+    @State private var activeRole: PersonRole = .professional
+    @State private var availableRoles: Set<PersonRole> = [.professional]
+    @State private var otherRoleHasUpdates = false
     #if DEBUG
     @State private var demoModeStore = DemoModeStore()
     @State private var demoHarnessState = DemoHarnessState()
@@ -73,6 +69,15 @@ struct RootView: View {
                 authState = state
             }
         }
+        .task(id: signedInPersonID) {
+            guard let personID = signedInPersonID else { return }
+            await resolveRoleGating(personID: personID)
+        }
+        .onChange(of: activeRole) { _, newValue in
+            rolePresence.markVisited(newValue, at: Date())
+            guard let personID = signedInPersonID else { return }
+            Task { await refreshOtherRoleUpdates(signedInPersonID: personID) }
+        }
         #if DEBUG
         .task(id: demoModeStore.isEnabled ? demoModeStore.scenario.rawValue : "off") {
             guard demoModeStore.isEnabled else { return }
@@ -82,6 +87,50 @@ struct RootView: View {
             DemoLauncherButton(demoModeStore: demoModeStore, harnessState: demoHarnessState, activeRole: $activeRole)
         }
         #endif
+    }
+
+    private var signedInPersonID: Identifier<Person>? {
+        guard case let .signedIn(user) = authState else { return nil }
+        return user.personID
+    }
+
+    /// Resolves which role to show and whether the switcher is offered,
+    /// gated on the signed-in person's actual `roles` (not just what was
+    /// last persisted — see `RoleGating.resolveActiveRole`), then stamps the
+    /// resolved role's "last visited" and refreshes the other role's dot.
+    private func resolveRoleGating(personID: Identifier<Person>) async {
+        let person = try? await container.backend.people.get(personID)
+        let roles = person?.roles ?? [.professional]
+        availableRoles = roles
+        activeRole = RoleGating.resolveActiveRole(roles: roles, persisted: rolePresence.activeRole)
+        rolePresence.activeRole = activeRole
+        rolePresence.markVisited(activeRole, at: Date())
+        await refreshOtherRoleUpdates(signedInPersonID: personID)
+    }
+
+    /// The dot on the *other* role's switcher/tab: newer inbound activity
+    /// there than the last time that role was visited. Only meaningful for
+    /// a both-role person — a single-role person never has an "other role"
+    /// to light up.
+    private func refreshOtherRoleUpdates(signedInPersonID: Identifier<Person>) async {
+        guard RoleGating.switcherAvailable(roles: availableRoles) else {
+            otherRoleHasUpdates = false
+            return
+        }
+        let otherRole: PersonRole = activeRole == .professional ? .consumer : .professional
+        let latest: Date?
+        switch otherRole {
+        case .professional:
+            latest = await RoleActivitySummary.professionalInboundActivity(backend: container.backend, professionalID: signedInPersonID)
+        case .consumer:
+            latest = await RoleActivitySummary.consumerInboundActivity(backend: container.backend, clientID: Self.demoClientPersonID)
+        }
+        otherRoleHasUpdates = RoleActivitySummary.hasUpdates(latestInboundActivity: latest, sinceLastVisited: rolePresence.lastVisited(otherRole))
+    }
+
+    private func switchRole(to role: PersonRole) {
+        activeRole = role
+        rolePresence.activeRole = role
     }
 
     #if DEBUG
@@ -116,6 +165,7 @@ struct RootView: View {
 
     @ViewBuilder
     private func roleRoot(for user: AuthenticatedUser) -> some View {
+        let switcherAvailable = RoleGating.switcherAvailable(roles: availableRoles)
         switch activeRole {
         case .professional:
             CoachRootView(
@@ -123,7 +173,8 @@ struct RootView: View {
                 professionalID: user.personID,
                 clock: Self.demoClock,
                 paymentsMode: container.paymentsMode,
-                onSwitchRole: { activeRole = .consumer }
+                onSwitchRole: switcherAvailable ? { switchRole(to: .consumer) } : nil,
+                otherRoleHasUpdates: otherRoleHasUpdates
             )
         case .consumer:
             ConsumerRootView(
@@ -131,7 +182,8 @@ struct RootView: View {
                 clientID: Self.demoClientPersonID,
                 clock: Self.demoClock,
                 paymentsMode: container.paymentsMode,
-                onSwitchRole: { activeRole = .professional }
+                onSwitchRole: switcherAvailable ? { switchRole(to: .professional) } : nil,
+                otherRoleHasUpdates: otherRoleHasUpdates
             )
         }
     }

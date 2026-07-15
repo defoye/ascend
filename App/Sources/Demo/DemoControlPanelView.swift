@@ -1,6 +1,7 @@
 #if DEBUG
 
 import DesignSystem
+import Domain
 import InMemoryStore
 import SwiftUI
 
@@ -12,11 +13,11 @@ struct DemoControlPanelView: View {
     @Bindable var demoModeStore: DemoModeStore
     let harnessState: DemoHarnessState
     @Bindable var clockController: DemoClockController
-    @Binding var activeRole: DemoRole
+    @Binding var activeRole: PersonRole
     @Environment(\.dismiss) private var dismiss
     @State private var selectedPaymentOutcome: DemoPaymentOutcomeController.Outcome = .succeed
 
-    init(demoModeStore: DemoModeStore, harnessState: DemoHarnessState, activeRole: Binding<DemoRole>) {
+    init(demoModeStore: DemoModeStore, harnessState: DemoHarnessState, activeRole: Binding<PersonRole>) {
         self.demoModeStore = demoModeStore
         self.harnessState = harnessState
         clockController = harnessState.clockController
@@ -113,8 +114,8 @@ struct DemoControlPanelView: View {
             SectionHeader("Role")
             Card {
                 Picker("Role", selection: $activeRole) {
-                    Text("Coach").tag(DemoRole.professional)
-                    Text("Consumer").tag(DemoRole.consumer)
+                    Text("Coach").tag(PersonRole.professional)
+                    Text("Consumer").tag(PersonRole.consumer)
                 }
                 .pickerStyle(.segmented)
             }

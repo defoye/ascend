@@ -12,19 +12,22 @@ public struct CoachProfileView: View {
     private let clock: @Sendable () -> Date
     private let paymentsMode: PaymentsMode
     private let onSwitchRole: (() -> Void)?
+    private let otherRoleHasUpdates: Bool
 
     public init(
         backend: any Backend,
         professionalID: Identifier<Person>,
         clock: @escaping @Sendable () -> Date = { Date() },
         paymentsMode: PaymentsMode = .live,
-        onSwitchRole: (() -> Void)? = nil
+        onSwitchRole: (() -> Void)? = nil,
+        otherRoleHasUpdates: Bool = false
     ) {
         self.backend = backend
         self.professionalID = professionalID
         self.clock = clock
         self.paymentsMode = paymentsMode
         self.onSwitchRole = onSwitchRole
+        self.otherRoleHasUpdates = otherRoleHasUpdates
     }
 
     public var body: some View {
@@ -63,7 +66,9 @@ public struct CoachProfileView: View {
                             backend: backend,
                             personID: professionalID,
                             roleLabel: "Coach",
-                            onSwitchRole: onSwitchRole
+                            onSwitchRole: onSwitchRole,
+                            otherRoleHasUpdates: otherRoleHasUpdates,
+                            otherRoleUpdateSubtitle: "New client activity"
                         )
                     } label: {
                         ListRow(
@@ -158,8 +163,14 @@ public struct CoachProfileView: View {
         .preferredColorScheme(.light)
 }
 
+#Preview("CoachProfileView - Both roles, new client activity") {
+    CoachProfilePreview(paymentsMode: .live, otherRoleHasUpdates: true)
+        .preferredColorScheme(.light)
+}
+
 private struct CoachProfilePreview: View {
     let paymentsMode: PaymentsMode
+    var otherRoleHasUpdates = false
 
     var body: some View {
         let professionalID = Identifier<Person>()
@@ -167,7 +178,9 @@ private struct CoachProfilePreview: View {
             CoachProfileView(
                 backend: PreviewBackend(professionalID: professionalID),
                 professionalID: professionalID,
-                paymentsMode: paymentsMode
+                paymentsMode: paymentsMode,
+                onSwitchRole: otherRoleHasUpdates ? {} : nil,
+                otherRoleHasUpdates: otherRoleHasUpdates
             )
         }
     }

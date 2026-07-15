@@ -259,6 +259,27 @@ contract — adjust as the product dictates.
       App Store Connect upload steps (which need the owner's Apple account)
       are documented in docs/BUILD_STATUS.md's owner action items — Claude
       cannot run them. Tagged `v0.1.0`.
+- [x] **Prompt 17** — Real, persisted, roles-gated role switch for both-role
+      people, plus a quiet cross-role "something new" indicator. `RootView`
+      now persists the active `PersonRole` and gates the switcher on the
+      signed-in person's actual `roles` (`RolePresenceStore` + `RoleGating`,
+      App target): a single-role person is forced onto that role with no
+      switcher; only a both-role person sees "Switch role". A new
+      `RoleActivitySummary` service (`Features`) computes the latest inbound
+      activity (messages, progress, sessions, program assignments) per role
+      from the seeded `Backend`; `RootView` compares it against each role's
+      persisted last-visited date to derive `otherRoleHasUpdates`, threaded
+      through `CoachRootView`/`ConsumerRootView` -> `CoachProfileView`/
+      `ConsumerMeView` -> `SettingsView`. The dot itself is a small filled
+      `Color.Ascend.primary` circle (never the numeric red `.badge()`) —
+      composited onto the Profile/Me tab icon via `DesignSystem`'s
+      `TabIconWithDot` (an `ImageRenderer`-baked bitmap, since a plain
+      overlay view is silently dropped by the system tab bar), and shown as
+      a subtitle + dot on the shared "Switch role" row. The seeded demo
+      professional (Jordan Ellis) now holds both `PersonRole`s so the
+      both-role path — and the existing demo "Switch role" flow — stays
+      exercised. New tests: `RoleActivitySummaryTests` (`FeaturesTests`),
+      `RolePresenceStoreTests`/`RoleGatingTests` (`AscendTests`).
 
 ## AI capabilities (deferred track)
 

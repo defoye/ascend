@@ -22,22 +22,30 @@ public struct ConsumerRootView: View {
     private let clock: @Sendable () -> Date
     private let paymentsMode: PaymentsMode
     private let onSwitchRole: (() -> Void)?
+    private let otherRoleHasUpdates: Bool
 
     @State private var engagement: Engagement?
     @State private var isResolvingEngagement = true
+    @State private var selectedTab: Tab = .today
+
+    private enum Tab: Hashable {
+        case today, progress, coach, me
+    }
 
     public init(
         backend: any Backend,
         clientID: Identifier<Person>,
         clock: @escaping @Sendable () -> Date = { Date() },
         paymentsMode: PaymentsMode = .live,
-        onSwitchRole: (() -> Void)? = nil
+        onSwitchRole: (() -> Void)? = nil,
+        otherRoleHasUpdates: Bool = false
     ) {
         self.backend = backend
         self.clientID = clientID
         self.clock = clock
         self.paymentsMode = paymentsMode
         self.onSwitchRole = onSwitchRole
+        self.otherRoleHasUpdates = otherRoleHasUpdates
     }
 
     public var body: some View {
@@ -80,7 +88,7 @@ public struct ConsumerRootView: View {
 
     @ViewBuilder
     private func tabs(engagement: Engagement) -> some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             NavigationStack {
                 ConsumerHomeView(
                     viewModel: ConsumerHomeViewModel(backend: backend, clientID: clientID, clock: clock),
@@ -89,6 +97,7 @@ public struct ConsumerRootView: View {
                 )
             }
             .tabItem { Label("Today", systemImage: "sun.max") }
+            .tag(Tab.today)
 
             NavigationStack {
                 ClientProgressView(
@@ -97,6 +106,7 @@ public struct ConsumerRootView: View {
                 )
             }
             .tabItem { Label("Progress", systemImage: "chart.line.uptrend.xyaxis") }
+            .tag(Tab.progress)
 
             NavigationStack {
                 MessageThreadView(
@@ -104,6 +114,7 @@ public struct ConsumerRootView: View {
                 )
             }
             .tabItem { Label("Coach", systemImage: "bubble.left") }
+            .tag(Tab.coach)
 
             NavigationStack {
                 ConsumerMeView(
@@ -112,10 +123,15 @@ public struct ConsumerRootView: View {
                     engagementID: engagement.id,
                     clock: clock,
                     paymentsMode: paymentsMode,
-                    onSwitchRole: onSwitchRole
+                    onSwitchRole: onSwitchRole,
+                    otherRoleHasUpdates: otherRoleHasUpdates
                 )
             }
-            .tabItem { Label("Me", systemImage: "person.crop.circle") }
+            .tabItem {
+                TabIconWithDot(systemName: "person.crop.circle", isSelected: selectedTab == .me, showDot: otherRoleHasUpdates)
+                Text("Me")
+            }
+            .tag(Tab.me)
         }
         .tint(Color.Ascend.primary)
     }
@@ -131,9 +147,21 @@ public struct ConsumerRootView: View {
         .preferredColorScheme(.dark)
 }
 
+#Preview("ConsumerRootView - Both roles, new from coach") {
+    ConsumerRootPreview(otherRoleHasUpdates: true)
+        .preferredColorScheme(.light)
+}
+
 private struct ConsumerRootPreview: View {
+    var otherRoleHasUpdates = false
+
     var body: some View {
         let backend = PreviewBackend(professionalID: Identifier<Person>())
-        ConsumerRootView(backend: backend, clientID: backend.clientAID)
+        ConsumerRootView(
+            backend: backend,
+            clientID: backend.clientAID,
+            onSwitchRole: otherRoleHasUpdates ? {} : nil,
+            otherRoleHasUpdates: otherRoleHasUpdates
+        )
     }
 }

@@ -41,6 +41,7 @@ public struct ConsumerMeView: View {
     private let clock: @Sendable () -> Date
     private let paymentsMode: PaymentsMode
     private let onSwitchRole: (() -> Void)?
+    private let otherRoleHasUpdates: Bool
 
     public init(
         backend: any Backend,
@@ -48,7 +49,8 @@ public struct ConsumerMeView: View {
         engagementID: Identifier<Engagement>?,
         clock: @escaping @Sendable () -> Date = { Date() },
         paymentsMode: PaymentsMode = .live,
-        onSwitchRole: (() -> Void)? = nil
+        onSwitchRole: (() -> Void)? = nil,
+        otherRoleHasUpdates: Bool = false
     ) {
         _viewModel = State(wrappedValue: ConsumerMeViewModel(backend: backend, clientID: clientID))
         self.backend = backend
@@ -57,6 +59,7 @@ public struct ConsumerMeView: View {
         self.clock = clock
         self.paymentsMode = paymentsMode
         self.onSwitchRole = onSwitchRole
+        self.otherRoleHasUpdates = otherRoleHasUpdates
     }
 
     public var body: some View {
@@ -149,7 +152,9 @@ public struct ConsumerMeView: View {
                     backend: backend,
                     personID: clientID,
                     roleLabel: "Client",
-                    onSwitchRole: onSwitchRole
+                    onSwitchRole: onSwitchRole,
+                    otherRoleHasUpdates: otherRoleHasUpdates,
+                    otherRoleUpdateSubtitle: "New from your coach"
                 )
             } label: {
                 ListRow(
@@ -188,7 +193,14 @@ public struct ConsumerMeView: View {
         .preferredColorScheme(.dark)
 }
 
+#Preview("ConsumerMeView - Both roles, new from coach") {
+    ConsumerMePreview(otherRoleHasUpdates: true)
+        .preferredColorScheme(.light)
+}
+
 private struct ConsumerMePreview: View {
+    var otherRoleHasUpdates = false
+
     var body: some View {
         let backend = PreviewBackend(professionalID: Identifier<Person>())
         NavigationStack {
@@ -196,7 +208,8 @@ private struct ConsumerMePreview: View {
                 backend: backend,
                 clientID: backend.clientAID,
                 engagementID: backend.engagementAID,
-                onSwitchRole: {}
+                onSwitchRole: {},
+                otherRoleHasUpdates: otherRoleHasUpdates
             )
         }
     }

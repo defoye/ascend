@@ -18,18 +18,24 @@ public struct SettingsView: View {
 
     private let roleLabel: String
     private let onSwitchRole: (() -> Void)?
+    private let otherRoleHasUpdates: Bool
+    private let otherRoleUpdateSubtitle: String
 
     public init(
         backend: any Backend,
         personID: Identifier<Person>,
         roleLabel: String,
         reminderScheduler: any SessionReminderScheduling = LiveSessionReminderScheduler(),
-        onSwitchRole: (() -> Void)? = nil
+        onSwitchRole: (() -> Void)? = nil,
+        otherRoleHasUpdates: Bool = false,
+        otherRoleUpdateSubtitle: String = "New activity"
     ) {
         _viewModel = State(wrappedValue: SettingsViewModel(backend: backend, personID: personID))
         _reminderScheduler = State(wrappedValue: reminderScheduler)
         self.roleLabel = roleLabel
         self.onSwitchRole = onSwitchRole
+        self.otherRoleHasUpdates = otherRoleHasUpdates
+        self.otherRoleUpdateSubtitle = otherRoleUpdateSubtitle
     }
 
     public var body: some View {
@@ -110,10 +116,19 @@ public struct SettingsView: View {
             Card {
                 ListRow(
                     title: "Switch role",
-                    subtitle: "Demo role switch — see the same seeded data from the other side",
+                    subtitle: otherRoleHasUpdates
+                        ? otherRoleUpdateSubtitle
+                        : "Demo role switch — see the same seeded data from the other side",
                     action: onSwitchRole,
                     leading: { Image(systemName: "arrow.left.arrow.right").foregroundStyle(Color.Ascend.textSecondary) },
-                    trailing: { EmptyView() }
+                    trailing: {
+                        if otherRoleHasUpdates {
+                            Circle()
+                                .fill(Color.Ascend.primary)
+                                .frame(width: 8, height: 8)
+                                .accessibilityHidden(true)
+                        }
+                    }
                 )
             }
             .padding(.horizontal, Spacing.space4)
@@ -222,7 +237,14 @@ public struct SettingsView: View {
         .preferredColorScheme(.dark)
 }
 
+#Preview("SettingsView - Both roles, new client activity") {
+    SettingsPreview(otherRoleHasUpdates: true)
+        .preferredColorScheme(.light)
+}
+
 private struct SettingsPreview: View {
+    var otherRoleHasUpdates = false
+
     var body: some View {
         let backend = PreviewBackend(professionalID: Identifier<Person>())
         NavigationStack {
@@ -231,7 +253,9 @@ private struct SettingsPreview: View {
                 personID: backend.professionalID,
                 roleLabel: "Coach",
                 reminderScheduler: MockSessionReminderScheduler(),
-                onSwitchRole: {}
+                onSwitchRole: {},
+                otherRoleHasUpdates: otherRoleHasUpdates,
+                otherRoleUpdateSubtitle: "New client activity"
             )
         }
     }

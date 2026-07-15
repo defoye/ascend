@@ -1,6 +1,7 @@
 #if DEBUG
 
 import DesignSystem
+import Domain
 import SwiftUI
 
 /// The demo harness's discoverable entry point: a small wrench button that
@@ -11,7 +12,7 @@ import SwiftUI
 struct DemoLauncherButton: View {
     let demoModeStore: DemoModeStore
     let harnessState: DemoHarnessState
-    @Binding var activeRole: DemoRole
+    @Binding var activeRole: PersonRole
     @State private var showingPanel = false
 
     var body: some View {

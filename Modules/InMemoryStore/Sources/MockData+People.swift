@@ -30,11 +30,15 @@ extension MockData {
         [professionalPerson()] + clientPeople()
     }
 
+    /// Holds **both** roles (see docs/PRODUCT.md — "One `Person`, with role
+    /// modes consumer / professional / both") so the roles-gated switcher
+    /// (`RoleGating.switcherAvailable`) is actually exercised for the seeded
+    /// demo person, keeping the existing demo "Switch role" flow reachable.
     static func professionalPerson() -> Person {
         Person(
             id: professionalPersonID,
             displayName: "Jordan Ellis",
-            roles: [.professional],
+            roles: [.professional, .consumer],
             goals: []
         )
     }

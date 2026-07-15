@@ -56,13 +56,17 @@ public final class AddClientViewModel {
     }
 
     /// Loads `.consumer` people who don't already have an engagement with
-    /// this professional, for the "invite existing person" picker.
+    /// this professional, for the "invite existing person" picker. Excludes
+    /// the professional themselves — a both-role person (see
+    /// docs/PRODUCT.md) can't be their own client.
     public func loadExistingCandidates() async {
         do {
             let people = try await backend.people.list()
             let engagements = try await backend.engagements.fetchEngagements(forProfessional: professionalID)
             let alreadyEngaged = Set(engagements.map(\.clientID))
-            existingCandidates = people.filter { $0.roles.contains(.consumer) && !alreadyEngaged.contains($0.id) }
+            existingCandidates = people.filter {
+                $0.roles.contains(.consumer) && $0.id != professionalID && !alreadyEngaged.contains($0.id)
+            }
         } catch {
             existingCandidates = []
         }
