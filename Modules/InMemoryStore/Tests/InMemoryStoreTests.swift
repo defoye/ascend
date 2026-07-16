@@ -285,4 +285,21 @@ struct InMemoryStoreTests {
             try await backend.signUp(email: "norole@example.com", password: "secret", displayName: "No Role", roles: [])
         }
     }
+
+    @Test("AuthGateway: deleteAccount removes the signed-in user from registeredUsers and signs out")
+    func deleteAccountRemovesUserAndSignsOut() async throws {
+        let backend = InMemoryBackend()
+        try await backend.signUp(email: "gone@example.com", password: "secret", displayName: "Gone Soon", roles: [.consumer])
+
+        try await backend.deleteAccount()
+
+        let stateAfter = await backend.currentAuthState
+        #expect(stateAfter == .signedOut)
+        let registeredAfter = await backend.registeredUsers
+        #expect(registeredAfter["gone@example.com"] == nil)
+
+        await #expect(throws: InMemoryStoreError.self) {
+            try await backend.signIn(email: "gone@example.com", password: "secret")
+        }
+    }
 }

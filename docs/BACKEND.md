@@ -155,3 +155,27 @@ it — until then, `SupabaseBackend`'s invite methods compile and are wired into
 `Backend`, but calling them against a real project fails (no such table/function),
 the same "adapter exists, SQL doesn't yet" state every other Supabase-backed
 repository passed through before its own migration landed.
+
+## Account deletion (LH-7)
+
+`AccountDeletionEffect` anonymizes the `people` row rather than deleting it
+(FK cascades off `people` would otherwise wipe the other party's shared
+engagement history — see that type's doc comment) and ends, rather than
+deletes, the person's engagements. Anonymizing the row doesn't remove the
+**auth identity** itself, so `AuthGateway` gains `deleteAccount()`, which
+does that separately.
+
+`SupabaseBackend`'s `deleteAccount()` invokes the `delete-account` Edge
+Function (`Server/supabase/functions/delete-account/index.ts`) rather than
+calling `auth.admin.deleteUser` from the client — that call requires the
+service-role key, which never ships in the app. The function reads the
+caller's JWT, resolves the user with an anon-key client, then uses a
+service-role client (`SUPABASE_SERVICE_ROLE_KEY`, a Supabase server-side
+secret) to delete the auth user. The client never passes an id — the
+function derives the target entirely from the caller's own session.
+
+Same "reviewed-only" state as the invite RPC above: no Docker/Postgres
+tooling here means it hasn't run locally. The owner needs to run
+`supabase functions deploy delete-account` (from `Server/supabase/`) against
+the live project before `SettingsViewModel.deleteAccount()` can succeed
+against `SupabaseBackend`.

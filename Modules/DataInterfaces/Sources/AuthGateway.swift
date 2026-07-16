@@ -16,4 +16,10 @@ public protocol AuthGateway: Sendable {
     /// via `PersonRepository.upsert`.
     func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws
     func signOut() async throws
+    /// Permanently destroys the signed-in **auth identity** and ends the
+    /// session — distinct from `AccountDeletionEffect`, which anonymizes
+    /// (never deletes) the corresponding `Person` row. Call this only after
+    /// `AccountDeletionEffect.deleteAccount` reports `personAnonymized`, so
+    /// the credential is removed last, once the data sweep has succeeded.
+    func deleteAccount() async throws
 }

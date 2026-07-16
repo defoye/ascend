@@ -51,6 +51,16 @@ extension SupabaseBackend: AuthGateway {
         try await client.auth.signOut()
     }
 
+    /// Invokes the `delete-account` Edge Function, which runs with
+    /// service-role rights server-side and derives the target user from the
+    /// caller's JWT — the client never passes an id (see
+    /// `Server/supabase/functions/delete-account/index.ts`). Ends the local
+    /// session afterward, the same as `signOut`.
+    public func deleteAccount() async throws {
+        try await client.functions.invoke("delete-account")
+        try await client.auth.signOut()
+    }
+
     // MARK: - Helpers
 
     private static func ensurePerson(

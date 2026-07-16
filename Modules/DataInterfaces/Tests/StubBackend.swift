@@ -164,6 +164,7 @@ struct StubAuthGateway: AuthGateway {
     func signIn(email: String, password: String) async throws {}
     func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws {}
     func signOut() async throws {}
+    func deleteAccount() async throws {}
 }
 
 struct StubBackend: Backend {

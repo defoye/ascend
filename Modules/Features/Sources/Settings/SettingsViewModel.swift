@@ -96,10 +96,12 @@ public final class SettingsViewModel {
         }
     }
 
-    /// Runs `AccountDeletionEffect.deleteAccount`, then signs out on success
-    /// so the composition root's auth-state listener (`RootView`) drops back
-    /// to the signed-out screen automatically rather than continuing to
-    /// render a tab bar for a person who no longer exists.
+    /// Runs `AccountDeletionEffect.deleteAccount`, then — once the data
+    /// sweep succeeds (`personAnonymized`) — destroys the auth identity via
+    /// `backend.auth.deleteAccount()` so the composition root's auth-state
+    /// listener (`RootView`) drops back to the signed-out screen
+    /// automatically rather than continuing to render a tab bar for a
+    /// person whose data has already been scrubbed.
     public func deleteAccount() async {
         isDeleting = true
         defer { isDeleting = false }
@@ -108,14 +110,21 @@ public final class SettingsViewModel {
         let summary = await AccountDeletionEffect.deleteAccount(personID: personID, backend: backend)
         deletionSummary = summary
 
-        guard summary.personDeleted else {
+        guard summary.personAnonymized else {
             errorMessage = "Couldn't delete your account. Try again."
             backend.analytics.track(.errorOccurred(context: .deleteAccount))
             return
         }
 
-        errorMessage = nil
         backend.analytics.track(.accountDeleted(personID: personID))
-        try? await backend.auth.signOut()
+
+        do {
+            try await backend.auth.deleteAccount()
+            errorMessage = nil
+        } catch {
+            errorMessage = "Your data was removed but the sign-in credential couldn't be deleted. Contact support."
+            backend.analytics.track(.errorOccurred(context: .deleteAccount))
+            try? await backend.auth.signOut()
+        }
     }
 }

@@ -45,10 +45,17 @@ data:
 
 - Review/change sharing consent any time from Settings and the "Share
   progress" screen.
-- Delete your account and its data (engagements, sessions, progress entries,
-  photos, notes, payments, and — if you coach — your programs, availability,
-  and professional profile) any time from Settings → "Delete account" (see
-  `AccountDeletionEffect`).
+- Delete your account any time from Settings → "Delete account" (see
+  `AccountDeletionEffect`). This permanently destroys your sign-in
+  credential — you can never sign back into that account — and your
+  personal profile (display name, roles, goals) is scrubbed. Any active
+  coaching engagements you're part of are ended. What's **not** deleted:
+  shared coaching records (sessions, progress entries, photos, and
+  payments) and messages are retained, because they're jointly owned with
+  the other party in the relationship — a coach deleting their account
+  doesn't erase their clients' training history, and vice versa. If you
+  coach, your authored programs, availability windows, and professional
+  profile are deleted, since those are yours alone.
 
 ## Today's build
 

@@ -39,6 +39,14 @@ extension InMemoryBackend: AuthGateway {
         authRegistry.yield(currentAuthState, for: SingletonKey())
     }
 
+    public func deleteAccount() async throws {
+        if case .signedIn(let user) = currentAuthState {
+            registeredUsers = registeredUsers.filter { $0.value.user.personID != user.personID }
+        }
+        currentAuthState = .signedOut
+        authRegistry.yield(currentAuthState, for: SingletonKey())
+    }
+
     // MARK: - Helpers
 
     func registerAuthSubscription(token: UUID, continuation: AsyncStream<AuthState>.Continuation) {

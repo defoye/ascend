@@ -78,21 +78,25 @@ public struct SettingsView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This permanently deletes your profile, engagements, sessions, progress, and payments. This cannot be undone.")
+            Text(
+                "This deletes your sign-in credential and personal profile. Any active coaching " +
+                "engagements will be ended. Shared training records — sessions, progress, and payments — " +
+                "are retained for the other party. This cannot be undone."
+            )
         }
         .alert(
-            viewModel.deletionSummary?.personDeleted == true ? "Account deleted" : "Couldn't delete account",
+            viewModel.deletionSummary?.personAnonymized == true ? "Account deleted" : "Couldn't delete account",
             isPresented: $showingDeletedAlert
         ) {
             Button("OK") {
-                if viewModel.deletionSummary?.personDeleted == true {
+                if viewModel.deletionSummary?.personAnonymized == true {
                     dismiss()
                 }
             }
         } message: {
             Text(
-                viewModel.deletionSummary?.personDeleted == true
-                    ? "Your account and its data have been removed. You've been signed out."
+                viewModel.deletionSummary?.personAnonymized == true
+                    ? "Your account has been deleted and you've been signed out."
                     : (viewModel.errorMessage ?? "Something went wrong. Try again.")
             )
         }
@@ -270,7 +274,7 @@ public struct SettingsView: View {
                         showingDeleteConfirmation = true
                     }
                     .frame(maxWidth: .infinity)
-                    .accessibilityHint("Permanently deletes your account and all associated data")
+                    .accessibilityHint("Deletes your sign-in credential and personal profile; shared coaching records are retained")
                 }
             }
             .padding(.horizontal, Spacing.space4)

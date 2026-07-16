@@ -200,6 +200,7 @@ private struct PreviewFailingAuthGateway: AuthGateway {
         throw PreviewAuthError.demo
     }
     func signOut() async throws {}
+    func deleteAccount() async throws {}
 }
 
 private enum PreviewAuthError: Error {
