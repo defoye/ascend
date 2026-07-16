@@ -55,6 +55,42 @@ public enum ClientsSummaries {
         return items.filter { $0.clientName.localizedCaseInsensitiveContains(trimmed) }
     }
 
+    /// How consistently a client has kept up completed sessions since the
+    /// engagement started, for the Client Detail "Retention" stat tile (see
+    /// docs/design/handoff/HANDOFF_README.md §02). `nil` when there's
+    /// nothing to measure yet (no completed sessions, or the engagement
+    /// hasn't started) — the caller renders a "—" placeholder rather than a
+    /// fabricated number.
+    public struct SessionRetention: Sendable, Equatable {
+        public let percent: Int
+        public let weeksWithSession: Int
+        public let elapsedWeeks: Int
+
+        public init(percent: Int, weeksWithSession: Int, elapsedWeeks: Int) {
+            self.percent = percent
+            self.weeksWithSession = weeksWithSession
+            self.elapsedWeeks = elapsedWeeks
+        }
+    }
+
+    /// The fraction of elapsed weeks (since `start`, through `now`) that
+    /// contain at least one completed session — an honest consistency
+    /// measure derived only from real session data, never a hardcoded or
+    /// name-keyed number.
+    public static func sessionRetention(
+        completedSessionDates: [Date],
+        since start: Date,
+        now: Date,
+        calendar: Calendar = .current
+    ) -> SessionRetention? {
+        guard !completedSessionDates.isEmpty, start <= now else { return nil }
+        let elapsedWeeks = max(1, (calendar.dateComponents([.weekOfYear], from: start, to: now).weekOfYear ?? 0) + 1)
+        let weekKeys = Set(completedSessionDates.map { calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: $0) })
+        let weeksWithSession = min(weekKeys.count, elapsedWeeks)
+        let percent = Int((Double(weeksWithSession) / Double(elapsedWeeks) * 100).rounded())
+        return SessionRetention(percent: percent, weeksWithSession: weeksWithSession, elapsedWeeks: elapsedWeeks)
+    }
+
     /// The default roster ordering: active engagements first, then pending,
     /// paused, completed, ended; alphabetical by client name within each
     /// group.

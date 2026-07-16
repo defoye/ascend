@@ -2,7 +2,7 @@ import DesignSystem
 import Domain
 import SwiftUI
 
-// MARK: - Notes and message shortcut
+// MARK: - Notes
 //
 // Split into their own extension file (rather than kept in
 // `ClientDetailView.swift`) purely to stay under SwiftLint's `file_length` —
@@ -87,27 +87,6 @@ extension ClientDetailView {
             ) {
                 Task { await viewModel.saveNote() }
             }
-        }
-    }
-
-    // MARK: - Message shortcut
-
-    var messageShortcut: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SectionHeader("Messages")
-            Card {
-                ListRow(
-                    title: "Message \(viewModel.clientName)",
-                    subtitle: "Open the conversation",
-                    action: { showingMessageThread = true },
-                    leading: {
-                        Image(systemName: "bubble.left")
-                            .foregroundStyle(Color.Ascend.primary)
-                    },
-                    trailing: { EmptyView() }
-                )
-            }
-            .padding(.horizontal, Spacing.space4)
         }
     }
 }

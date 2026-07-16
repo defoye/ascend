@@ -18,6 +18,7 @@ public final class ClientDetailViewModel {
     public private(set) var program: Program?
     public private(set) var progressEntries: [ProgressEntry] = []
     public private(set) var notes: [CoachNote] = []
+    public private(set) var sessions: [Session] = []
     public private(set) var isLoading = false
     public private(set) var loadErrorMessage: String?
 
@@ -66,6 +67,21 @@ public final class ClientDetailViewModel {
             .map { ProgressPoint(date: $0.recordedAt, value: $0.value.value) }
     }
 
+    /// Count of `.completed` sessions, for the "Sessions" stat tile (see
+    /// docs/design/handoff/HANDOFF_README.md §02).
+    public var completedSessionsCount: Int {
+        sessions.filter { $0.status == .completed }.count
+    }
+
+    /// How consistently the client has kept up completed sessions since the
+    /// engagement started, for the "Retention" stat tile. `nil` (rendered as
+    /// "—") when there's no completed session or start date to measure from.
+    public var sessionRetention: ClientsSummaries.SessionRetention? {
+        guard let start = engagement?.startedAt else { return nil }
+        let completedDates = sessions.filter { $0.status == .completed }.map(\.scheduledAt)
+        return ClientsSummaries.sessionRetention(completedSessionDates: completedDates, since: start, now: clock())
+    }
+
     /// Loads the engagement, client, assigned program (most recently
     /// assigned, if more than one), progress entries, and coach notes.
     public func load() async {
@@ -88,6 +104,7 @@ public final class ClientDetailViewModel {
 
             progressEntries = try await backend.progress.fetchEntries(forEngagement: engagementID)
             notes = try await backend.notes.notes(forEngagement: engagementID)
+            sessions = try await backend.sessions.fetchSessions(forEngagement: engagementID)
             loadErrorMessage = nil
         } catch {
             loadErrorMessage = "Couldn't load this client. Pull to refresh to try again."

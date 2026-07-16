@@ -31,6 +31,11 @@ struct PreviewBackend: Backend {
     /// `ClientDetailView`) can reference this fixture's primary engagement.
     var engagementAID: Identifier<Engagement> { engagementA }
 
+    /// Exposed so previews needing a client with no progress entries yet
+    /// (e.g. `ClientDetailView`'s empty-metrics state, "Sam Patel") can
+    /// reference this fixture's secondary engagement.
+    var engagementBID: Identifier<Engagement> { engagementB }
+
     /// Exposed so previews of client-facing screens (e.g. `ConsumerHomeView`)
     /// can reference this fixture's primary client, "Morgan Chen".
     var clientAID: Identifier<Person> { clientA }

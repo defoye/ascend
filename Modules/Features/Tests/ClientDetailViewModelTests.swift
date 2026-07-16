@@ -65,6 +65,44 @@ struct ClientDetailViewModelTests {
         #expect(persisted?.status == .paused)
     }
 
+    @Test("completedSessionsCount and sessionRetention are derived from real seeded session data")
+    func completedSessionsAndRetention() async throws {
+        let backend = InMemoryStore.seeded()
+        let people = try await backend.people.list()
+        // Sam Patel (seeded index 2): 4 `.completed` sessions and 1
+        // `.scheduled` session; engagement started 70 days before referenceDate.
+        let samPatel = try #require(people.first { $0.displayName == "Sam Patel" })
+        let engagement = try #require(try await backend.engagements.fetchEngagements(forClient: samPatel.id).first)
+
+        let viewModel = ClientDetailViewModel(
+            backend: backend,
+            engagementID: engagement.id,
+            professionalID: engagement.professionalID,
+            clock: { InMemoryStore.referenceDate }
+        )
+        await viewModel.load()
+
+        #expect(viewModel.completedSessionsCount == 4)
+
+        let retention = try #require(viewModel.sessionRetention)
+        #expect(retention.weeksWithSession <= retention.elapsedWeeks)
+        #expect((0...100).contains(retention.percent))
+    }
+
+    @Test("sessionRetention is nil for a pending engagement with no started date, not a fabricated number")
+    func sessionRetentionNilWithoutStartDate() async throws {
+        let backend = InMemoryStore.seeded()
+        let people = try await backend.people.list()
+        // Alex Rivera (seeded index 0): pending, startedAt == nil.
+        let alexRivera = try #require(people.first { $0.displayName == "Alex Rivera" })
+        let engagement = try #require(try await backend.engagements.fetchEngagements(forClient: alexRivera.id).first)
+
+        let viewModel = ClientDetailViewModel(backend: backend, engagementID: engagement.id, professionalID: engagement.professionalID)
+        await viewModel.load()
+
+        #expect(viewModel.sessionRetention == nil)
+    }
+
     @Test("saveNote persists a CoachNote through NotesRepository and clears the draft")
     func saveNotePersists() async throws {
         let backend = InMemoryStore.seeded()

@@ -2,11 +2,11 @@ import DesignSystem
 import Domain
 import SwiftUI
 
-/// A single client's detail screen: header (name, goal, editable status),
-/// goals/metrics overview, assigned program summary, per-metric progress
-/// charts + recent entries, coach notes, and a message shortcut into this
-/// client's `MessageThreadView` (see docs/design/DESIGN_SPEC.md). Pushed
-/// from `ClientsListView` onto the Clients tab's `NavigationStack`.
+/// A single client's detail screen: header (name, editable status), a 2×2
+/// stat-tile overview, assigned program summary, a single metric progress
+/// chart + recent entries, and coach notes — with a nav-bar message icon
+/// into this client's `MessageThreadView` (see docs/design/DESIGN_SPEC.md).
+/// Pushed from `ClientsListView` onto the Clients tab's `NavigationStack`.
 public struct ClientDetailView: View {
     // Not `private`: `ClientDetailView+Notes.swift` (a same-type extension in
     // a different file, split out purely to stay under SwiftLint's
@@ -30,18 +30,35 @@ public struct ClientDetailView: View {
                     ErrorBanner(message: loadErrorMessage, retry: { Task { await viewModel.load() } })
                         .padding(.horizontal, Spacing.space4)
                 }
-                header
-                overviewSection
-                programSection
-                progressSection
-                notesSection
-                messageShortcut
+                // Error kit (docs/design/handoff/HANDOFF_README.md §06): stale
+                // content stays visible under the banner, dimmed to 55%,
+                // rather than being replaced or hidden.
+                VStack(alignment: .leading, spacing: Spacing.space6) {
+                    if viewModel.isLoading {
+                        loadingSkeleton
+                    } else {
+                        header
+                        overviewSection
+                        programSection
+                        progressSection
+                        notesSection
+                    }
+                }
+                .opacity(viewModel.loadErrorMessage != nil ? 0.55 : 1)
             }
             .padding(.vertical, Spacing.space4)
         }
         .background(Color.Ascend.background)
         .navigationTitle(viewModel.clientName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button { showingMessageThread = true } label: {
+                    Image(systemName: "bubble.left")
+                }
+                .accessibilityLabel("Message \(viewModel.clientName)")
+            }
+        }
         .refreshable { await viewModel.load() }
         .task { await viewModel.load() }
         .navigationDestination(isPresented: $showingMessageThread) {
@@ -75,22 +92,15 @@ public struct ClientDetailView: View {
 
     private var header: some View {
         Card {
-            VStack(alignment: .leading, spacing: Spacing.space3) {
-                HStack(spacing: Spacing.space3) {
-                    Avatar(name: viewModel.clientName, size: .lg)
-                    VStack(alignment: .leading, spacing: Spacing.space1) {
-                        Text(viewModel.clientName)
-                            .ascendType(.title3)
-                            .foregroundStyle(Color.Ascend.textPrimary)
-                        if let goal = viewModel.goals.first {
-                            Text(goal.kind.displayName)
-                                .ascendType(.subheadline)
-                                .foregroundStyle(Color.Ascend.textSecondary)
-                        }
-                    }
-                    Spacer(minLength: Spacing.space2)
+            HStack(alignment: .top, spacing: Spacing.space3) {
+                Avatar(name: viewModel.clientName, size: .lg)
+                VStack(alignment: .leading, spacing: Spacing.space1) {
+                    Text(viewModel.clientName)
+                        .ascendType(.title3)
+                        .foregroundStyle(Color.Ascend.textPrimary)
+                    statusMenu
                 }
-                statusMenu
+                Spacer(minLength: Spacing.space2)
             }
         }
         .padding(.horizontal, Spacing.space4)
@@ -129,18 +139,26 @@ public struct ClientDetailView: View {
 
     // MARK: - Overview
 
+    /// A 2×2 grid of `StatTile`s (see docs/design/handoff/HANDOFF_README.md
+    /// §02): up to the first two tracked metrics, plus completed sessions
+    /// and retention — both derived only from real session data, never a
+    /// fixed metric pair or a hardcoded name.
     private var overviewSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             SectionHeader("Overview")
             Card {
                 VStack(alignment: .leading, spacing: Spacing.space4) {
                     goalTags
-                    if !viewModel.trackedMetrics.isEmpty {
-                        let columns = [GridItem(.flexible()), GridItem(.flexible())]
-                        LazyVGrid(columns: columns, spacing: Spacing.space3) {
-                            ForEach(viewModel.trackedMetrics, id: \.self) { metric in
-                                metricStatTile(for: metric)
-                            }
+                    let columns = [GridItem(.flexible()), GridItem(.flexible())]
+                    LazyVGrid(columns: columns, spacing: Spacing.space3) {
+                        ForEach(viewModel.trackedMetrics.prefix(2), id: \.self) { metric in
+                            metricStatTile(for: metric)
+                        }
+                        StatTile(label: "Sessions", value: "\(viewModel.completedSessionsCount)")
+                        if let retention = viewModel.sessionRetention {
+                            StatTile(label: "Retention", value: "\(retention.percent)", unit: "%")
+                        } else {
+                            StatTile(label: "Retention", value: "—")
                         }
                     }
                 }
@@ -221,7 +239,7 @@ public struct ClientDetailView: View {
     }
 }
 
-// MARK: - Progress, notes, and message shortcut
+// MARK: - Progress
 //
 // Split into an extension (rather than kept in the primary declaration
 // above) purely to stay under SwiftLint's `type_body_length` — SwiftLint
@@ -229,6 +247,11 @@ public struct ClientDetailView: View {
 extension ClientDetailView {
     // MARK: - Progress
 
+    /// A single metric chart (see docs/design/handoff/HANDOFF_README.md §02
+    /// — one chart, not one per tracked metric), preferring squat 1RM when
+    /// tracked. The empty-metrics state (Sam's case) is driven purely off
+    /// `progressEntries.isEmpty` — real fetched data, never a hardcoded
+    /// client name.
     @ViewBuilder
     var progressSection: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -238,16 +261,16 @@ extension ClientDetailView {
             if viewModel.progressEntries.isEmpty {
                 Card {
                     EmptyState(
-                        systemImage: "chart.line.uptrend.xyaxis",
-                        title: "No progress logged yet",
-                        message: "Progress entries the client (or you) log will show up here.",
-                        actionTitle: "Log progress",
+                        systemImage: "checkmark",
+                        title: "No measurements logged yet",
+                        message: "Log \(viewModel.clientName)'s first check-in to start the progress record. Charts appear once there are two points.",
+                        actionTitle: "Log a check-in",
                         action: { showingLogProgress = true }
                     )
                 }
                 .padding(.horizontal, Spacing.space4)
             } else {
-                progressCharts
+                primaryProgressChart
                 recentEntriesCard
                 logProgressButton
             }
@@ -266,8 +289,13 @@ extension ClientDetailView {
         .padding(.horizontal, Spacing.space4)
     }
 
-    private var progressCharts: some View {
-        ForEach(viewModel.trackedMetrics, id: \.self) { metric in
+    private var primaryChartMetric: MetricKind? {
+        viewModel.trackedMetrics.contains(.squat1RM) ? .squat1RM : viewModel.trackedMetrics.first
+    }
+
+    @ViewBuilder
+    private var primaryProgressChart: some View {
+        if let metric = primaryChartMetric {
             Card {
                 ProgressChart(
                     title: metric.displayName,
@@ -327,7 +355,32 @@ extension ClientDetailView {
         .preferredColorScheme(.dark)
 }
 
+#Preview("ClientDetailView - Empty metrics - Light") {
+    ClientDetailPreview(useSecondaryEngagement: true)
+        .preferredColorScheme(.light)
+}
+
+#Preview("ClientDetailView - Empty metrics - Dark") {
+    ClientDetailPreview(useSecondaryEngagement: true)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("ClientDetailView - Loading - Light") {
+    ClientDetailLoadingPreview()
+        .preferredColorScheme(.light)
+}
+
+#Preview("ClientDetailView - Loading - Dark") {
+    ClientDetailLoadingPreview()
+        .preferredColorScheme(.dark)
+}
+
 private struct ClientDetailPreview: View {
+    /// `false` (default) previews "Morgan Chen" — tracked metrics, a
+    /// program, notes. `true` previews "Sam Patel" — no progress entries
+    /// yet, exercising the empty-metrics state.
+    var useSecondaryEngagement = false
+
     var body: some View {
         let professionalID = Identifier<Person>()
         let backend = PreviewBackend(professionalID: professionalID)
@@ -335,7 +388,7 @@ private struct ClientDetailPreview: View {
             ClientDetailView(
                 viewModel: ClientDetailViewModel(
                     backend: backend,
-                    engagementID: backend.engagementAID,
+                    engagementID: useSecondaryEngagement ? backend.engagementBID : backend.engagementAID,
                     professionalID: professionalID
                 )
             )

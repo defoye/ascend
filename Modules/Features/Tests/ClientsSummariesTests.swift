@@ -58,6 +58,35 @@ struct ClientsSummariesTests {
         #expect(sorted.map(\.clientName) == ["Anna", "Zed", "Aaa"])
     }
 
+    @Test("sessionRetention is the fraction of elapsed weeks with a completed session")
+    func sessionRetentionComputesFraction() {
+        // A fixed ISO8601/UTC calendar so week boundaries are deterministic
+        // regardless of the test machine's locale/timezone.
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+
+        // Both Tuesdays, exactly 3 whole weeks apart.
+        let start = now.addingTimeInterval(-3 * 7 * 86_400)
+        // Two sessions a few hours apart on `start`'s own day — guaranteed
+        // to land in the same calendar week regardless of week-start
+        // convention, so `weeksWithSession` is unambiguously 1.
+        let completed = [start.addingTimeInterval(2 * 3_600), start.addingTimeInterval(5 * 3_600)]
+
+        let retention = ClientsSummaries.sessionRetention(completedSessionDates: completed, since: start, now: now, calendar: calendar)
+
+        #expect(retention?.elapsedWeeks == 4)
+        #expect(retention?.weeksWithSession == 1)
+        #expect(retention?.percent == 25)
+    }
+
+    @Test("sessionRetention is nil with no completed sessions or a future start date, never a fabricated number")
+    func sessionRetentionNilWhenUnmeasurable() {
+        #expect(ClientsSummaries.sessionRetention(completedSessionDates: [], since: now.addingTimeInterval(-86_400), now: now) == nil)
+        #expect(
+            ClientsSummaries.sessionRetention(completedSessionDates: [now], since: now.addingTimeInterval(86_400), now: now) == nil
+        )
+    }
+
     private func makeItem(status: EngagementStatus, name: String) -> ClientRosterItem {
         ClientRosterItem(
             engagement: Engagement(

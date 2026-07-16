@@ -44,6 +44,21 @@ struct TodayViewModelTests {
         #expect(viewModel.recentActivity.first?.occurredAt == now)
     }
 
+    @Test("professionalName resolves the signed-in coach's own display name, for the header avatar")
+    func professionalNameResolves() async throws {
+        let backend = InMemoryStore.seeded()
+        let people = try await backend.people.list()
+        let professional = try #require(people.first { $0.roles.contains(.professional) })
+        let now = InMemoryStore.referenceDate
+
+        let viewModel = TodayViewModel(backend: backend, professionalID: professional.id, paymentsMode: .live, clock: { now })
+        #expect(viewModel.professionalName == "Coach")
+
+        await viewModel.load()
+
+        #expect(viewModel.professionalName == professional.displayName)
+    }
+
     @Test("an engagement-less professional sees empty sections, not an error")
     func emptyProfessionalSeesEmptyDashboard() async {
         let backend = InMemoryStore.seeded()

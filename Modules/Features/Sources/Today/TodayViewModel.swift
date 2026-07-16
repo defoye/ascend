@@ -21,6 +21,10 @@ public final class TodayViewModel {
     public private(set) var recentActivity: [ActivityItem] = []
     /// Stays `.zero` while `paymentsMode == .free`.
     public private(set) var revenueSummary: RevenueSummary = .zero
+    /// The signed-in coach's own display name, for the header avatar (see
+    /// docs/design/handoff/HANDOFF_README.md §01). Defaults to a generic
+    /// label until `load()` resolves the professional's `Person` record.
+    public private(set) var professionalName = "Coach"
     public private(set) var isLoading = false
     public private(set) var loadErrorMessage: String?
 
@@ -53,6 +57,10 @@ public final class TodayViewModel {
         defer { isLoading = false }
 
         do {
+            if let professional = try await backend.people.get(professionalID) {
+                professionalName = professional.displayName
+            }
+
             let engagements = try await backend.engagements.fetchEngagements(forProfessional: professionalID)
             let now = clock()
 
