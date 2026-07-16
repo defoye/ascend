@@ -1,9 +1,6 @@
 import DesignSystem
 import Domain
 import SwiftUI
-#if canImport(UIKit)
-import UIKit
-#endif
 
 /// A `.sheet`-presented flow for logging a `ProgressEntry`: pick a metric,
 /// enter a value in an appropriate unit, and a date (defaulting to now).
@@ -47,7 +44,7 @@ public struct LogProgressView: View {
                 AscendButton("Log progress", isEnabled: viewModel.isValid, isLoading: viewModel.isSaving) {
                     Task {
                         if await viewModel.save() != nil {
-                            fireSuccessHaptic()
+                            AscendHaptics.success()
                             onSaved()
                             dismiss()
                         }
@@ -110,15 +107,6 @@ public struct LogProgressView: View {
             }
             .padding(.horizontal, Spacing.space4)
         }
-    }
-
-    /// A light success haptic on save, per docs/design/DESIGN_SPEC.md §4
-    /// "Logging feedback". Lives in the view (not the view model) so no
-    /// test path ever touches `UIFeedbackGenerator`.
-    private func fireSuccessHaptic() {
-        #if canImport(UIKit)
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-        #endif
     }
 }
 

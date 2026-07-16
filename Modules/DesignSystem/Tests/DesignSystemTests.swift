@@ -32,9 +32,11 @@ struct ColorTokenTests {
             .Ascend.border,
             .Ascend.onPrimary,
             .Ascend.onVerified,
+            .Ascend.skeleton,
+            .Ascend.skeleton2,
             .Ascend.chartFill,
         ]
-        #expect(tokens.count == 16)
+        #expect(tokens.count == 18)
     }
 }
 
@@ -112,6 +114,10 @@ struct ComponentSmokeTests {
                 ProgressPoint(date: .now.addingTimeInterval(86_400), value: 178),
             ]
         )
+        _ = SkeletonBlock(width: 120, height: 40)
+        _ = SkeletonText(width: 90)
+        _ = SkeletonCard { SkeletonText(width: 90) }
+        _ = LoggedConfirmation(value: "181 lb", delta: "−15 lb")
     }
 
     @Test("VerifiedBadge copy follows Invariant 2")
@@ -144,5 +150,18 @@ struct ComponentSmokeTests {
         let summary = descriptor.summary ?? ""
         #expect(summary.contains("journey"))
         #expect(!summary.contains("caused"))
+    }
+}
+
+@Suite("AscendHaptics")
+struct AscendHapticsTests {
+    @Test("success() and impact() are callable without crashing")
+    @MainActor
+    func firesWithoutCrashing() {
+        AscendHaptics.success()
+        AscendHaptics.impact()
+        AscendHaptics.impact(.medium)
+        AscendHaptics.impact(.heavy)
+        #expect(Bool(true))
     }
 }

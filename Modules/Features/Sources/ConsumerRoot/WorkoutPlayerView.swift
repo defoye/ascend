@@ -1,9 +1,6 @@
 import DesignSystem
 import Domain
 import SwiftUI
-#if canImport(UIKit)
-import UIKit
-#endif
 
 /// The client's workout player: one card per prescribed exercise (sets/reps
 /// target, a rest timer, and per-set reps/weight logging), an optional
@@ -44,7 +41,7 @@ public struct WorkoutPlayerView: View {
             ) {
                 Task {
                     if await viewModel.completeWorkout() {
-                        fireSuccessHaptic()
+                        AscendHaptics.success()
                         dismiss()
                     }
                 }
@@ -134,12 +131,6 @@ public struct WorkoutPlayerView: View {
             .padding(.horizontal, Spacing.space4)
         }
     }
-
-    private func fireSuccessHaptic() {
-        #if canImport(UIKit)
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-        #endif
-    }
 }
 
 /// A minimal rest timer: tap to start a 60-second countdown, per
@@ -165,7 +156,7 @@ private struct RestTimerView: View {
                     .onChange(of: remaining) { _, newValue in
                         guard newValue == 0 else { return }
                         pulse = true
-                        fireRestEndHaptic()
+                        AscendHaptics.success()
                         self.restEndDate = nil
                     }
             }
@@ -174,12 +165,6 @@ private struct RestTimerView: View {
                 restEndDate = Date().addingTimeInterval(Self.restDuration)
             }
         }
-    }
-
-    private func fireRestEndHaptic() {
-        #if canImport(UIKit)
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-        #endif
     }
 }
 

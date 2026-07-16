@@ -1,9 +1,6 @@
 import DesignSystem
 import Domain
 import SwiftUI
-#if canImport(UIKit)
-import UIKit
-#endif
 
 /// A `.sheet`-presented flow for charging a client for a session or
 /// package: pick which client to bill, then pick one of the coach's own
@@ -50,7 +47,7 @@ public struct ChargeClientView: View {
                 AscendButton("Charge", isEnabled: viewModel.isValid, isLoading: viewModel.isCharging) {
                     Task {
                         if await viewModel.charge() != nil {
-                            fireSuccessHaptic()
+                            AscendHaptics.success()
                             onCharged()
                             dismiss()
                         }
@@ -115,15 +112,6 @@ public struct ChargeClientView: View {
                 }
             }
         }
-    }
-
-    /// A light success haptic on charge, mirroring `LogProgressView`. Lives
-    /// in the view (not the view model) so no test path ever touches
-    /// `UIFeedbackGenerator`.
-    private func fireSuccessHaptic() {
-        #if canImport(UIKit)
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-        #endif
     }
 }
 

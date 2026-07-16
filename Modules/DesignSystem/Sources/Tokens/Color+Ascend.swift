@@ -38,6 +38,10 @@ extension Color {
         /// Text/icons on `verified`. Own dynamic asset, same flip as
         /// `onPrimary` (see spec §2.2 note).
         public static let onVerified = named("OnVerified")
+        /// Skeleton shimmer base fill. Light `#E7EAEF` / Dark `#1E242B`.
+        public static let skeleton = named("Skeleton")
+        /// Skeleton shimmer highlight sweep. Light `#EFF1F4` / Dark `#2A343D`.
+        public static let skeleton2 = named("Skeleton2")
 
         /// Soft area-fill under the progress chart line — 14% `primary`
         /// (spec calls for 12–16%). Derived rather than a dedicated asset
