@@ -72,4 +72,49 @@ public enum ConsumerProgramSummaries {
         }
         return mostRecentlyStartedFirst.first
     }
+
+    /// A rough, clearly-approximate workout duration: 3 minutes per
+    /// prescribed set (covers the work + rest between sets), rounded to the
+    /// nearest 5 minutes with a 10-minute floor. There's no logged-duration
+    /// data to draw on (`WorkoutPlayerViewModel` doesn't time sessions), so
+    /// this is a heuristic estimate only — always presented with a "~"
+    /// prefix, never as a measured fact.
+    public static func estimatedDurationMinutes(for workout: Workout) -> Int {
+        let totalSets = workout.exercises.reduce(0) { $0 + $1.sets }
+        let rounded = Int((Double(totalSets * 3) / 5).rounded()) * 5
+        return max(10, rounded)
+    }
+
+    /// The hero workout card's meta line, e.g. "6 exercises · ~45 min · Week 6".
+    public static func heroMetaLine(workout: Workout, weekIndex: Int) -> String {
+        let exerciseCount = workout.exercises.count
+        let minutes = estimatedDurationMinutes(for: workout)
+        return "\(exerciseCount) exercise\(exerciseCount == 1 ? "" : "s") · ~\(minutes) min · Week \(weekIndex + 1)"
+    }
+
+    /// This calendar week's session completion for an engagement: how many
+    /// of the sessions scheduled in `now`'s week are `.completed`, out of
+    /// however many are scheduled. Returns `nil` when no sessions fall in
+    /// the current week — there's nothing honest to report, so the caller
+    /// should omit the "This week" card rather than show an empty "0 of 0".
+    public struct WeeklySessionSummary: Sendable, Equatable {
+        public let completed: Int
+        public let total: Int
+
+        public init(completed: Int, total: Int) {
+            self.completed = completed
+            self.total = total
+        }
+    }
+
+    public static func weeklySessionSummary(
+        sessions: [Session],
+        now: Date,
+        calendar: Calendar = .current
+    ) -> WeeklySessionSummary? {
+        guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: now) else { return nil }
+        let thisWeek = sessions.filter { weekInterval.contains($0.scheduledAt) }
+        guard !thisWeek.isEmpty else { return nil }
+        return WeeklySessionSummary(completed: thisWeek.filter { $0.status == .completed }.count, total: thisWeek.count)
+    }
 }

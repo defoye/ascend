@@ -97,4 +97,47 @@ struct ConsumerProgramSummariesTests {
     func primaryEngagementEmptyList() {
         #expect(ConsumerProgramSummaries.primaryEngagement([]) == nil)
     }
+
+    @Test("estimatedDurationMinutes derives from total prescribed sets, rounded to the nearest 5 with a 10-minute floor")
+    func estimatedDurationMinutesRoundsAndFloors() {
+        let sixSets = workout("Six Sets", exercises: [
+            ExercisePrescription(id: Identifier(), exercise: Exercise(id: Identifier(), name: "Back Squat"), sets: 3, reps: "5", notes: nil),
+            ExercisePrescription(id: Identifier(), exercise: Exercise(id: Identifier(), name: "Bench Press"), sets: 3, reps: "5", notes: nil)
+        ])
+        #expect(ConsumerProgramSummaries.estimatedDurationMinutes(for: sixSets) == 20) // 6 sets * 3 = 18, rounds to 20
+
+        let noExercises = workout("Empty", exercises: [])
+        #expect(ConsumerProgramSummaries.estimatedDurationMinutes(for: noExercises) == 10) // floors at 10
+    }
+
+    @Test("heroMetaLine formats exercise count, estimated duration, and 1-based week number")
+    func heroMetaLineFormats() {
+        let program = workout("Full Body", exercises: [
+            ExercisePrescription(id: Identifier(), exercise: Exercise(id: Identifier(), name: "Goblet Squat"), sets: 3, reps: "12", notes: nil)
+        ])
+        #expect(ConsumerProgramSummaries.heroMetaLine(workout: program, weekIndex: 5) == "1 exercise · ~10 min · Week 6")
+
+        let twoExercise = workout("Full Body", exercises: [
+            ExercisePrescription(id: Identifier(), exercise: Exercise(id: Identifier(), name: "Goblet Squat"), sets: 3, reps: "12", notes: nil),
+            ExercisePrescription(id: Identifier(), exercise: Exercise(id: Identifier(), name: "Push-up"), sets: 3, reps: "10", notes: nil)
+        ])
+        #expect(ConsumerProgramSummaries.heroMetaLine(workout: twoExercise, weekIndex: 0) == "2 exercises · ~20 min · Week 1")
+    }
+
+    @Test("weeklySessionSummary counts only sessions in now's calendar week, nil when none fall in it")
+    func weeklySessionSummaryCountsCurrentWeekOnly() {
+        let calendar = Calendar(identifier: .gregorian)
+        let now = Date(timeIntervalSince1970: 1_700_000_000) // a Tuesday
+        let engagementID = Identifier<Engagement>()
+        let inWeekCompleted = Session(id: Identifier(), engagementID: engagementID, scheduledAt: now.addingTimeInterval(-1 * 3_600), status: .completed)
+        let inWeekScheduled = Session(id: Identifier(), engagementID: engagementID, scheduledAt: now.addingTimeInterval(2 * 3_600), status: .scheduled)
+        let outsideWeek = Session(id: Identifier(), engagementID: engagementID, scheduledAt: now.addingTimeInterval(-30 * 86_400), status: .completed)
+
+        let summary = ConsumerProgramSummaries.weeklySessionSummary(sessions: [inWeekCompleted, inWeekScheduled, outsideWeek], now: now, calendar: calendar)
+        #expect(summary?.completed == 1)
+        #expect(summary?.total == 2)
+
+        let none = ConsumerProgramSummaries.weeklySessionSummary(sessions: [outsideWeek], now: now, calendar: calendar)
+        #expect(none == nil)
+    }
 }

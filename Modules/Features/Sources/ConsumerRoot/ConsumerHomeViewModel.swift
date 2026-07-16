@@ -1,4 +1,5 @@
 import DataInterfaces
+import DesignSystem
 import Domain
 import Foundation
 import Observation
@@ -13,12 +14,16 @@ import Observation
 @MainActor
 @Observable
 public final class ConsumerHomeViewModel {
+    public private(set) var clientName = "You"
     public private(set) var engagement: Engagement?
     public private(set) var coachName = "Your coach"
     public private(set) var programTitle: String?
     public private(set) var currentWorkout: ConsumerProgramSummaries.CurrentWorkout?
     public private(set) var nextSession: Session?
     public private(set) var coachNudge: Message?
+    public private(set) var bodyweightPoints: [ProgressPoint] = []
+    public private(set) var bodyweightUnit = "lb"
+    public private(set) var weeklySessionSummary: ConsumerProgramSummaries.WeeklySessionSummary?
     public private(set) var isLoading = false
     public private(set) var loadErrorMessage: String?
 
@@ -37,6 +42,8 @@ public final class ConsumerHomeViewModel {
         defer { isLoading = false }
 
         do {
+            clientName = try await backend.people.get(clientID)?.displayName ?? clientName
+
             let engagements = try await backend.engagements.fetchEngagements(forClient: clientID)
             let chosen = ConsumerProgramSummaries.primaryEngagement(engagements)
             engagement = chosen
@@ -52,11 +59,14 @@ public final class ConsumerHomeViewModel {
 
             let sessions = try await backend.sessions.fetchSessions(forEngagement: chosen.id)
             nextSession = TodaySummaries.upcomingSessions(from: sessions, now: clock()).first
+            weeklySessionSummary = ConsumerProgramSummaries.weeklySessionSummary(sessions: sessions, now: clock())
 
             let messages = await firstSnapshot(of: backend.messages.messages(in: chosen.id))
             coachNudge = messages
                 .filter { $0.authorID == chosen.professionalID }
                 .max { $0.sentAt < $1.sentAt }
+
+            await loadBodyweight(for: chosen)
         } catch {
             loadErrorMessage = "Couldn't load your dashboard. Pull to refresh to try again."
         }
@@ -76,12 +86,25 @@ public final class ConsumerHomeViewModel {
         currentWorkout = ConsumerProgramSummaries.currentWorkout(program: program, startDate: latestAssignment.startDate, now: clock())
     }
 
+    /// Additive load: the client's own bodyweight history for the "Today"
+    /// dashboard's chart, mirroring how `ProgressViewModel` fetches an
+    /// engagement's entries. Real measurements only — never a fabricated
+    /// series when the client hasn't logged any yet.
+    private func loadBodyweight(for engagement: Engagement) async {
+        let entries = (try? await backend.progress.fetchEntries(forEngagement: engagement.id, metric: .bodyweight)) ?? []
+        let sorted = entries.sorted { $0.recordedAt < $1.recordedAt }
+        bodyweightPoints = sorted.map { ProgressPoint(date: $0.recordedAt, value: $0.value.value) }
+        bodyweightUnit = sorted.last?.value.unit.shortLabel ?? bodyweightUnit
+    }
+
     private func clearDerivedState() {
         coachName = "Your coach"
         programTitle = nil
         currentWorkout = nil
         nextSession = nil
         coachNudge = nil
+        bodyweightPoints = []
+        weeklySessionSummary = nil
     }
 
     /// `messages(in:)` is a live stream, but the dashboard only needs a

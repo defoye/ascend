@@ -15,6 +15,10 @@ public enum AscendButtonVariant: Sendable {
     case destructiveFilled
     /// No fill, `primary` label — nav bar actions, inline actions.
     case text
+    /// `surface` fill, `primary` label — a CTA placed on top of a colored
+    /// background (e.g. the Consumer Today hero card), where a `.primary`
+    /// button would disappear into it.
+    case onColor
 }
 
 /// Sizing for `AscendButton`.
@@ -129,6 +133,8 @@ public struct AscendButton: View {
             Color.clear
         case .destructiveFilled:
             Color.Ascend.danger.opacity(isPressed ? 0.85 : 1)
+        case .onColor:
+            Color.Ascend.surface.opacity(isPressed ? 0.85 : 1)
         }
     }
 
@@ -139,6 +145,7 @@ public struct AscendButton: View {
         case .destructiveOutline: Color.Ascend.danger
         case .destructiveFilled: .white
         case .text: Color.Ascend.primary
+        case .onColor: Color.Ascend.primary
         }
     }
 
@@ -187,6 +194,9 @@ private struct AscendButtonPreviewGallery: View {
                 AscendButton("Small pill", size: .pill) {}
                 AscendButton("Disabled", isEnabled: false) {}
                 AscendButton("Loading", isLoading: true) {}
+                AscendButton("Start workout", variant: .onColor, systemImage: "play.fill") {}
+                    .padding(Spacing.space4)
+                    .background(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous).fill(Color.Ascend.primary))
             }
             .padding(Spacing.space4)
         }

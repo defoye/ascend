@@ -60,7 +60,13 @@ struct PreviewBackend: Backend {
         sessionsByEngagement = Self.makeSessions(engagementA: engagementA, engagementB: engagementB, now: now)
         progressByEngagement = Self.makeProgress(engagementA: engagementA, now: now)
         paymentsByEngagement = Self.makePayments(engagementA: engagementA, engagementB: engagementB, now: now)
-        messagesByEngagement = Self.makeMessages(engagementB: engagementB, clientB: clientB, now: now)
+        messagesByEngagement = Self.makeMessages(
+            engagementA: engagementA,
+            engagementB: engagementB,
+            professionalID: professionalID,
+            clientB: clientB,
+            now: now
+        )
         notesByEngagement = Self.makeNotes(engagementA: engagementA, professionalID: professionalID, now: now)
         let strengthProgramID = Identifier<Program>()
         programsByID = Self.makePrograms(professionalID: professionalID, strengthProgramID: strengthProgramID)
@@ -210,24 +216,6 @@ struct PreviewBackend: Backend {
         ]
     }
 
-    private static func makeMessages(
-        engagementB: Identifier<Engagement>,
-        clientB: Identifier<Person>,
-        now: Date
-    ) -> [Identifier<Engagement>: [Message]] {
-        [
-            engagementB: [
-                Message(
-                    id: Identifier(),
-                    engagementID: engagementB,
-                    authorID: clientB,
-                    body: "New squat max today: 225!",
-                    sentAt: now.addingTimeInterval(-2 * 3_600)
-                )
-            ]
-        ]
-    }
-
     private static func makeNotes(
         engagementA: Identifier<Engagement>,
         professionalID: Identifier<Person>,
@@ -362,17 +350,6 @@ private struct PreviewPaymentRepository: PaymentRepository {
     func payments(forEngagement engagementID: Identifier<Engagement>) async throws -> [Payment] {
         paymentsByEngagement[engagementID] ?? []
     }
-}
-
-private struct PreviewMessageRepository: MessageRepository {
-    let messagesByEngagement: [Identifier<Engagement>: [Message]]
-    func messages(in engagement: Identifier<Engagement>) -> AsyncStream<[Message]> {
-        AsyncStream { continuation in
-            continuation.yield(messagesByEngagement[engagement] ?? [])
-            continuation.finish()
-        }
-    }
-    func send(_ message: Message) async throws {}
 }
 
 private struct PreviewNotesRepository: NotesRepository {
