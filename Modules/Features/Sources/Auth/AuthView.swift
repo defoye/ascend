@@ -25,7 +25,9 @@ public struct AuthView: View {
             VStack(spacing: Spacing.space6) {
                 header
                 modePicker
-                if let errorMessage = viewModel.errorMessage {
+                if let confirmationNoticeEmail = viewModel.confirmationNoticeEmail {
+                    ConfirmationNoticeBanner(email: confirmationNoticeEmail)
+                } else if let errorMessage = viewModel.errorMessage {
                     ErrorBanner(message: errorMessage)
                 }
                 formCard
@@ -175,6 +177,11 @@ public struct AuthView: View {
         .preferredColorScheme(.light)
 }
 
+#Preview("AuthView - Confirmation required") {
+    AuthConfirmationRequiredPreview()
+        .preferredColorScheme(.light)
+}
+
 private struct AuthSignUpPreview: View {
     var body: some View {
         let viewModel = AuthViewModel(auth: PreviewAuthGateway())
@@ -193,11 +200,33 @@ private struct AuthErrorPreview: View {
     }
 }
 
+private struct AuthConfirmationRequiredPreview: View {
+    var body: some View {
+        let viewModel = AuthViewModel(auth: PreviewConfirmationRequiredAuthGateway())
+        viewModel.mode = .signUp
+        viewModel.displayName = "Jordan Lee"
+        viewModel.email = "demo@ascend.app"
+        viewModel.password = "supersecret"
+        return AuthView(viewModel: viewModel)
+            .task { await viewModel.submit() }
+    }
+}
+
 private struct PreviewFailingAuthGateway: AuthGateway {
     var currentAuth: AsyncStream<AuthState> { AsyncStream { $0.finish() } }
     func signIn(email: String, password: String) async throws { throw PreviewAuthError.demo }
-    func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws {
+    func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws -> SignUpOutcome {
         throw PreviewAuthError.demo
+    }
+    func signOut() async throws {}
+    func deleteAccount() async throws {}
+}
+
+private struct PreviewConfirmationRequiredAuthGateway: AuthGateway {
+    var currentAuth: AsyncStream<AuthState> { AsyncStream { $0.finish() } }
+    func signIn(email: String, password: String) async throws {}
+    func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws -> SignUpOutcome {
+        .confirmationRequired
     }
     func signOut() async throws {}
     func deleteAccount() async throws {}
@@ -205,4 +234,30 @@ private struct PreviewFailingAuthGateway: AuthGateway {
 
 private enum PreviewAuthError: Error {
     case demo
+}
+
+private struct ConfirmationNoticeBanner: View {
+    let email: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Spacing.space3) {
+            Image(systemName: "envelope.fill")
+                .foregroundStyle(Color.Ascend.success)
+                .accessibilityHidden(true)
+            Text("Check your email — we sent a confirmation link to \(email). Confirm, then sign in.")
+                .ascendType(.subheadline)
+                .foregroundStyle(Color.Ascend.textPrimary)
+            Spacer(minLength: Spacing.space2)
+        }
+        .padding(Spacing.space4)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+                .fill(Color.Ascend.success.opacity(0.1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+                .strokeBorder(Color.Ascend.success.opacity(0.3), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
+    }
 }

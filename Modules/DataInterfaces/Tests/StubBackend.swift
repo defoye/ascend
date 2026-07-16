@@ -162,7 +162,7 @@ struct StubInviteRepository: InviteRepository {
 struct StubAuthGateway: AuthGateway {
     var currentAuth: AsyncStream<AuthState> { AsyncStream { $0.finish() } }
     func signIn(email: String, password: String) async throws {}
-    func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws {}
+    func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws -> SignUpOutcome { .signedIn }
     func signOut() async throws {}
     func deleteAccount() async throws {}
 }

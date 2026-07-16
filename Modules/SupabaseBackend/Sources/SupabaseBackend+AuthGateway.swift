@@ -31,13 +31,27 @@ extension SupabaseBackend: AuthGateway {
         }
     }
 
+    /// Maps Supabase Auth's `AuthError.errorCode == .emailNotConfirmed`
+    /// (`AuthError.swift`) — the error `signIn` throws when this address
+    /// hasn't confirmed the emailed sign-up link yet — to
+    /// `AuthGatewayError.emailNotConfirmed`. Every other error rethrows
+    /// unchanged.
     public func signIn(email: String, password: String) async throws {
-        try await client.auth.signIn(email: email, password: password)
+        do {
+            try await client.auth.signIn(email: email, password: password)
+        } catch let error as AuthError where error.errorCode == .emailNotConfirmed {
+            throw AuthGatewayError.emailNotConfirmed
+        }
     }
 
-    public func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws {
+    /// `client.auth.signUp` returns `AuthResponse` (`Types.swift`): `.session`
+    /// means Supabase created a session immediately (email confirmation off,
+    /// or auto-confirmed), so this maps to `.signedIn`; `.user` means only
+    /// the identity was created with no session yet (confirmation pending),
+    /// mapping to `.confirmationRequired`.
+    public func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws -> SignUpOutcome {
         guard !roles.isEmpty else { throw AuthGatewayError.rolesRequired }
-        try await client.auth.signUp(
+        let response = try await client.auth.signUp(
             email: email,
             password: password,
             data: [
@@ -45,6 +59,10 @@ extension SupabaseBackend: AuthGateway {
                 "roles": .array(roles.map { .string($0.rawValue) })
             ]
         )
+        switch response {
+        case .session: return .signedIn
+        case .user: return .confirmationRequired
+        }
     }
 
     public func signOut() async throws {

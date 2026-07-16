@@ -224,7 +224,8 @@ struct InMemoryStoreTests {
     @Test("AuthGateway: sign up, sign in, sign out transitions currentAuthState")
     func authFlow() async throws {
         let backend = InMemoryBackend()
-        try await backend.signUp(email: "new@example.com", password: "secret", displayName: "New User", roles: [.consumer])
+        let outcome = try await backend.signUp(email: "new@example.com", password: "secret", displayName: "New User", roles: [.consumer])
+        #expect(outcome == .signedIn)
         try await backend.signOut()
 
         await #expect(throws: InMemoryStoreError.self) {

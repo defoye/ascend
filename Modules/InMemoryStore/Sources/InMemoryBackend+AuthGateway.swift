@@ -23,7 +23,7 @@ extension InMemoryBackend: AuthGateway {
         authRegistry.yield(currentAuthState, for: SingletonKey())
     }
 
-    public func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws {
+    public func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws -> SignUpOutcome {
         guard !roles.isEmpty else { throw AuthGatewayError.rolesRequired }
         guard registeredUsers[email] == nil else { throw InMemoryStoreError.emailAlreadyRegistered }
         let person = Person(id: Identifier(), displayName: displayName, roles: roles, goals: [])
@@ -32,6 +32,7 @@ extension InMemoryBackend: AuthGateway {
         registeredUsers[email] = (password, user)
         currentAuthState = .signedIn(user)
         authRegistry.yield(currentAuthState, for: SingletonKey())
+        return .signedIn
     }
 
     public func signOut() async throws {

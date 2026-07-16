@@ -96,6 +96,74 @@ struct AuthViewModelTests {
         #expect(state == .signedOut)
     }
 
+    @Test("sign-up requiring email confirmation shows a notice, switches to sign-in mode, and leaves errorMessage nil")
+    func signUpConfirmationRequiredShowsNotice() async throws {
+        let gateway = ScriptedAuthGateway(signUpOutcome: .confirmationRequired)
+        let viewModel = AuthViewModel(auth: gateway)
+        viewModel.mode = .signUp
+        viewModel.displayName = "New Coach"
+        viewModel.email = "  pending@example.com  "
+        viewModel.password = "supersecret"
+        viewModel.roleChoice = .coach
+
+        await viewModel.submit()
+
+        #expect(viewModel.confirmationNoticeEmail == "pending@example.com")
+        #expect(viewModel.mode == .signIn)
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @Test("sign-up that signs in immediately leaves confirmationNoticeEmail nil")
+    func signUpSignedInLeavesNoNotice() async throws {
+        // Existing InMemoryBackend-backed sign-up tests above already assert
+        // `errorMessage == nil` after a `.signedIn` sign-up; this adds an
+        // explicit check on the new property using the same real backend.
+        let backend = InMemoryBackend()
+        let viewModel = AuthViewModel(auth: backend)
+        viewModel.mode = .signUp
+        viewModel.displayName = "New Coach"
+        viewModel.email = "signedin@example.com"
+        viewModel.password = "supersecret"
+        viewModel.roleChoice = .coach
+
+        await viewModel.submit()
+
+        #expect(viewModel.confirmationNoticeEmail == nil)
+    }
+
+    @Test("sign-in rejected for an unconfirmed email surfaces the specific confirmation message")
+    func signInEmailNotConfirmedSurfacesSpecificMessage() async throws {
+        let gateway = ScriptedAuthGateway(signInError: AuthGatewayError.emailNotConfirmed)
+        let viewModel = AuthViewModel(auth: gateway)
+        viewModel.mode = .signIn
+        viewModel.email = "pending@example.com"
+        viewModel.password = "supersecret"
+
+        await viewModel.submit()
+
+        #expect(viewModel.errorMessage == "Confirm your email first — check your inbox for the link we sent to pending@example.com.")
+    }
+
+    @Test("a fresh submit() clears a prior confirmation notice")
+    func submitClearsPriorConfirmationNotice() async throws {
+        let gateway = ScriptedAuthGateway(signUpOutcome: .confirmationRequired)
+        let viewModel = AuthViewModel(auth: gateway)
+        viewModel.mode = .signUp
+        viewModel.displayName = "New Coach"
+        viewModel.email = "pending@example.com"
+        viewModel.password = "supersecret"
+        viewModel.roleChoice = .coach
+        await viewModel.submit()
+        #expect(viewModel.confirmationNoticeEmail != nil)
+
+        viewModel.mode = .signIn
+        viewModel.email = "someone-else@example.com"
+        viewModel.password = "supersecret"
+        await viewModel.submit()
+
+        #expect(viewModel.confirmationNoticeEmail == nil)
+    }
+
     /// A freshly subscribed `currentAuth` immediately yields the current
     /// state as its first element (see `StreamRegistry.register`), so this
     /// reads the *current* auth state without any internal test-only access
@@ -112,4 +180,25 @@ struct AuthViewModelTests {
     private enum TestError: Error {
         case notSignedIn
     }
+}
+
+/// A test-local `AuthGateway` that returns/throws exactly what it's
+/// configured with, for outcomes `InMemoryBackend` can't be made to produce
+/// (`.confirmationRequired`, `AuthGatewayError.emailNotConfirmed`).
+private struct ScriptedAuthGateway: AuthGateway {
+    var signUpOutcome: SignUpOutcome = .signedIn
+    var signInError: Error?
+
+    var currentAuth: AsyncStream<AuthState> { AsyncStream { $0.finish() } }
+
+    func signIn(email: String, password: String) async throws {
+        if let signInError { throw signInError }
+    }
+
+    func signUp(email: String, password: String, displayName: String, roles: Set<PersonRole>) async throws -> SignUpOutcome {
+        signUpOutcome
+    }
+
+    func signOut() async throws {}
+    func deleteAccount() async throws {}
 }

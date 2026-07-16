@@ -194,3 +194,7 @@ tooling here means it hasn't run locally. The owner needs to run
 `supabase functions deploy delete-account` (from `Server/supabase/`) against
 the live project before `SettingsViewModel.deleteAccount()` can succeed
 against `SupabaseBackend`.
+
+## Email confirmation (LH-10)
+
+Hosted Supabase's "Confirm email" project setting is supported either way: `AuthGateway.signUp` returns a `SignUpOutcome` (`.signedIn` or `.confirmationRequired`) instead of `Void`, so the auth screen can show a check-your-email notice when a session isn't created immediately, and an unconfirmed `signIn` throws `AuthGatewayError.emailNotConfirmed` instead of a generic error.

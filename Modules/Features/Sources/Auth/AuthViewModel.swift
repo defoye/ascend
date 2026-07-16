@@ -56,6 +56,18 @@ public final class AuthViewModel {
     public private(set) var displayNameError: String?
     public private(set) var emailError: String?
     public private(set) var passwordError: String?
+    /// Set after a sign-up that returns `.confirmationRequired`, to the
+    /// email that needs confirming; `AuthView` renders it as a banner
+    /// instead of silently doing nothing. Cleared at the top of every
+    /// `submit()` call (so any fresh sign-in or sign-up attempt starts
+    /// clean) and re-set by that same call if it's another
+    /// `.confirmationRequired` sign-up. It is not cleared by `mode`'s
+    /// `didSet`, because `submit()` itself sets `mode = .signIn` as part of
+    /// showing the notice — clearing there would immediately erase what it
+    /// just set. A user manually switching back to "Sign up" therefore
+    /// still sees the notice until their next `submit()`, which is the
+    /// simplest rule that can't strand it and can't self-erase.
+    public private(set) var confirmationNoticeEmail: String?
 
     private static let minPasswordLength = 8
 
@@ -72,6 +84,7 @@ public final class AuthViewModel {
     /// credentials, network) via `ErrorBanner`.
     public func submit() async {
         errorMessage = nil
+        confirmationNoticeEmail = nil
         guard validate() else { return }
 
         isSubmitting = true
@@ -84,9 +97,17 @@ public final class AuthViewModel {
                 try await auth.signIn(email: trimmedEmail, password: password)
             case .signUp:
                 let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-                try await auth.signUp(email: trimmedEmail, password: password, displayName: trimmedName, roles: roleChoice.roles)
+                let outcome = try await auth.signUp(
+                    email: trimmedEmail, password: password, displayName: trimmedName, roles: roleChoice.roles
+                )
+                if outcome == .confirmationRequired {
+                    confirmationNoticeEmail = trimmedEmail
+                    mode = .signIn
+                }
             }
             errorMessage = nil
+        } catch AuthGatewayError.emailNotConfirmed {
+            errorMessage = "Confirm your email first — check your inbox for the link we sent to \(trimmedEmail)."
         } catch {
             errorMessage = mode == .signIn
                 ? "Couldn't sign in. Check your email and password and try again."
