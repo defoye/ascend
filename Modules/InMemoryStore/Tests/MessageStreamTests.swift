@@ -83,4 +83,34 @@ struct MessageStreamTests {
         let messages = try #require(received)
         #expect(messages.map(\.id) == [message.id])
     }
+
+    @Test("fetchMessages(forEngagement:) returns an ordered, oldest-first snapshot without subscribing")
+    func fetchMessagesReturnsOrderedSnapshot() async throws {
+        let backend = InMemoryBackend()
+        let engagementID = Identifier<Engagement>()
+        let authorID = Identifier<Person>()
+        let now = Date()
+
+        let second = Message(id: Identifier(), engagementID: engagementID, authorID: authorID, body: "second", sentAt: now)
+        let first = Message(
+            id: Identifier(),
+            engagementID: engagementID,
+            authorID: authorID,
+            body: "first",
+            sentAt: now.addingTimeInterval(-60)
+        )
+        try await backend.messages.send(second)
+        try await backend.messages.send(first)
+
+        let messages = try await backend.messages.fetchMessages(forEngagement: engagementID)
+
+        #expect(messages.map(\.body) == ["first", "second"])
+    }
+
+    @Test("fetchMessages(forEngagement:) returns an empty array for an engagement with no messages")
+    func fetchMessagesEmptyForUnknownEngagement() async throws {
+        let backend = InMemoryBackend()
+        let messages = try await backend.messages.fetchMessages(forEngagement: Identifier<Engagement>())
+        #expect(messages.isEmpty)
+    }
 }

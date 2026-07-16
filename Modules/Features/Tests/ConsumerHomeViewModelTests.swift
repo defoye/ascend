@@ -1,3 +1,4 @@
+import DataInterfaces
 import Domain
 import Foundation
 import InMemoryStore
@@ -53,4 +54,49 @@ struct ConsumerHomeViewModelTests {
         #expect(viewModel.bodyweightPoints.isEmpty)
         #expect(viewModel.weeklySessionSummary == nil)
     }
+
+    @Test("a failing message fetch surfaces loadErrorMessage instead of hanging")
+    func failingMessagesSurfacesLoadError() async throws {
+        let seeded = InMemoryStore.seeded()
+        let people = try await seeded.people.list()
+        let morganChen = try #require(people.first { $0.displayName == "Morgan Chen" })
+
+        let backend = ConsumerMessagesOverrideBackend(base: seeded, messages: ConsumerAlwaysFailingMessageRepository())
+        let viewModel = ConsumerHomeViewModel(backend: backend, clientID: morganChen.id, clock: { InMemoryStore.referenceDate })
+
+        await viewModel.load()
+
+        #expect(viewModel.loadErrorMessage != nil)
+    }
+}
+
+private struct ConsumerAlwaysFailingMessageRepository: MessageRepository {
+    struct OfflineError: Error {}
+    func fetchMessages(forEngagement engagementID: Identifier<Engagement>) async throws -> [Message] { throw OfflineError() }
+    func messages(in engagement: Identifier<Engagement>) -> AsyncStream<[Message]> { AsyncStream { $0.finish() } }
+    func send(_ message: Message) async throws {}
+}
+
+/// A `Backend` decorator that swaps in a replacement `MessageRepository`
+/// while forwarding every other repository to `base` (mirrors
+/// `TodayView.swift`'s `HangingEngagementsBackend`).
+private struct ConsumerMessagesOverrideBackend: Backend {
+    let base: any Backend
+    let messages: any MessageRepository
+
+    var people: any PersonRepository { base.people }
+    var professionals: any ProfessionalRepository { base.professionals }
+    var engagements: any EngagementRepository { base.engagements }
+    var programs: any ProgramRepository { base.programs }
+    var sessions: any SessionRepository { base.sessions }
+    var progress: any ProgressRepository { base.progress }
+    var progressPhotos: any ProgressPhotoRepository { base.progressPhotos }
+    var payments: any PaymentRepository { base.payments }
+    var paymentGateway: any PaymentGateway { base.paymentGateway }
+    var outcomes: any OutcomeRepository { base.outcomes }
+    var notes: any NotesRepository { base.notes }
+    var availability: any AvailabilityRepository { base.availability }
+    var invites: any InviteRepository { base.invites }
+    var auth: any AuthGateway { base.auth }
+    var analytics: any AnalyticsTracking { base.analytics }
 }

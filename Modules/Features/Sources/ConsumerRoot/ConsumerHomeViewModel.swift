@@ -61,7 +61,7 @@ public final class ConsumerHomeViewModel {
             nextSession = TodaySummaries.upcomingSessions(from: sessions, now: clock()).first
             weeklySessionSummary = ConsumerProgramSummaries.weeklySessionSummary(sessions: sessions, now: clock())
 
-            let messages = await firstSnapshot(of: backend.messages.messages(in: chosen.id))
+            let messages = try await backend.messages.fetchMessages(forEngagement: chosen.id)
             coachNudge = messages
                 .filter { $0.authorID == chosen.professionalID }
                 .max { $0.sentAt < $1.sentAt }
@@ -105,15 +105,5 @@ public final class ConsumerHomeViewModel {
         coachNudge = nil
         bodyweightPoints = []
         weeklySessionSummary = nil
-    }
-
-    /// `messages(in:)` is a live stream, but the dashboard only needs a
-    /// one-shot snapshot: take the first emitted value and stop listening
-    /// (mirrors `TodayViewModel.firstSnapshot`).
-    private func firstSnapshot(of stream: AsyncStream<[Message]>) async -> [Message] {
-        for await snapshot in stream {
-            return snapshot
-        }
-        return []
     }
 }

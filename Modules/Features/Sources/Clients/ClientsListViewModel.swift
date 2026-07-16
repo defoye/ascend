@@ -53,7 +53,7 @@ public final class ClientsListViewModel {
                 let client = try await backend.people.get(engagement.clientID)
                 let sessions = try await backend.sessions.fetchSessions(forEngagement: engagement.id)
                 let progress = try await backend.progress.fetchEntries(forEngagement: engagement.id)
-                let messages = await firstSnapshot(of: backend.messages.messages(in: engagement.id))
+                let messages = try await backend.messages.fetchMessages(forEngagement: engagement.id)
 
                 items.append(
                     ClientRosterItem(
@@ -70,14 +70,5 @@ public final class ClientsListViewModel {
         } catch {
             loadErrorMessage = "Couldn't load your clients. Pull to refresh to try again."
         }
-    }
-
-    /// `messages(in:)` is a live stream, but the roster only needs a one-shot
-    /// snapshot: take the first emitted value and stop listening.
-    private func firstSnapshot(of stream: AsyncStream<[Message]>) async -> [Message] {
-        for await snapshot in stream {
-            return snapshot
-        }
-        return []
     }
 }

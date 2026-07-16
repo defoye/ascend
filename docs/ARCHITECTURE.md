@@ -47,11 +47,18 @@ implements the `DataInterfaces` protocols, plus a data migration script. `Domain
 
 ## Realtime & extensibility
 
-Repository protocols expose live data via `AsyncStream`, not one-shot fetches.
-Realtime behavior lives entirely in the adapter layer — Domain and Features code
-consumes a stream regardless of whether the underlying adapter is in-memory or a
-websocket-backed remote store. Messaging in particular is built **stream-first** from
-the start, not bolted on later.
+Repository protocols expose live data via `AsyncStream`, alongside a one-shot
+throwing fetch for callers that only need a snapshot (see `SessionRepository`'s
+`fetchSessions`/`sessions` pairing). The one-shot fetch is the one that must fail
+loudly: an `AsyncStream` has no throwing channel, so a subscriber who awaits its
+first value stalls forever on a connectivity failure instead of ever seeing an
+error — this is why every load path that only needs a snapshot goes through the
+throwing fetch, never a stream. Realtime behavior lives entirely in the adapter
+layer — Domain and Features code consumes a stream regardless of whether the
+underlying adapter is in-memory or a websocket-backed remote store. Messaging in
+particular is built **stream-first** from the start for its live view (a genuine
+Supabase Realtime subscription, not bolted on later), and pairs it with the same
+one-shot `fetchMessages` every other repository has, for exactly the reason above.
 
 ## Concurrency
 

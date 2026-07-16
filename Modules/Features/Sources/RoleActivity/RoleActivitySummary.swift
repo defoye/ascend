@@ -25,7 +25,7 @@ public enum RoleActivitySummary {
         let engagements = (try? await backend.engagements.fetchEngagements(forProfessional: professionalID)) ?? []
         var latest: Date?
         for engagement in engagements {
-            let messages = await firstSnapshot(of: backend.messages.messages(in: engagement.id))
+            let messages = (try? await backend.messages.fetchMessages(forEngagement: engagement.id)) ?? []
             for message in messages where message.authorID != professionalID {
                 latest = newer(latest, message.sentAt)
             }
@@ -53,7 +53,7 @@ public enum RoleActivitySummary {
         let engagements = (try? await backend.engagements.fetchEngagements(forClient: clientID)) ?? []
         var latest: Date?
         for engagement in engagements {
-            let messages = await firstSnapshot(of: backend.messages.messages(in: engagement.id))
+            let messages = (try? await backend.messages.fetchMessages(forEngagement: engagement.id)) ?? []
             for message in messages where message.authorID != clientID {
                 latest = newer(latest, message.sentAt)
             }
@@ -83,15 +83,5 @@ public enum RoleActivitySummary {
     private static func newer(_ current: Date?, _ candidate: Date) -> Date {
         guard let current else { return candidate }
         return max(current, candidate)
-    }
-
-    /// `MessageRepository.messages(in:)` is a live stream, but this summary
-    /// only needs the current snapshot (mirrors the same pattern used by
-    /// `ClientsListViewModel`/`TodayViewModel`/etc.).
-    private static func firstSnapshot(of stream: AsyncStream<[Message]>) async -> [Message] {
-        for await snapshot in stream {
-            return snapshot
-        }
-        return []
     }
 }

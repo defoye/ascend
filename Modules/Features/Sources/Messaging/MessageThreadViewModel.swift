@@ -76,13 +76,19 @@ public final class MessageThreadViewModel {
 
     /// Loads a one-shot ordered snapshot of the thread so `messages` is
     /// populated the instant `load()` returns, then (re)starts the live
-    /// subscription that keeps it current afterwards.
+    /// subscription that keeps it current afterwards — started even on
+    /// failure, so a later Realtime event or pull-to-refresh retry can still
+    /// recover the thread.
     public func load() async {
         isLoading = true
         defer { isLoading = false }
 
-        messages = await firstSnapshot(of: backend.messages.messages(in: engagementID))
-        loadErrorMessage = nil
+        do {
+            messages = try await backend.messages.fetchMessages(forEngagement: engagementID)
+            loadErrorMessage = nil
+        } catch {
+            loadErrorMessage = "Couldn't load this conversation. Pull to refresh to try again."
+        }
 
         subscribeToMessages()
     }
@@ -120,14 +126,5 @@ public final class MessageThreadViewModel {
                 self.messages = messages
             }
         }
-    }
-
-    /// `messages(in:)` is a live stream, but a one-shot seed only needs the
-    /// first emitted value (mirrors `ClientsListViewModel.firstSnapshot`).
-    private func firstSnapshot(of stream: AsyncStream<[Message]>) async -> [Message] {
-        for await snapshot in stream {
-            return snapshot
-        }
-        return []
     }
 }

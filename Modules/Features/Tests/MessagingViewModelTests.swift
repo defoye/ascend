@@ -1,3 +1,4 @@
+import DataInterfaces
 import Domain
 import Foundation
 import InMemoryStore
@@ -89,6 +90,27 @@ struct MessageThreadViewModelTests {
         #expect(viewModel.visibleMessages.count == viewModel.messages.count)
     }
 
+    @Test("a failing fetchMessages sets loadErrorMessage instead of hanging, and a later successful load clears it")
+    func loadFailureSetsErrorThenRecovers() async throws {
+        let backend = InMemoryStore.seeded()
+        let people = try await backend.people.list()
+        let morgan = try #require(people.first { $0.displayName == "Morgan Chen" })
+        let coach = try #require(people.first { $0.displayName == "Jordan Ellis" })
+        let engagement = try #require(try await backend.engagements.fetchEngagements(forClient: morgan.id).first)
+
+        let flakyMessages = FlakyMessageRepository(wrapping: backend.messages, failures: 1)
+        let flakyBackend = MessagesOverrideBackend(base: backend, messages: flakyMessages)
+
+        let viewModel = MessageThreadViewModel(backend: flakyBackend, engagementID: engagement.id, selfID: coach.id)
+
+        await viewModel.load()
+        #expect(viewModel.loadErrorMessage != nil)
+
+        await viewModel.load()
+        #expect(viewModel.loadErrorMessage == nil)
+        #expect(viewModel.messages.count == 3)
+    }
+
     // MARK: - Helpers
 
     private func waitUntil(timeout: TimeInterval = 2, _ condition: @escaping () -> Bool) async throws {
@@ -98,6 +120,61 @@ struct MessageThreadViewModelTests {
             try await Task.sleep(nanoseconds: 20_000_000)
         }
     }
+}
+
+/// A `MessageRepository` decorator that throws on `fetchMessages` for its
+/// first `failures` calls, then forwards to `wrapped` — proves a load
+/// failure is recoverable on retry, not just detectable once.
+private actor FlakyMessageRepository: MessageRepository {
+    private let wrapped: any MessageRepository
+    private var remainingFailures: Int
+
+    init(wrapping wrapped: any MessageRepository, failures: Int) {
+        self.wrapped = wrapped
+        self.remainingFailures = failures
+    }
+
+    func fetchMessages(forEngagement engagementID: Identifier<Engagement>) async throws -> [Message] {
+        if remainingFailures > 0 {
+            remainingFailures -= 1
+            throw FlakyMessageRepositoryError()
+        }
+        return try await wrapped.fetchMessages(forEngagement: engagementID)
+    }
+
+    nonisolated func messages(in engagement: Identifier<Engagement>) -> AsyncStream<[Message]> {
+        wrapped.messages(in: engagement)
+    }
+
+    func send(_ message: Message) async throws {
+        try await wrapped.send(message)
+    }
+}
+
+private struct FlakyMessageRepositoryError: Error {}
+
+/// A `Backend` decorator that swaps in a replacement `MessageRepository`
+/// while forwarding every other repository to `base` (mirrors
+/// `TodayView.swift`'s `HangingEngagementsBackend`).
+private struct MessagesOverrideBackend: Backend {
+    let base: any Backend
+    let messages: any MessageRepository
+
+    var people: any PersonRepository { base.people }
+    var professionals: any ProfessionalRepository { base.professionals }
+    var engagements: any EngagementRepository { base.engagements }
+    var programs: any ProgramRepository { base.programs }
+    var sessions: any SessionRepository { base.sessions }
+    var progress: any ProgressRepository { base.progress }
+    var progressPhotos: any ProgressPhotoRepository { base.progressPhotos }
+    var payments: any PaymentRepository { base.payments }
+    var paymentGateway: any PaymentGateway { base.paymentGateway }
+    var outcomes: any OutcomeRepository { base.outcomes }
+    var notes: any NotesRepository { base.notes }
+    var availability: any AvailabilityRepository { base.availability }
+    var invites: any InviteRepository { base.invites }
+    var auth: any AuthGateway { base.auth }
+    var analytics: any AnalyticsTracking { base.analytics }
 }
 
 @Suite("ConversationSummaries unread logic (pure)")

@@ -126,6 +126,7 @@ private struct DemoFailingPaymentGateway: PaymentGateway {
 }
 
 private struct DemoFailingMessageRepository: MessageRepository {
+    func fetchMessages(forEngagement engagementID: Identifier<Engagement>) async throws -> [Message] { throw offlineError }
     func messages(in engagement: Identifier<Engagement>) -> AsyncStream<[Message]> {
         AsyncStream { $0.finish() }
     }

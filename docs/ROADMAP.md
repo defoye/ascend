@@ -367,3 +367,4 @@ on top of the verified-outcome substrate — it is explicitly **not** the moat.
 - [x] **LH-3** — engagement_invites migration + claim_invite security-definer RPC + RLS;
       RowCoding coverage for EngagementInviteRow. Live apply still owner's supabase db push.
 - [x] **LH-4** — RLS hardening: exercises write-locked (insert-only), engagement inserts restricted to the professional, consent flips via client-only security-definer RPCs + column-guard trigger; adapter updated (exercise insert-if-absent, consent RPCs). SQL reviewed-only pending supabase db push.
+- [x] **LH-5** — Connectivity resilience: MessageRepository gains a one-shot throwing fetchMessages; Today/ConsumerHome/MessageThread (and all other one-shot users) fail loudly with retryable errors instead of hanging on partial connectivity.

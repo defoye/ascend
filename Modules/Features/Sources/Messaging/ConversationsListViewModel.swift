@@ -63,7 +63,7 @@ public final class ConversationsListViewModel {
             let engagements = try await backend.engagements.fetchEngagements(forProfessional: professionalID)
             for engagement in engagements {
                 clientNames[engagement.id] = try? await resolveClientName(engagement)
-                messagesByEngagement[engagement.id] = await firstSnapshot(of: backend.messages.messages(in: engagement.id))
+                messagesByEngagement[engagement.id] = try await backend.messages.fetchMessages(forEngagement: engagement.id)
             }
             rebuildConversations(for: engagements.map(\.id))
             loadErrorMessage = nil
@@ -140,14 +140,5 @@ public final class ConversationsListViewModel {
 
     private func resolveClientName(_ engagement: Engagement) async throws -> String {
         try await backend.people.get(engagement.clientID)?.displayName ?? "Client"
-    }
-
-    /// `messages(in:)` is a live stream, but a one-shot seed only needs the
-    /// first emitted value (mirrors `ClientsListViewModel.firstSnapshot`).
-    private func firstSnapshot(of stream: AsyncStream<[Message]>) async -> [Message] {
-        for await snapshot in stream {
-            return snapshot
-        }
-        return []
     }
 }

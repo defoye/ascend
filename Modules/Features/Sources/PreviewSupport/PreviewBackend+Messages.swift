@@ -44,6 +44,9 @@ extension PreviewBackend {
 
 struct PreviewMessageRepository: MessageRepository {
     let messagesByEngagement: [Identifier<Engagement>: [Message]]
+    func fetchMessages(forEngagement engagementID: Identifier<Engagement>) async throws -> [Message] {
+        (messagesByEngagement[engagementID] ?? []).sorted { $0.sentAt < $1.sentAt }
+    }
     func messages(in engagement: Identifier<Engagement>) -> AsyncStream<[Message]> {
         AsyncStream { continuation in
             continuation.yield(messagesByEngagement[engagement] ?? [])

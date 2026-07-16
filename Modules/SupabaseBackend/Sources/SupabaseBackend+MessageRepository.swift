@@ -11,15 +11,18 @@ import Supabase
 /// `progressPhotos`) polls instead, which is a deliberate, documented choice
 /// (see `PollingStream.swift`), not an oversight.
 extension SupabaseBackend: MessageRepository {
+    public func fetchMessages(forEngagement engagementID: Identifier<Engagement>) async throws -> [Domain.Message] {
+        let rows: [MessageRow] = try await client.from("messages")
+            .select()
+            .eq("engagement_id", value: engagementID.rawValue)
+            .execute()
+            .value
+        return rows.map(\.toDomain).sorted { $0.sentAt < $1.sentAt }
+    }
+
     public func messages(in engagement: Identifier<Engagement>) -> AsyncStream<[Domain.Message]> {
-        let client = client
-        let fetch: @Sendable () async throws -> [Domain.Message] = {
-            let rows: [MessageRow] = try await client.from("messages")
-                .select()
-                .eq("engagement_id", value: engagement.rawValue)
-                .execute()
-                .value
-            return rows.map(\.toDomain).sorted { $0.sentAt < $1.sentAt }
+        let fetch: @Sendable () async throws -> [Domain.Message] = { [self] in
+            try await fetchMessages(forEngagement: engagement)
         }
 
         return AsyncStream { continuation in

@@ -115,6 +115,7 @@ struct StubPaymentGateway: PaymentGateway {
 }
 
 struct StubMessageRepository: MessageRepository {
+    func fetchMessages(forEngagement engagementID: Identifier<Engagement>) async throws -> [Message] { [] }
     func messages(in engagement: Identifier<Engagement>) -> AsyncStream<[Message]> {
         AsyncStream { $0.finish() }
     }

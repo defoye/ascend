@@ -3,6 +3,10 @@ import Domain
 import Foundation
 
 extension InMemoryBackend: MessageRepository {
+    public func fetchMessages(forEngagement engagementID: Identifier<Engagement>) async throws -> [Message] {
+        messagesList(forEngagement: engagementID)
+    }
+
     nonisolated public func messages(in engagement: Identifier<Engagement>) -> AsyncStream<[Message]> {
         let token = UUID()
         return AsyncStream { continuation in
