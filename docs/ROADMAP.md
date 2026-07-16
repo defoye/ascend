@@ -303,6 +303,32 @@ contract — adjust as the product dictates.
       `signUp(roles:)` coverage (coach/client/both + empty-rejected) in
       `InMemoryStoreTests`.
 
+## Design polish follow-ups (deferred)
+
+Surfaced during the Claude Design polish pass (commits `9c62119`→`d9dc296`, docs/design/handoff/).
+Both were deliberately **not** built in that pass because each needs a product decision
+first, not more implementation — captured here so they aren't lost.
+
+- [ ] **DP-1** — Consumer tab-bar restructure. The design canvas
+      (docs/design/handoff/AscendScreens.dc.html §04) shows consumer tabs
+      **Today · Workouts · Progress · Profile**, but the app ships
+      **Today · Progress · Coach · Me** (`Modules/Features/Sources/ConsumerRoot`).
+      Adopting the design set drops the "Coach" tab (the consumer↔coach messaging
+      entry point) and "Me" (settings, sign-out, role switch) with no spec for where
+      those relocate. **Decision needed before building:** where do messaging and
+      account/settings live in the new tab set (e.g. messaging folded into a "Coach"
+      surface reachable from Today? settings behind the Profile tab?). Left untouched
+      in the polish pass rather than guess.
+- [ ] **DP-2** — Workout Player one-exercise focus mode. The mockup
+      (AscendScreens.dc.html §05, "EXERCISE 2 / 6") implies a one-exercise-at-a-time
+      pager. The polish pass (commit `d9dc296`) added the progress header + segmented
+      bar + per-set state styling on top of the **existing all-exercises scroll**
+      rather than re-architect the interaction model silently. Converting
+      `WorkoutPlayerView` to a true pager (swipe/advance per exercise, auto-advance
+      after the last set) is the remaining, larger interaction change. **Decision
+      needed:** confirm the pager model is wanted over the current scroll before the
+      re-architecture.
+
 ## AI capabilities (deferred track)
 
 Intentionally not sequenced into the phase-1 build — see the "AI: intentionally
