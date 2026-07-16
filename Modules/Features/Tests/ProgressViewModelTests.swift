@@ -93,60 +93,6 @@ struct ProgressViewModelTests {
         #expect(viewModel.filteredMetrics.isEmpty)
     }
 
-    // MARK: - Photo consent gating
-
-    @Test("an engagement with photo consent granted exposes its seeded photos")
-    func consentGrantedExposesPhotos() async throws {
-        let backend = InMemoryStore.seeded()
-        let people = try await backend.people.list()
-        // Morgan Chen (engagement 1) is the one seeded engagement with photo
-        // consent granted, and has two seeded ProgressPhoto references.
-        let morgan = try #require(people.first { $0.displayName == "Morgan Chen" })
-        let engagement = try #require(try await backend.engagements.fetchEngagements(forClient: morgan.id).first)
-
-        let viewModel = ProgressViewModel(backend: backend, engagementID: engagement.id)
-        await viewModel.load()
-
-        #expect(viewModel.photoConsentGranted == true)
-        try await waitUntil { !viewModel.photos.isEmpty }
-        #expect(viewModel.photos.count == 2)
-    }
-
-    @Test("an engagement with photo consent withheld exposes NO photos, even when ProgressPhoto records exist")
-    func consentWithheldHidesPhotos() async throws {
-        let backend = InMemoryStore.seeded()
-        let people = try await backend.people.list()
-        // Sam Patel (engagement 2) has photo consent withheld by default.
-        let sam = try #require(people.first { $0.displayName == "Sam Patel" })
-        let engagement = try #require(try await backend.engagements.fetchEngagements(forClient: sam.id).first)
-
-        let hiddenPhoto = ProgressPhoto(
-            id: Identifier(),
-            engagementID: engagement.id,
-            reference: "hidden-photo",
-            capturedAt: Date(),
-            source: .coachRecorded
-        )
-        _ = try await backend.progressPhotos.upsert(hiddenPhoto)
-
-        let viewModel = ProgressViewModel(backend: backend, engagementID: engagement.id)
-        await viewModel.load()
-
-        #expect(viewModel.photoConsentGranted == false)
-        #expect(viewModel.photos.isEmpty)
-
-        // Granting consent (an explicit action) then exposes it.
-        await viewModel.setPhotoConsent(true)
-        #expect(viewModel.photoConsentGranted == true)
-        try await waitUntil { !viewModel.photos.isEmpty }
-        #expect(viewModel.photos.map(\.id) == [hiddenPhoto.id])
-
-        // Revoking hides it again immediately, without waiting on the stream.
-        await viewModel.setPhotoConsent(false)
-        #expect(viewModel.photoConsentGranted == false)
-        #expect(viewModel.photos.isEmpty)
-    }
-
     // MARK: - Helpers
 
     private func waitUntil(timeout: TimeInterval = 2, _ condition: @escaping () -> Bool) async throws {

@@ -1,24 +1,17 @@
 import DesignSystem
 import Domain
-import PhotosUI
 import SwiftUI
 
 /// A single engagement's dedicated Progress screen: one `ProgressChart` per
-/// tracked `MetricKind` (filterable by metric), a consent-gated photos
-/// section, and a "Log progress" entry point. Pushed from
-/// `ClientDetailView`'s Progress section onto the Clients tab's
-/// `NavigationStack`.
+/// tracked `MetricKind` (filterable by metric) and a "Log progress" entry
+/// point. Pushed from `ClientDetailView`'s Progress section onto the Clients
+/// tab's `NavigationStack`.
 ///
 /// Named `EngagementProgressView` (not `ProgressScreen`/`ProgressView`) to
 /// avoid colliding with SwiftUI's own `ProgressView`.
 public struct EngagementProgressView: View {
     @State var viewModel: ProgressViewModel
     @State var showingLogProgress = false
-    // Not `private`: `EngagementProgressView+Photos.swift` (a same-type
-    // extension in a different file, split out purely to stay under
-    // SwiftLint's `type_body_length`) needs access — `private` is
-    // file-scoped in Swift.
-    @State var photoPickerItem: PhotosPickerItem?
 
     public init(viewModel: ProgressViewModel) {
         _viewModel = State(wrappedValue: viewModel)
@@ -32,7 +25,6 @@ public struct EngagementProgressView: View {
                         .padding(.horizontal, Spacing.space4)
                 }
                 chartsSection
-                photosSection
             }
             .padding(.vertical, Spacing.space4)
         }

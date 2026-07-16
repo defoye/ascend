@@ -124,6 +124,10 @@ that collides with `Identifiable.ID`. Codable as a bare string. `Hashable`,
   anything `ProgressPhotoRepository` returns — the gate lives in the caller,
   not the repository.
 
+  UI for this feature is deferred post-launch (a pre-release audit found the
+  picker never uploaded real image bytes); the data layer, Storage policies,
+  and consent plumbing above ship dark for the real feature later.
+
 ## Coach notes
 
 - `CoachNote(id, engagementID, authorID: Identifier<Person>, body, createdAt, updatedAt)`

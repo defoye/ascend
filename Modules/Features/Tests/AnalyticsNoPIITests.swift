@@ -9,9 +9,9 @@ import Testing
 /// message body, note body, or photo reference. The strongest guarantee is
 /// structural (a case that tried to carry a `String` PII payload wouldn't
 /// compile against `AnalyticsEvent`'s shape), but these tests also exercise
-/// the two real Features call sites (`ConsentViewModel`, `ProgressViewModel`)
-/// end-to-end against a recording tracker and assert no PII string leaks into
-/// a recorded event, in both the success and error paths.
+/// the real Features call site (`ConsentViewModel`) end-to-end against a
+/// recording tracker and assert no PII string leaks into a recorded event,
+/// in both the success and error paths.
 @Suite("AnalyticsEvent carries no PII")
 @MainActor
 struct AnalyticsNoPIITests {
@@ -44,25 +44,6 @@ struct AnalyticsNoPIITests {
         let events = tracker.events
         #expect(events.contains(.consentChanged(engagementID: engagementID, granted: false)))
         #expect(events.contains(.consentChanged(engagementID: engagementID, granted: true)))
-        assertNoPII(in: events, forbidden: ["Morgan Chen", "Jordan Ellis"])
-    }
-
-    @Test("photo consent toggle records only engagement id + boolean, no client name or photo reference")
-    func photoConsentToggleRecordsNoPII() async throws {
-        let tracker = RecordingAnalyticsTracker()
-        let backend = InMemoryStore.seeded(analyticsTracker: tracker)
-        let people = try await backend.people.list()
-        let morganChen = try #require(people.first { $0.displayName == "Morgan Chen" })
-        let engagementID = try #require(try await backend.engagements.fetchEngagements(forClient: morganChen.id).first?.id)
-
-        let viewModel = ProgressViewModel(backend: backend, engagementID: engagementID)
-        await viewModel.load()
-        await viewModel.setPhotoConsent(true)
-        await viewModel.setPhotoConsent(false)
-
-        let events = tracker.events
-        #expect(events.contains(.photoConsentChanged(engagementID: engagementID, granted: true)))
-        #expect(events.contains(.photoConsentChanged(engagementID: engagementID, granted: false)))
         assertNoPII(in: events, forbidden: ["Morgan Chen", "Jordan Ellis"])
     }
 
