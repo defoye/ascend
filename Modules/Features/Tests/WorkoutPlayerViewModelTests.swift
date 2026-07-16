@@ -27,7 +27,7 @@ struct WorkoutPlayerViewModelTests {
         let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
         let backSquat = try #require(workout.exercises.first { $0.exercise.name == "Back Squat" })
 
-        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate }, draftStore: FakeWorkoutSessionDraftStore())
         var firstSet = try #require(viewModel.setLogs(for: backSquat).first)
         firstSet.weightText = "230"
         viewModel.updateSetLog(firstSet, for: backSquat)
@@ -46,7 +46,7 @@ struct WorkoutPlayerViewModelTests {
         let backend = InMemoryStore.seeded()
         let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
 
-        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate }, draftStore: FakeWorkoutSessionDraftStore())
         viewModel.bodyweightText = "184"
 
         #expect(viewModel.canComplete)
@@ -63,7 +63,7 @@ struct WorkoutPlayerViewModelTests {
         let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
         let squatEntriesBefore = try await backend.progress.fetchEntries(forEngagement: engagementID, metric: .squat1RM)
 
-        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate }, draftStore: FakeWorkoutSessionDraftStore())
         #expect(!viewModel.canComplete)
 
         let completed = await viewModel.completeWorkout()
@@ -86,7 +86,7 @@ struct WorkoutPlayerViewModelTests {
         let todaysSession = Session(id: Identifier(), engagementID: engagementID, scheduledAt: now.addingTimeInterval(3_600), status: .scheduled)
         _ = try await backend.sessions.upsert(todaysSession)
 
-        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { now })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { now }, draftStore: FakeWorkoutSessionDraftStore())
         viewModel.bodyweightText = "184"
         let completed = await viewModel.completeWorkout()
         #expect(completed)
@@ -104,7 +104,7 @@ struct WorkoutPlayerViewModelTests {
         let futureSession = Session(id: Identifier(), engagementID: engagementID, scheduledAt: now.addingTimeInterval(5 * 86_400), status: .scheduled)
         _ = try await backend.sessions.upsert(futureSession)
 
-        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { now })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { now }, draftStore: FakeWorkoutSessionDraftStore())
         viewModel.bodyweightText = "184"
         _ = await viewModel.completeWorkout()
 
@@ -119,7 +119,7 @@ struct WorkoutPlayerViewModelTests {
         let backend = InMemoryStore.seeded()
         let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
         let backSquat = try #require(workout.exercises.first { $0.exercise.name == "Back Squat" })
-        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate }, draftStore: FakeWorkoutSessionDraftStore())
 
         var firstSet = try #require(viewModel.setLogs(for: backSquat).first)
         firstSet.weightText = "225"
@@ -147,7 +147,7 @@ struct WorkoutPlayerViewModelTests {
         let backend = InMemoryStore.seeded()
         let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
         let backSquat = try #require(workout.exercises.first { $0.exercise.name == "Back Squat" })
-        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate }, draftStore: FakeWorkoutSessionDraftStore())
 
         viewModel.commitActiveSet(for: backSquat)
         let logs = viewModel.setLogs(for: backSquat)
@@ -161,7 +161,7 @@ struct WorkoutPlayerViewModelTests {
         let backend = InMemoryStore.seeded()
         let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
         let backSquat = try #require(workout.exercises.first { $0.exercise.name == "Back Squat" })
-        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate }, draftStore: FakeWorkoutSessionDraftStore())
 
         #expect(viewModel.currentExerciseIndex == 0)
         #expect(!viewModel.isExerciseFullyLogged(backSquat))
@@ -181,7 +181,7 @@ struct WorkoutPlayerViewModelTests {
         let backend = InMemoryStore.seeded()
         let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
         let backSquat = try #require(workout.exercises.first { $0.exercise.name == "Back Squat" })
-        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate }, draftStore: FakeWorkoutSessionDraftStore())
 
         #expect(viewModel.lastLoggedEntry(for: backSquat) == nil) // nothing fabricated before history loads
 
@@ -196,7 +196,7 @@ struct WorkoutPlayerViewModelTests {
         let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
         let backSquat = try #require(workout.exercises.first { $0.exercise.name == "Back Squat" })
         let walkingLunge = ExercisePrescription(id: Identifier(), exercise: Exercise(id: Identifier(), name: "Walking Lunge"), sets: 1, reps: "12", notes: nil)
-        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate }, draftStore: FakeWorkoutSessionDraftStore())
         await viewModel.loadHistory()
 
         var squatSet = try #require(viewModel.setLogs(for: backSquat).first)
@@ -219,7 +219,7 @@ struct WorkoutPlayerViewModelTests {
         let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
         let backSquat = try #require(workout.exercises.first { $0.exercise.name == "Back Squat" })
         let now = InMemoryStore.referenceDate
-        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { now })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { now }, draftStore: FakeWorkoutSessionDraftStore())
         await viewModel.loadHistory()
 
         // Typing a weight without committing shouldn't count toward totals or the comparison.

@@ -21,6 +21,16 @@ import Observation
 /// Completing requires at least one numeric input (a set weight, or the
 /// optional bodyweight check-in) so "complete" always writes real evidence,
 /// never a no-op.
+///
+/// A gym session means backgrounding the app dozens of times over 45-90
+/// minutes, and iOS killing a backgrounded app mid-workout is the common
+/// case, not an edge case — so the local UI state above (set logs,
+/// bodyweight text, start time) is additionally mirrored to a local JSON
+/// draft (`WorkoutSessionDraftStoring`) on every change, restored on `init` when it
+/// still matches this engagement/workout and was saved today, and cleared on
+/// successful completion. This is still local UI state, not a new persisted
+/// entity — the draft only ever reconstructs what would otherwise have been
+/// typed again this same session.
 @MainActor
 @Observable
 public final class WorkoutPlayerViewModel {
@@ -30,7 +40,7 @@ public final class WorkoutPlayerViewModel {
     /// client commits the set (the "Log set N" affordance) — it's what
     /// drives the done/active/pending row states and the "logged"
     /// microinteraction, distinct from merely having typed a value.
-    public struct SetLog: Sendable, Identifiable, Equatable {
+    public struct SetLog: Sendable, Identifiable, Equatable, Codable {
         public let id: Int
         public var reps: String
         public var weightText: String
@@ -52,9 +62,11 @@ public final class WorkoutPlayerViewModel {
     }
 
     public let workout: Workout
-    public let startedAt: Date
+    public private(set) var startedAt: Date
     public private(set) var setLogsByExercise: [Identifier<ExercisePrescription>: [SetLog]] = [:]
-    public var bodyweightText = ""
+    public var bodyweightText = "" {
+        didSet { saveDraft() }
+    }
     public private(set) var isSaving = false
     public private(set) var saveErrorMessage: String?
     public private(set) var isCompleted = false
@@ -68,22 +80,75 @@ public final class WorkoutPlayerViewModel {
     private let backend: any Backend
     private let engagementID: Identifier<Engagement>
     private let clock: @Sendable () -> Date
+    private let draftStore: any WorkoutSessionDraftStoring
 
     public init(
         backend: any Backend,
         engagementID: Identifier<Engagement>,
         workout: Workout,
-        clock: @escaping @Sendable () -> Date = { Date() }
+        clock: @escaping @Sendable () -> Date = { Date() },
+        draftStore: any WorkoutSessionDraftStoring = LiveWorkoutSessionDraftStore()
     ) {
         self.backend = backend
         self.engagementID = engagementID
         self.workout = workout
         self.clock = clock
+        self.draftStore = draftStore
         self.startedAt = clock()
 
         for exercise in workout.exercises {
             setLogsByExercise[exercise.id] = (0..<max(exercise.sets, 1)).map { SetLog(id: $0, reps: exercise.reps) }
         }
+
+        restoreDraftIfApplicable()
+    }
+
+    /// Adopts a persisted draft only when it still describes *this*
+    /// player instance: same engagement, same workout, and saved earlier
+    /// today. A draft for a different engagement/workout (the client
+    /// switched programs, or started a different workout) or one left over
+    /// from a prior day is discarded rather than adopted — a stale set log
+    /// reappearing days later would be confusing, not helpful. Restoring is
+    /// silent: no banner, no published "restored" flag, the state just
+    /// reappears as if the app had never left.
+    private func restoreDraftIfApplicable() {
+        guard let draft = draftStore.load() else { return }
+        guard
+            draft.engagementID == engagementID,
+            draft.workoutID == workout.id,
+            Calendar.current.isDate(draft.savedAt, inSameDayAs: clock())
+        else {
+            draftStore.clear()
+            return
+        }
+
+        startedAt = draft.startedAt
+        for exerciseID in setLogsByExercise.keys {
+            if let logs = draft.setLogsByExercise[exerciseID] {
+                setLogsByExercise[exerciseID] = logs
+            }
+        }
+        // Assigned last: `bodyweightText`'s `didSet` re-saves the draft, so
+        // `setLogsByExercise` must already reflect the restored sets above —
+        // otherwise the re-saved draft would overwrite the on-disk file with
+        // stale (fresh-scaffolding) set logs before anything is re-logged.
+        bodyweightText = draft.bodyweightText
+    }
+
+    /// Builds a `WorkoutSessionDraft` from current state and persists it —
+    /// the single save path used by every mutation that should survive app
+    /// termination (see the header doc comment).
+    private func saveDraft() {
+        draftStore.save(
+            WorkoutSessionDraft(
+                engagementID: engagementID,
+                workoutID: workout.id,
+                startedAt: startedAt,
+                bodyweightText: bodyweightText,
+                setLogsByExercise: setLogsByExercise,
+                savedAt: clock()
+            )
+        )
     }
 
     public func setLogs(for exercise: ExercisePrescription) -> [SetLog] {
@@ -94,6 +159,7 @@ public final class WorkoutPlayerViewModel {
         guard var logs = setLogsByExercise[exercise.id], let index = logs.firstIndex(where: { $0.id == log.id }) else { return }
         logs[index] = log
         setLogsByExercise[exercise.id] = logs
+        saveDraft()
     }
 
     public func setRowState(_ log: SetLog, for exercise: ExercisePrescription) -> SetRowState {
@@ -241,6 +307,7 @@ public final class WorkoutPlayerViewModel {
             isCompleted = true
             completedAt = now
             saveErrorMessage = nil
+            draftStore.clear()
             return true
         } catch {
             saveErrorMessage = "Couldn't save your workout. Try again."
