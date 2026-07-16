@@ -53,13 +53,14 @@ extension SupabaseBackend {
     }
 
     /// Replaces `program`'s entire weeks/workouts/prescriptions tree: the
-    /// referenced `Exercise` library entries are upserted first (so foreign
-    /// keys resolve), the program's existing weeks are deleted (cascading to
-    /// their workouts/prescriptions per the migration's `ON DELETE CASCADE`),
-    /// then the new tree is bulk-inserted level by level. `Program` is
-    /// authored as a whole value (see `ProgramBuilderViewModel`), exactly
-    /// like `InMemoryBackend`'s dictionary-replace `upsert` — this mirrors
-    /// that "whole value" semantics for a normalized schema.
+    /// referenced `Exercise` library entries not already present are
+    /// inserted first (so foreign keys resolve), the program's existing
+    /// weeks are deleted (cascading to their workouts/prescriptions per the
+    /// migration's `ON DELETE CASCADE`), then the new tree is bulk-inserted
+    /// level by level. `Program` is authored as a whole value (see
+    /// `ProgramBuilderViewModel`), exactly like `InMemoryBackend`'s
+    /// dictionary-replace `upsert` — this mirrors that "whole value"
+    /// semantics for a normalized schema.
     func replaceChildren(of program: Program) async throws {
         let allExercises = program.weeks
             .flatMap(\.workouts)
@@ -67,8 +68,7 @@ extension SupabaseBackend {
             .map(\.exercise)
         let uniqueExercises = Dictionary(uniqueKeysWithValues: allExercises.map { ($0.id, $0) }).values
         if !uniqueExercises.isEmpty {
-            let exerciseRows = uniqueExercises.map { ExerciseRow(domain: $0) }
-            try await client.from("exercises").upsert(exerciseRows, onConflict: "id").execute()
+            try await insertMissingExercises(Array(uniqueExercises))
         }
 
         try await weeksTable.deleteWhere(column: "program_id", value: program.id.rawValue)
@@ -95,5 +95,22 @@ extension SupabaseBackend {
         if !prescriptionRows.isEmpty {
             try await client.from("exercise_prescriptions").insert(prescriptionRows).execute()
         }
+    }
+
+    /// Inserts only the exercises from `exercises` that don't already exist
+    /// in the shared library; never updates an existing row. `exercises` has
+    /// no UPDATE policy as of LH-4 (closing a hole that let any
+    /// authenticated user rewrite any exercise's name/delete it) -- an
+    /// `INSERT ... ON CONFLICT DO UPDATE` against a row with no UPDATE
+    /// policy is rejected outright, so this fetches which of `exercises`'
+    /// ids already exist and inserts only the rest.
+    private func insertMissingExercises(_ exercises: [Exercise]) async throws {
+        let ids = exercises.map(\.id.rawValue)
+        let existingRows = try await exercisesTable.fetchAll { $0.`in`("id", values: ids) }
+        let existingIDs = Set(existingRows.map(\.id))
+        let missing = exercises.filter { !existingIDs.contains($0.id) }
+        guard !missing.isEmpty else { return }
+        let exerciseRows = missing.map { ExerciseRow(domain: $0) }
+        try await client.from("exercises").insert(exerciseRows).execute()
     }
 }

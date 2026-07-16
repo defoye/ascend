@@ -366,3 +366,4 @@ on top of the verified-outcome substrate — it is explicitly **not** the moat.
       (Supabase SQL migration lands in LH-3.)
 - [x] **LH-3** — engagement_invites migration + claim_invite security-definer RPC + RLS;
       RowCoding coverage for EngagementInviteRow. Live apply still owner's supabase db push.
+- [x] **LH-4** — RLS hardening: exercises write-locked (insert-only), engagement inserts restricted to the professional, consent flips via client-only security-definer RPCs + column-guard trigger; adapter updated (exercise insert-if-absent, consent RPCs). SQL reviewed-only pending supabase db push.
