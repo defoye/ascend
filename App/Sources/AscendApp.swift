@@ -73,14 +73,14 @@ struct RootView: View {
                 authState = state
             }
         }
-        .task(id: signedInPersonID) {
-            guard let personID = signedInPersonID else { return }
-            await resolveRoleGating(personID: personID)
+        .task(id: signedInUser) {
+            guard let user = signedInUser else { return }
+            await resolveRoleGating(user: user)
         }
         .onChange(of: activeRole) { _, newValue in
             rolePresence.markVisited(newValue, at: Date())
-            guard let personID = signedInPersonID else { return }
-            Task { await refreshOtherRoleUpdates(signedInPersonID: personID) }
+            guard let user = signedInUser else { return }
+            Task { await refreshOtherRoleUpdates(signedInUser: user) }
         }
         #if DEBUG
         .task(id: demoModeStore.isEnabled ? demoModeStore.scenario.rawValue : "off") {
@@ -93,30 +93,33 @@ struct RootView: View {
         #endif
     }
 
-    private var signedInPersonID: Identifier<Person>? {
+    private var signedInUser: AuthenticatedUser? {
         guard case let .signedIn(user) = authState else { return nil }
-        return user.personID
+        return user
     }
 
     /// Resolves which role to show and whether the switcher is offered,
     /// gated on the signed-in person's actual `roles` (not just what was
     /// last persisted — see `RoleGating.resolveActiveRole`), then stamps the
     /// resolved role's "last visited" and refreshes the other role's dot.
-    private func resolveRoleGating(personID: Identifier<Person>) async {
-        let person = try? await container.backend.people.get(personID)
+    private func resolveRoleGating(user: AuthenticatedUser) async {
+        let person = try? await container.backend.people.get(user.personID)
         let roles = person?.roles ?? [.professional]
         availableRoles = roles
         activeRole = RoleGating.resolveActiveRole(roles: roles, persisted: rolePresence.activeRole)
         rolePresence.activeRole = activeRole
         rolePresence.markVisited(activeRole, at: Date())
-        await refreshOtherRoleUpdates(signedInPersonID: personID)
+        await refreshOtherRoleUpdates(signedInUser: user)
     }
 
     /// The dot on the *other* role's switcher/tab: newer inbound activity
     /// there than the last time that role was visited. Only meaningful for
     /// a both-role person — a single-role person never has an "other role"
-    /// to light up.
-    private func refreshOtherRoleUpdates(signedInPersonID: Identifier<Person>) async {
+    /// to light up. Takes the full `AuthenticatedUser` (not just their
+    /// `personID`) because the consumer branch needs `container` to resolve
+    /// which `Person` the consumer experience actually runs as — see
+    /// `AppContainer.consumerPersonID`.
+    private func refreshOtherRoleUpdates(signedInUser: AuthenticatedUser) async {
         guard RoleGating.switcherAvailable(roles: availableRoles) else {
             otherRoleHasUpdates = false
             return
@@ -125,9 +128,12 @@ struct RootView: View {
         let latest: Date?
         switch otherRole {
         case .professional:
-            latest = await RoleActivitySummary.professionalInboundActivity(backend: container.backend, professionalID: signedInPersonID)
+            latest = await RoleActivitySummary.professionalInboundActivity(backend: container.backend, professionalID: signedInUser.personID)
         case .consumer:
-            latest = await RoleActivitySummary.consumerInboundActivity(backend: container.backend, clientID: Self.demoClientPersonID)
+            latest = await RoleActivitySummary.consumerInboundActivity(
+                backend: container.backend,
+                clientID: container.consumerPersonID(signedInUser)
+            )
         }
         otherRoleHasUpdates = RoleActivitySummary.hasUpdates(latestInboundActivity: latest, sinceLastVisited: rolePresence.lastVisited(otherRole))
     }
@@ -142,8 +148,8 @@ struct RootView: View {
     /// Settings (`SettingsViewModel.addOtherRole`) unlocks the Prompt-17
     /// role switcher immediately — no reinstall or relaunch required.
     private func refreshRoleGating() {
-        guard let personID = signedInPersonID else { return }
-        Task { await resolveRoleGating(personID: personID) }
+        guard let user = signedInUser else { return }
+        Task { await resolveRoleGating(user: user) }
     }
 
     #if DEBUG
@@ -193,7 +199,7 @@ struct RootView: View {
         case .consumer:
             ConsumerRootView(
                 backend: container.backend,
-                clientID: Self.demoClientPersonID,
+                clientID: container.consumerPersonID(user),
                 clock: Self.demoClock,
                 paymentsMode: container.paymentsMode,
                 onSwitchRole: switcherAvailable ? { switchRole(to: .professional) } : nil,
@@ -215,21 +221,6 @@ struct RootView: View {
         { InMemoryStore.referenceDate }
         #else
         { Date() }
-        #endif
-    }
-
-    /// The seeded consumer the demo client experience runs against (see
-    /// `InMemoryStore.demoClientPersonID`) — a coherent, hand-picked seeded
-    /// client (an active engagement, an assigned program, an upcoming
-    /// session, coach messages, and consent granted), not an arbitrary or
-    /// empty one. Only meaningful against the seeded `InMemoryStore`
-    /// backend; a future production backend would resolve the signed-in
-    /// person's own client identity instead.
-    private static var demoClientPersonID: Identifier<Person> {
-        #if DEBUG
-        InMemoryStore.demoClientPersonID
-        #else
-        Identifier<Person>()
         #endif
     }
 }

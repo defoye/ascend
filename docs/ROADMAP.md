@@ -354,3 +354,9 @@ on top of the verified-outcome substrate — it is explicitly **not** the moat.
 - [ ] **AI-4** — Provider marketing assistant: generate profile copy, program
       descriptions, and content. Must respect Invariant 2 (journeys, never causation)
       in all generated copy.
+
+## Launch hardening (pre-release audit, 2026-07)
+
+- [x] **LH-1** — Consumer role identity: Release consumer experience runs as the
+      signed-in user's personID; the seeded-demo-client substitution is now a
+      DEBUG-only AppContainer composition detail.
