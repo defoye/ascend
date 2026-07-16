@@ -69,6 +69,13 @@ struct TrackedJourneySummariesTests {
         #expect(journeys.first?.engagementID == engagementID)
         #expect(journeys.first?.metric == .squat1RM)
         #expect(journeys.first?.description == "Client · squat 1RM 185 → 225 lb · 4 weeks")
+        // The first/last time-separated points this journey was derived
+        // from are exposed directly, honestly, alongside the description —
+        // never fabricated, and never more than the two points the
+        // qualifying evidence actually carried.
+        #expect(journeys.first?.start == MetricValue(value: 185, unit: .lb))
+        #expect(journeys.first?.end == MetricValue(value: 225, unit: .lb))
+        #expect(journeys.first?.startedAt != nil)
     }
 
     @Test("an unestablished engagement yields zero Tracked journeys even with otherwise-qualifying evidence")

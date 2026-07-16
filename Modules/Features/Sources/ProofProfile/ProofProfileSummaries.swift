@@ -100,6 +100,26 @@ public enum ProofProfileSummaries {
         return "Client · \(metric.displayName) \(startText) → \(endText) \(unit) · \(weeks) \(weekWord)"
     }
 
+    /// A one-line, delta-first summary for a journey row/detail sheet, e.g.
+    /// "Client · squat 1RM · 4 weeks · +40 lb, measured" — matching the
+    /// anonymized-journey copy shape in docs/design/CLAUDE_DESIGN_BRIEF.md
+    /// ("Client, {age} · {category} · {weeks} weeks · {delta}, measured")
+    /// as closely as the data model allows: `Domain.Person` carries no age,
+    /// so age is omitted rather than invented (Invariant 1, docs/PRODUCT.md),
+    /// and `{category}` is `metric.displayName` — the closest honest
+    /// category label a `VerifiedOutcome`/`TrackedJourney` actually carries.
+    /// Kept separate from `journeyDescription`, which existing tests and
+    /// call sites already depend on verbatim.
+    public static func journeySummaryLine(metric: MetricKind, start: MetricValue, end: MetricValue, durationDays: Int) -> String {
+        let weeks = max(1, durationDays / 7)
+        let weekWord = weeks == 1 ? "week" : "weeks"
+        let delta = end.value - start.value
+        let sign = delta < 0 ? "\u{2212}" : (delta > 0 ? "+" : "")
+        let magnitude = formattedNumber(abs(delta))
+        let unit = end.unit.shortLabel
+        return "Client · \(metric.displayName) · \(weeks) \(weekWord) · \(sign)\(magnitude) \(unit), measured"
+    }
+
     private static func formattedNumber(_ value: Double) -> String {
         value.truncatingRemainder(dividingBy: 1) == 0
             ? String(format: "%.0f", value)

@@ -19,16 +19,37 @@ public struct TrackedJourney: Sendable, Identifiable, Equatable {
     public let engagementID: Identifier<Engagement>
     public let metric: MetricKind
     public let description: String
+    /// The earliest of the two (or more) time-separated progress
+    /// measurements this journey was derived from — exposed alongside `end`
+    /// so a journey-detail surface can render the same honest two-point
+    /// trajectory a `VerifiedJourney` does, without ever fabricating
+    /// intermediate points `TrackedEngagementEvidence.progress` didn't
+    /// actually contain.
+    public let start: MetricValue
+    /// The most recent of the qualifying progress measurements.
+    public let end: MetricValue
+    public let startedAt: Date
     /// The most recent progress measurement's timestamp — used to sort
     /// Tracked results most-recent-first, mirroring
     /// `ProofProfileSummaries.journeys(from:)`'s `endedAt` ordering.
     public let lastRecordedAt: Date
 
-    public init(engagementID: Identifier<Engagement>, metric: MetricKind, description: String, lastRecordedAt: Date) {
+    public init(
+        engagementID: Identifier<Engagement>,
+        metric: MetricKind,
+        description: String,
+        start: MetricValue,
+        end: MetricValue,
+        startedAt: Date,
+        lastRecordedAt: Date
+    ) {
         self.id = "\(engagementID.rawValue)-\(metric.rawValue)"
         self.engagementID = engagementID
         self.metric = metric
         self.description = description
+        self.start = start
+        self.end = end
+        self.startedAt = startedAt
         self.lastRecordedAt = lastRecordedAt
     }
 }
@@ -101,6 +122,9 @@ public enum TrackedJourneySummaries {
                 engagementID: evidence.engagement.id,
                 metric: metric,
                 description: description,
+                start: first.value,
+                end: last.value,
+                startedAt: first.recordedAt,
                 lastRecordedAt: last.recordedAt
             )
         }

@@ -13,7 +13,11 @@ import SwiftUI
 /// measured change over a real relationship, never a caused result
 /// (Invariant 2, docs/PRODUCT.md).
 public struct ProofProfileView: View {
-    @State private var viewModel: ProofProfileViewModel
+    // Not `private`: `ProofProfileView+Journeys.swift` (a same-type
+    // extension in a different file) needs access — `private` is
+    // file-scoped in Swift.
+    @State var viewModel: ProofProfileViewModel
+    @State var selectedJourney: JourneyDetailContent?
 
     public init(viewModel: ProofProfileViewModel) {
         _viewModel = State(wrappedValue: viewModel)
@@ -26,11 +30,21 @@ public struct ProofProfileView: View {
                     ErrorBanner(message: loadErrorMessage, retry: { Task { await viewModel.load() } })
                         .padding(.horizontal, Spacing.space4)
                 }
-                headerSection
-                verificationSection
-                statsSection
-                explainerSection
-                journeysSection
+                // Error kit (docs/design/handoff/HANDOFF_README.md §06): stale
+                // content stays visible under the banner, dimmed to 55%,
+                // rather than being replaced or hidden.
+                VStack(alignment: .leading, spacing: Spacing.space6) {
+                    if viewModel.isLoading {
+                        loadingSkeleton
+                    } else {
+                        headerSection
+                        verificationSection
+                        statsSection
+                        explainerSection
+                        journeysSection
+                    }
+                }
+                .opacity(viewModel.loadErrorMessage != nil ? 0.55 : 1)
             }
             .padding(.vertical, Spacing.space4)
         }
@@ -38,6 +52,10 @@ public struct ProofProfileView: View {
         .navigationTitle("Proof Profile")
         .refreshable { await viewModel.load() }
         .task { await viewModel.load() }
+        .sheet(item: $selectedJourney) { content in
+            JourneyDetailSheetView(content: content)
+                .presentationDetents([.medium, .large])
+        }
     }
 
     // MARK: - Header
@@ -95,7 +113,9 @@ public struct ProofProfileView: View {
 
     // MARK: - Aggregate stats
 
-    private var statColumns: [GridItem] {
+    // Not `private`: `ProofProfileView+Skeleton.swift` (a same-type extension
+    // in a different file) needs access — `private` is file-scoped in Swift.
+    var statColumns: [GridItem] {
         [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
     }
 
@@ -131,7 +151,12 @@ public struct ProofProfileView: View {
                     ForEach(explainerPoints, id: \.self) { point in
                         HStack(alignment: .top, spacing: Spacing.space2) {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(Color.Ascend.verified)
+                                // No teal verification treatment while
+                                // `.free` (docs/design/CLAUDE_DESIGN_BRIEF.md
+                                // "Constraints") — the checkmark stays
+                                // neutral until payments (and the real
+                                // "Verified" claim) turn on.
+                                .foregroundStyle(viewModel.paymentsMode == .live ? Color.Ascend.verified : Color.Ascend.textSecondary)
                                 .accessibilityHidden(true)
                             Text(point)
                                 .ascendType(.subheadline)
@@ -155,8 +180,10 @@ public struct ProofProfileView: View {
     /// in both modes (see docs/DATA_MODEL.md) — only the payment pillar's
     /// framing changes: in `.live` it's a requirement already satisfied by
     /// every journey shown; in `.free` it's named as what upgrades a Tracked
-    /// result to "Verified" once payments are turned on (Option B, see
+    /// result once payments are turned on (Option B, see
     /// docs/BUILD_STATUS.md "Rollout strategy — free first, monetize later").
+    /// The `.free` copy deliberately never spells out the word "Verified" —
+    /// see `ProofProfileCopy`/Invariant 2, docs/PRODUCT.md.
     private var explainerPoints: [String] {
         switch viewModel.paymentsMode {
         case .live:
@@ -173,86 +200,9 @@ public struct ProofProfileView: View {
                 "At least one completed session together",
                 "The client's explicit consent to share their journey",
                 "Two or more measurements of the same metric, recorded over time",
-                "A completed payment — activates the \u{201C}Verified\u{201D} badge once payments are turned on"
+                "A completed payment — upgrades this Tracked result once payments are turned on"
             ]
         }
-    }
-
-    // MARK: - Verified journeys / Tracked results
-
-    @ViewBuilder
-    private var journeysSection: some View {
-        switch viewModel.paymentsMode {
-        case .live: verifiedJourneysSection
-        case .free: trackedJourneysSection
-        }
-    }
-
-    @ViewBuilder
-    private var verifiedJourneysSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SectionHeader("Verified journeys")
-            Card {
-                if viewModel.journeys.isEmpty {
-                    EmptyState(
-                        systemImage: "checkmark.seal",
-                        title: "No verified journeys yet",
-                        message: "Journeys appear here once a client's progress is measured, "
-                            + "paid, and consented to be shown."
-                    )
-                } else {
-                    VStack(spacing: 0) {
-                        ForEach(Array(viewModel.journeys.enumerated()), id: \.element.id) { index, journey in
-                            if index > 0 {
-                                Divider()
-                            }
-                            journeyRow(description: journey.description, badge: AnyView(VerifiedBadge(style: .compact)))
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, Spacing.space4)
-        }
-    }
-
-    @ViewBuilder
-    private var trackedJourneysSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SectionHeader("Tracked results")
-            Card {
-                if viewModel.trackedJourneys.isEmpty {
-                    EmptyState(
-                        systemImage: "chart.line.uptrend.xyaxis",
-                        title: "No tracked results yet",
-                        message: "Results appear here once a client's progress is measured "
-                            + "and consented to be shown. Turn payments on to activate Verified."
-                    )
-                } else {
-                    VStack(spacing: 0) {
-                        ForEach(Array(viewModel.trackedJourneys.enumerated()), id: \.element.id) { index, journey in
-                            if index > 0 {
-                                Divider()
-                            }
-                            journeyRow(description: journey.description, badge: AnyView(TrackedBadge()))
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, Spacing.space4)
-        }
-    }
-
-    private func journeyRow(description: String, badge: AnyView) -> some View {
-        HStack(spacing: Spacing.space3) {
-            badge
-            Text(description)
-                .ascendType(.subheadline)
-                .foregroundStyle(Color.Ascend.textPrimary)
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, Spacing.space2)
-        .frame(minHeight: 44)
-        .accessibilityElement(children: .combine)
     }
 }
 
