@@ -117,7 +117,7 @@ that aren't a root tab and benefit from a direct jump.
 Switching scenarios rebuilds the backend live (no relaunch) via a
 `.task(id:)` keyed on the selection.
 
-### Role, clock, and payment controls
+### Role and clock controls
 
 - **Role**: the same `DemoRole` switch the app already had — coach ↔
   consumer — now also selectable from the panel, in addition to each
@@ -129,10 +129,13 @@ Switching scenarios rebuilds the backend live (no relaunch) via a
   constraint documented in `docs/BUILD_STATUS.md` for why `PaymentsMode`
   isn't a `@MainActor`-backed runtime toggle. The lock sidesteps it instead
   of fighting it.
-- **Payment outcome**: succeed / succeed-then-refund / fail, backed by a
-  `DemoPaymentOutcomeController` actor and a `DemoPaymentGateway` decorator
-  that only ever calls through to the real `MockPaymentGateway`'s
-  `charge`/`refund` — it never hand-constructs a `Payment`.
+
+(A **payment outcome** control — succeed / succeed-then-refund / fail,
+backed by a `DemoPaymentOutcomeController` actor and a `DemoPaymentGateway`
+decorator — existed here to exercise the coach's charge/pay UI. Both the UI
+and this control were removed pre-launch alongside the rest of the dark
+payments surface — see docs/ROADMAP.md's LH-9 — and return together with
+Prompt 14's real Stripe gateway.)
 
 ### Screen catalog
 
@@ -161,8 +164,7 @@ root.
    immediately.
 4. Pick a **Scenario** to see empty/error/showcase states; pick a **Role**
    to see the consumer side; move the **Clock** to see upcoming sessions
-   become past ones; set **Payment outcome** before tapping "Charge" in the
-   coach's Payments screen to see the decline/refund UI.
+   become past ones.
 5. Open **Screen catalog** to jump straight to a specific screen/state
    without navigating tab-by-tab.
 6. Flip Demo Mode off (or force-quit and relaunch with it left on — it

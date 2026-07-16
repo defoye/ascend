@@ -9,7 +9,6 @@ import SwiftUI
 public struct CoachProfileView: View {
     private let backend: any Backend
     private let professionalID: Identifier<Person>
-    private let clock: @Sendable () -> Date
     private let paymentsMode: PaymentsMode
     private let onSwitchRole: (() -> Void)?
     private let otherRoleHasUpdates: Bool
@@ -18,7 +17,6 @@ public struct CoachProfileView: View {
     public init(
         backend: any Backend,
         professionalID: Identifier<Person>,
-        clock: @escaping @Sendable () -> Date = { Date() },
         paymentsMode: PaymentsMode = .live,
         onSwitchRole: (() -> Void)? = nil,
         otherRoleHasUpdates: Bool = false,
@@ -26,7 +24,6 @@ public struct CoachProfileView: View {
     ) {
         self.backend = backend
         self.professionalID = professionalID
-        self.clock = clock
         self.paymentsMode = paymentsMode
         self.onSwitchRole = onSwitchRole
         self.otherRoleHasUpdates = otherRoleHasUpdates
@@ -58,10 +55,6 @@ public struct CoachProfileView: View {
                 }
                 .padding(.horizontal, Spacing.space4)
 
-                if paymentsMode == .live {
-                    businessSection
-                }
-
                 SectionHeader("Account")
                 Card {
                     NavigationLink {
@@ -90,52 +83,6 @@ public struct CoachProfileView: View {
         }
         .background(Color.Ascend.background)
         .navigationTitle("Profile")
-    }
-
-    /// The money-flow UI (charge a client, price-setting, payment history)
-    /// is hidden entirely in `.free` mode — see docs/BUILD_STATUS.md
-    /// "Rollout strategy — free first, monetize later": there's no live
-    /// income to charge for or show yet, so the coach's "Business" section
-    /// (and its sole `.live`-only entry point into `ChargeClientView` /
-    /// `PaymentHistoryView` / `ServicePricingView`) is skipped rather than
-    /// shown disabled.
-    @ViewBuilder
-    private var businessSection: some View {
-        SectionHeader("Business")
-        Card {
-            VStack(spacing: 0) {
-                NavigationLink {
-                    ServicePricingView(
-                        viewModel: ServicePricingViewModel(backend: backend, professionalID: professionalID)
-                    )
-                } label: {
-                    ListRow(
-                        title: "Services & pricing",
-                        subtitle: "Set what you charge for each service",
-                        leading: { Image(systemName: "tag").foregroundStyle(Color.Ascend.primary) },
-                        trailing: { chevron }
-                    )
-                }
-                .buttonStyle(.plain)
-                Divider()
-                NavigationLink {
-                    PaymentHistoryView(
-                        viewModel: PaymentHistoryViewModel(backend: backend, professionalID: professionalID, clock: clock),
-                        backend: backend,
-                        professionalID: professionalID
-                    )
-                } label: {
-                    ListRow(
-                        title: "Payments",
-                        subtitle: "Charge clients and view payment history",
-                        leading: { Image(systemName: "creditcard").foregroundStyle(Color.Ascend.primary) },
-                        trailing: { chevron }
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, Spacing.space4)
     }
 
     private var proofProfileSubtitle: String {

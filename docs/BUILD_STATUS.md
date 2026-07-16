@@ -23,7 +23,7 @@ _Last updated: 2026-07-14 (through Prompt 13 — `SupabaseBackend` adapter code,
 | 8 | Scheduling & availability | session lifecycle, day/week schedule, reminders |
 | 9 | Progress logging + charts | metric capture UI, per-metric charts, consent-gated photos |
 | 10 | Messaging | stream-first chat UI per engagement |
-| 11 | Payments behind a `PaymentGateway` protocol (mock) | `MockPaymentGateway`, coach price-set/charge/history, client pay stub, fee-aware revenue |
+| 11 | Payments behind a `PaymentGateway` protocol (mock) | `MockPaymentGateway`, coach price-set/charge/history, client pay stub, fee-aware revenue. **The charge/pay/pricing/history UI shipped here was removed pre-launch (LH-9, see "Launch hardening" below) and returns with Prompt 14's real Stripe gateway.** |
 | 12 | Verified Outcomes surface (coach Proof Profile) | derives outcomes via `Domain.derive`, consent-respecting, journeys-not-causation copy |
 | 13 | `SupabaseBackend` adapter (code) | New module implementing every `DataInterfaces` repository + `AuthGateway` against Postgres/Auth/Storage/Realtime, a generic `SupabaseTable<Row>` CRUD gateway + disk-backed `OfflineWriteQueue` (docs/BACKEND.md's offline-write-queue contract), stream-first messaging via Realtime `postgres_changes`, consent-gated progress-photo signed URLs, 12 timestamped SQL migrations (`Server/supabase/migrations/`) with RLS on every table, composition-root wiring (DEBUG unconditionally `InMemoryStore`, Release reads `Config/Secrets.xcconfig` via Info.plist). Debug **and** Release build clean, full suite green (206 tests, `SupabaseBackendIntegrationTests` skipping cleanly with no credentials), SwiftLint `--strict` 0 violations. **The live DB round-trip needs your `supabase db push` — see the runbook below.** |
 | 15 | Consumer/client experience slice | `ConsumerRootView` (4-tab: Today, Progress, Coach, Me), workout player + progress logging, "My Progress" dashboard w/ milestones, outcome-sharing consent toggle (Invariant-1 proof both directions), goal-first onboarding intake — all on `InMemoryStore`, reachable via a demo role switch |
@@ -251,11 +251,13 @@ usage guide. A DEBUG-only demo/testability harness (`App/Sources/Demo/**`)
 lives behind a wrench button that floats on every DEBUG launch: it opens a
 persisted (`UserDefaults`, default **off**) on/off switch, and once on, a
 scenario switcher (`richDemo`/`showcase`/`emptyCoach`/`errorStates`), the
-existing coach/consumer role switch, a live clock control, a live
-succeed/refund/fail payment-outcome control, and a screen catalog reaching
-~20 coach and consumer screens. Release is unaffected (`#if DEBUG`
-throughout). Proven via a real tap-driven `AscendUITests` UI test
-(`App/UITests/DemoHarnessUITests.swift`) that opens the panel, flips the
-toggle, relaunches the app, and asserts the state persisted — plus a new
+existing coach/consumer role switch, a live clock control, and a screen
+catalog reaching the app's coach and consumer screens. Release is unaffected
+(`#if DEBUG` throughout). Proven via a real tap-driven `AscendUITests` UI
+test (`App/UITests/DemoHarnessUITests.swift`) that opens the panel, flips
+the toggle, relaunches the app, and asserts the state persisted — plus a new
 `AscendTests` unit target covering the persisted store, the demo clock, the
-scenario factory, and the error-injecting/payment-outcome decorators.
+scenario factory, and the error-injecting decorator. (The payment-outcome
+control and its `DemoPaymentOutcomeController`/`DemoPaymentGateway`
+decorators were removed alongside the dark payments surface — see LH-9 —
+and return with Prompt 14.)

@@ -91,7 +91,6 @@ public struct CoachRootView: View {
                 CoachProfileView(
                     backend: backend,
                     professionalID: professionalID,
-                    clock: clock,
                     paymentsMode: paymentsMode,
                     onSwitchRole: onSwitchRole,
                     otherRoleHasUpdates: otherRoleHasUpdates,

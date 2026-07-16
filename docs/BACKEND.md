@@ -70,6 +70,21 @@ documented constant (`platformFeeBasisPoints = 1_000`, i.e. 10%) rather than pas
 in by the caller — the same convention seeded fixture payments already use
 (`MockData.mockPayment`, `amountCents / 10`).
 
+### `SupabaseBackend.paymentGateway`: `NoOpPaymentGateway` until Prompt 14
+
+`SupabaseBackend.paymentGateway` (`Modules/SupabaseBackend/Sources/SupabaseBackend.swift`)
+vends `DataInterfaces.NoOpPaymentGateway` — every method throws
+`GatewayError.paymentsNotEnabled` rather than fabricating a `Payment`. There is
+no Stripe-backed `SupabaseBackend` gateway yet; that lands with Prompt 14. This
+matters because `VerifiedOutcome.derive` requires a *succeeded payment* as one
+of its four pillars (see docs/DATA_MODEL.md) — a gateway that silently wrote a
+fake `.succeeded` `Payment` row would falsely satisfy that pillar if
+`PaymentsMode` were ever flipped to `.live` against `SupabaseBackend` before
+Stripe exists. A live-mode charge must fail loudly instead. In practice launch
+ships with `PaymentsMode.free` (see docs/BUILD_STATUS.md "Rollout strategy —
+free first, monetize later"), so `PaymentsModeBackend` substitutes
+`NoOpPaymentGateway` ahead of this ever being reached anyway.
+
 ### The real plan: Stripe Connect Express (Prompt 14, deferred)
 
 This mock is a placeholder for a real Stripe integration that is explicitly

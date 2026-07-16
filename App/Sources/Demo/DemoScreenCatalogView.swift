@@ -120,21 +120,6 @@ struct DemoScreenCatalogView: View {
         catalogLink("Proof Profile", subtitle: "Verified / tracked journeys") {
             ProofProfileView(viewModel: ProofProfileViewModel(backend: bundle.backend, professionalID: bundle.professionalID, paymentsMode: .live))
         }
-        catalogLink("Service Pricing", subtitle: "Business services") {
-            ServicePricingView(viewModel: ServicePricingViewModel(backend: bundle.backend, professionalID: bundle.professionalID))
-        }
-        catalogLink("Charge Client", subtitle: "Charge flow") {
-            ChargeClientView(
-                viewModel: ChargeClientViewModel(backend: bundle.backend, professionalID: bundle.professionalID)
-            )
-        }
-        catalogLink("Payment History", subtitle: "Succeeded + refunded payments") {
-            PaymentHistoryView(
-                viewModel: PaymentHistoryViewModel(backend: bundle.backend, professionalID: bundle.professionalID, clock: clock),
-                backend: bundle.backend,
-                professionalID: bundle.professionalID
-            )
-        }
         catalogLink("Settings", subtitle: "Coach account") {
             SettingsView(
                 backend: bundle.backend,

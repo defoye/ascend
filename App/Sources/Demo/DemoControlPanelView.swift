@@ -15,7 +15,6 @@ struct DemoControlPanelView: View {
     @Bindable var clockController: DemoClockController
     @Binding var activeRole: PersonRole
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedPaymentOutcome: DemoPaymentOutcomeController.Outcome = .succeed
 
     init(demoModeStore: DemoModeStore, harnessState: DemoHarnessState, activeRole: Binding<PersonRole>) {
         self.demoModeStore = demoModeStore
@@ -33,7 +32,6 @@ struct DemoControlPanelView: View {
                         scenarioSection
                         roleSection
                         clockSection
-                        paymentSection
                         catalogSection
                     }
                 }
@@ -46,12 +44,6 @@ struct DemoControlPanelView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
-            }
-            .task {
-                selectedPaymentOutcome = await harnessState.paymentController.outcome
-            }
-            .onChange(of: selectedPaymentOutcome) { _, newValue in
-                Task { await harnessState.paymentController.setOutcome(newValue) }
             }
         }
     }
@@ -142,21 +134,6 @@ struct DemoControlPanelView: View {
                         }
                     }
                 }
-            }
-            .padding(.horizontal, Spacing.space4)
-        }
-    }
-
-    private var paymentSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SectionHeader("Payment outcome")
-            Card {
-                Picker("Payment outcome", selection: $selectedPaymentOutcome) {
-                    ForEach(DemoPaymentOutcomeController.Outcome.allCases) { outcome in
-                        Text(outcome.title).tag(outcome)
-                    }
-                }
-                .pickerStyle(.segmented)
             }
             .padding(.horizontal, Spacing.space4)
         }

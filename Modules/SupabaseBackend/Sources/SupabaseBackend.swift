@@ -50,7 +50,14 @@ public struct SupabaseBackend: Backend, Sendable {
     public var progress: any ProgressRepository { self }
     public var progressPhotos: any ProgressPhotoRepository { self }
     public var payments: any PaymentRepository { self }
-    public var paymentGateway: any PaymentGateway { self }
+    /// The real Stripe-backed gateway lands with Prompt 14 (Stripe Connect
+    /// Express via Supabase Edge Functions — see docs/BACKEND.md). Until
+    /// then, a live-mode charge against `SupabaseBackend` must throw rather
+    /// than fabricate a `.succeeded` `Payment` row — see docs/BUILD_STATUS.md
+    /// "Rollout strategy — free first, monetize later" (in practice launch
+    /// ships with `PaymentsMode.free`, so `PaymentsModeBackend` substitutes
+    /// `NoOpPaymentGateway` ahead of this ever being reached anyway).
+    public var paymentGateway: any PaymentGateway { NoOpPaymentGateway() }
     public var messages: any MessageRepository { self }
     public var outcomes: any OutcomeRepository { self }
     public var notes: any NotesRepository { self }
