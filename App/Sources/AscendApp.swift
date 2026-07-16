@@ -4,6 +4,7 @@ import Domain
 import Features
 import InMemoryStore
 import SwiftUI
+import UIKit
 
 /// Ascend's app entry point.
 ///
@@ -15,11 +16,16 @@ import SwiftUI
 @main
 struct AscendApp: App {
     @State private var container = AppContainer.live()
+    /// Owns push-notification registration (see `AppDelegate`,
+    /// docs/BACKEND.md "Message push notifications") — a SwiftUI `Scene` has
+    /// no equivalent to `UIApplicationDelegate`'s registration callbacks.
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(container)
+                .environment(appDelegate.deviceTokenStore)
         }
     }
 }
@@ -41,6 +47,9 @@ struct AscendApp: App {
 /// (`RoleActivitySummary`, in `Features`).
 struct RootView: View {
     @Environment(AppContainer.self) private var container
+    /// Absent only if somehow rendered outside `AscendApp` (e.g. a stray
+    /// preview) — `AscendApp` always injects the real one from `appDelegate`.
+    @Environment(DeviceTokenStore.self) private var deviceTokenStore: DeviceTokenStore?
     @State private var authState: AuthState = .signedOut
     @State private var rolePresence = RolePresenceStore()
     @State private var activeRole: PersonRole = .professional
@@ -77,6 +86,18 @@ struct RootView: View {
             guard let user = signedInUser else { return }
             await resolveRoleGating(user: user)
         }
+        .task(id: signedInUser) {
+            // registerForRemoteNotifications() doesn't itself prompt for
+            // permission — that stays SettingsView's existing
+            // LiveSessionReminderScheduler flow. This just obtains a token
+            // once permission already exists (a no-op otherwise).
+            guard signedInUser != nil else { return }
+            UIApplication.shared.registerForRemoteNotifications()
+        }
+        .task(id: deviceRegistrationKey) {
+            guard let key = deviceRegistrationKey else { return }
+            try? await container.backend.deviceTokens.register(token: key.token, platform: "ios")
+        }
         .onChange(of: activeRole) { _, newValue in
             rolePresence.markVisited(newValue, at: Date())
             guard let user = signedInUser else { return }
@@ -96,6 +117,16 @@ struct RootView: View {
     private var signedInUser: AuthenticatedUser? {
         guard case let .signedIn(user) = authState else { return nil }
         return user
+    }
+
+    /// Non-`nil` only once both a signed-in person and a real APNs token are
+    /// available — the pair `deviceTokens.register` needs. Keying a `.task`
+    /// on this (rather than on the token alone) re-registers correctly if
+    /// the signed-in person changes without the token changing (e.g. sign
+    /// out then a different sign-in on the same device).
+    private var deviceRegistrationKey: DeviceRegistrationKey? {
+        guard let user = signedInUser, let token = deviceTokenStore?.token else { return nil }
+        return DeviceRegistrationKey(personID: user.personID, token: token)
     }
 
     /// Resolves which role to show and whether the switcher is offered,
@@ -223,6 +254,13 @@ struct RootView: View {
         { Date() }
         #endif
     }
+}
+
+/// Keys the push-registration `.task(id:)` in `RootView` on both the
+/// signed-in person and the current device token together.
+private struct DeviceRegistrationKey: Equatable {
+    let personID: Identifier<Person>
+    let token: String
 }
 
 #Preview {

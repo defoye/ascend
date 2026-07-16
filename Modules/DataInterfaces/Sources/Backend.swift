@@ -21,4 +21,15 @@ public protocol Backend: Sendable {
     var invites: any InviteRepository { get }
     var auth: any AuthGateway { get }
     var analytics: any AnalyticsTracking { get }
+    var deviceTokens: any DeviceTokenRepository { get }
+}
+
+/// Default `deviceTokens` so every existing `Backend` conformer (preview/test
+/// stubs included) keeps compiling without implementing this repository —
+/// mirrors how `NoOpPaymentGateway` lets `SupabaseBackend` opt out of a real
+/// gateway until it has one. Adapters that back push notifications for real
+/// (`InMemoryBackend`, `SupabaseBackend`) override this with their own
+/// conformance instead of relying on the default.
+public extension Backend {
+    var deviceTokens: any DeviceTokenRepository { NoOpDeviceTokenRepository() }
 }

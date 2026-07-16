@@ -18,6 +18,10 @@ public struct SettingsView: View {
     @State private var showingDeleteConfirmation = false
     @State private var showingDeletedAlert = false
     @Environment(\.dismiss) private var dismiss
+    /// Absent in previews (nothing in the App target's environment there).
+    /// The App composition root injects the real store — see
+    /// `App/Sources/AppDelegate.swift`/`AscendApp.swift`.
+    @Environment(DeviceTokenStore.self) private var deviceTokenStore: DeviceTokenStore?
 
     private let roleLabel: String
     private let onSwitchRole: (() -> Void)?
@@ -64,7 +68,10 @@ public struct SettingsView: View {
         }
         .background(Color.Ascend.background)
         .navigationTitle("Settings")
-        .task { await viewModel.load() }
+        .task {
+            viewModel.configureDeviceToken { [weak deviceTokenStore] in deviceTokenStore?.token }
+            await viewModel.load()
+        }
         .confirmationDialog(
             "Delete your account?",
             isPresented: $showingDeleteConfirmation,

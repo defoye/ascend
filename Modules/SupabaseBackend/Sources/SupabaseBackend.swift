@@ -64,6 +64,7 @@ public struct SupabaseBackend: Backend, Sendable {
     public var availability: any AvailabilityRepository { self }
     public var invites: any InviteRepository { self }
     public var auth: any AuthGateway { self }
+    public var deviceTokens: any DeviceTokenRepository { self }
     /// No production analytics provider is wired up yet (see docs/ROADMAP.md);
     /// this keeps `Backend.analytics` total without pulling in a concrete SDK.
     /// Swapping this for a real provider is a one-line change here, exactly

@@ -198,3 +198,79 @@ against `SupabaseBackend`.
 ## Email confirmation (LH-10)
 
 Hosted Supabase's "Confirm email" project setting is supported either way: `AuthGateway.signUp` returns a `SignUpOutcome` (`.signedIn` or `.confirmationRequired`) instead of `Void`, so the auth screen can show a check-your-email notice when a session isn't created immediately, and an unconfirmed `signIn` throws `AuthGatewayError.emailNotConfirmed` instead of a generic error.
+
+## Message push notifications (LH-11)
+
+`DeviceTokenRepository` (`DataInterfaces`) — `register(token:platform:)` /
+`unregister(token:)` — is the same seam pattern as every other repository:
+`Backend` vends `var deviceTokens: any DeviceTokenRepository`, with a
+`Backend` protocol extension defaulting it to `NoOpDeviceTokenRepository` so
+every existing conformer (preview/test stub `Backend`s included) keeps
+compiling without change. `InMemoryBackend` implements it directly
+(`InMemoryBackend+DeviceTokenRepository.swift`), deriving the person from its
+own `currentAuthState` rather than taking one as a parameter — a signed-out
+`register` is a silent no-op, matching every other repository's "adapter
+resolves identity from its own session" convention.
+`SupabaseBackend+DeviceTokenRepository.swift` writes/deletes `device_tokens`
+rows as direct, best-effort Postgres calls (not routed through
+`OfflineWriteQueue` — losing a registration while offline just means this
+device re-registers on next launch, not worth the queue's replay complexity).
+
+Registration itself is wired at the App composition root
+(`App/Sources/AppDelegate.swift`, `App/Sources/AscendApp.swift`): a
+`UIApplicationDelegate` (`AppDelegate`) owns the only code path that can
+obtain a real APNs token (`didRegisterForRemoteNotificationsWithDeviceToken`)
+and bridges it into `Features`' `DeviceTokenStore` (a plain `@Observable`
+holder — Foundation/Observation only, no UIKit, so `Features` still never
+depends on a concrete push API). `RootView` calls
+`UIApplication.shared.registerForRemoteNotifications()` once signed in and
+registers the resulting token via `backend.deviceTokens.register` once both
+a signed-in person and a token are available. This deliberately reuses the
+existing `SettingsView`/`LiveSessionReminderScheduler` notification-
+permission flow (docs/ROADMAP.md Prompt 8) rather than adding a second,
+launch-time permission prompt — `registerForRemoteNotifications()` itself
+does not prompt; it only yields a token once permission already exists.
+`SettingsViewModel.signOut()`/`deleteAccount()` unregister the current
+device's token (while the session is still valid) before destroying it, so a
+signed-out device stops receiving pushes for the account that left it.
+
+### Server side: reviewed-only, not run locally
+
+Same "reviewed-only" state as every other Supabase artifact in this repo (no
+Docker/Postgres/Deno tooling in this environment): the
+`device_tokens` migration
+(`Server/supabase/migrations/20260716122000_device_tokens.sql` — a
+self-only-RLS table, mirroring `engagement_invites`) and the
+`notify-message` Edge Function
+(`Server/supabase/functions/notify-message/index.ts`) have been reviewed by
+hand but not executed against a real project. `notify-message` is invoked by
+a Supabase Database Webhook on `public.messages` INSERT (dashboard-
+configured, not a SQL migration — webhook config is project-specific and
+isn't portable the way a `pg_net` trigger would pretend to be); it resolves
+the message's recipient (the engagement party who isn't the author — a pure,
+`deno test`-covered helper in `recipient.ts`), fetches their device tokens,
+and sends each an APNs push using token-based (`.p8`) auth: an ES256 JWT
+built with Web Crypto, no external APNs library. A `410` response from Apple
+for a given token deletes that row — it's no longer registered.
+
+**Owner actions** (everything else — Swift, SQL, Deno, the entitlement — is
+done):
+1. Create an APNs Auth Key (`.p8`) in the Apple Developer portal; note its
+   Key ID and Team ID.
+2. Enable the Push Notifications capability on the App ID, and provisioning.
+3. Set the Edge Function's secrets (`supabase secrets set`, from
+   `Server/supabase/`): `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY`
+   (the full `.p8` PEM contents), `APNS_BUNDLE_ID=com.ascend.Ascend`, and
+   `SUPABASE_SERVICE_ROLE_KEY` if not already auto-provided.
+4. `supabase db push` (from `Server/supabase/`) to apply the
+   `device_tokens` migration.
+5. `supabase functions deploy notify-message`.
+6. Configure a Database Webhook in the Supabase dashboard: table
+   `public.messages`, event `INSERT`, type "Supabase Edge Functions",
+   pointing at `notify-message`.
+
+The app-side entitlement (`App/Ascend.entitlements`, `aps-environment =
+development`) is wired via `Project.swift`; a distribution build needs
+`aps-environment = production`, which Xcode/App Store Connect set
+automatically from the release provisioning profile at archive/export time
+once step 2 above is done.

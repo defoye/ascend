@@ -35,6 +35,7 @@ public actor InMemoryBackend: Backend {
     var notesByID: [Identifier<CoachNote>: CoachNote] = [:]
     var availabilityWindowsByID: [Identifier<AvailabilityWindow>: AvailabilityWindow] = [:]
     var invitesByID: [Identifier<EngagementInvite>: EngagementInvite] = [:]
+    var deviceTokensByToken: [String: (personID: Identifier<Person>, platform: String)] = [:]
 
     var currentAuthState: AuthState = .signedOut
     var registeredUsers: [String: (password: String, user: AuthenticatedUser)] = [:]
@@ -115,4 +116,5 @@ public actor InMemoryBackend: Backend {
     nonisolated public var invites: any InviteRepository { self }
     nonisolated public var auth: any AuthGateway { self }
     nonisolated public var analytics: any AnalyticsTracking { analyticsTracker }
+    nonisolated public var deviceTokens: any DeviceTokenRepository { self }
 }

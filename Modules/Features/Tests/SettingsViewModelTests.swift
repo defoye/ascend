@@ -92,4 +92,47 @@ struct SettingsViewModelTests {
             try await backend.signIn(email: "leaving@example.com", password: "secret")
         }
     }
+
+    @Test("signOut unregisters this device's token when one is provided")
+    func signOutUnregistersDeviceToken() async throws {
+        let backend = InMemoryStore.seeded()
+        try await backend.deviceTokens.register(token: "tok-123", platform: "ios")
+        let registeredBefore = await backend.registeredDeviceTokens()
+        #expect(registeredBefore["tok-123"] != nil)
+
+        let people = try await backend.people.list()
+        let jordanEllis = try #require(people.first { $0.displayName == "Jordan Ellis" })
+        let viewModel = SettingsViewModel(backend: backend, personID: jordanEllis.id, deviceToken: { "tok-123" })
+        await viewModel.load()
+
+        await viewModel.signOut()
+
+        let registeredAfter = await backend.registeredDeviceTokens()
+        #expect(registeredAfter["tok-123"] == nil)
+    }
+
+    @Test("deleteAccount unregisters this device's token before destroying the auth identity")
+    func deleteAccountUnregistersDeviceToken() async throws {
+        let backend = InMemoryBackend()
+        try await backend.signUp(email: "leaving2@example.com", password: "secret", displayName: "Leaving Too", roles: [.consumer])
+        var user: AuthenticatedUser?
+        for await state in backend.currentAuth {
+            if case .signedIn(let signedInUser) = state { user = signedInUser }
+            break
+        }
+        let user2 = try #require(user)
+
+        try await backend.deviceTokens.register(token: "tok-456", platform: "ios")
+        let registeredBefore = await backend.registeredDeviceTokens()
+        #expect(registeredBefore["tok-456"] != nil)
+
+        let viewModel = SettingsViewModel(backend: backend, personID: user2.personID, deviceToken: { "tok-456" })
+        await viewModel.load()
+
+        await viewModel.deleteAccount()
+
+        #expect(viewModel.deletionSummary?.personAnonymized == true)
+        let registeredAfter = await backend.registeredDeviceTokens()
+        #expect(registeredAfter["tok-456"] == nil)
+    }
 }

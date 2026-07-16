@@ -48,6 +48,15 @@ let appSettings: Settings = .settings(
     defaultSettings: .recommended
 )
 
+// App/Ascend.entitlements declares aps-environment = development, needed for
+// APNs push (see docs/BACKEND.md "Message push notifications") — that's the
+// correct value for every Debug/simulator/ad-hoc build produced here.
+// Distribution (TestFlight/App Store) builds need aps-environment =
+// production, which Xcode/App Store Connect normally sets automatically to
+// match the release provisioning profile at archive/export time; this is an
+// owner action (Apple Developer portal: enable Push Notifications on the App
+// ID, generate a distribution profile with the entitlement) not something
+// this file needs to branch on.
 let appTarget = Target(
     name: "Ascend",
     platform: .iOS,
@@ -57,6 +66,7 @@ let appTarget = Target(
     infoPlist: .extendingDefault(with: appInfoPlist),
     sources: ["App/Sources/**"],
     resources: ["App/Resources/**"],
+    entitlements: "App/Ascend.entitlements",
     dependencies: [
         .target(name: "Features"),
         .target(name: "DesignSystem"),

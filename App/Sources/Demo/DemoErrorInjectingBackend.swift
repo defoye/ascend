@@ -34,6 +34,7 @@ struct DemoErrorInjectingBackend: Backend {
     var invites: any InviteRepository { DemoFailingInviteRepository() }
     var auth: any AuthGateway { wrapped.auth }
     var analytics: any AnalyticsTracking { wrapped.analytics }
+    var deviceTokens: any DeviceTokenRepository { wrapped.deviceTokens }
 }
 
 private let offlineError = DemoErrorInjectingBackend.SimulatedError.offline

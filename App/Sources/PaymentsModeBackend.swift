@@ -32,6 +32,7 @@ struct PaymentsModeBackend: Backend {
     var invites: any InviteRepository { wrapped.invites }
     var auth: any AuthGateway { wrapped.auth }
     var analytics: any AnalyticsTracking { wrapped.analytics }
+    var deviceTokens: any DeviceTokenRepository { wrapped.deviceTokens }
 
     /// The one branch point: `.free` never wires a working gateway,
     /// `.live` hands back exactly what the wrapped backend vends (mock

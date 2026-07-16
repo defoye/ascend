@@ -21,10 +21,26 @@ public final class SettingsViewModel {
 
     private let backend: any Backend
     private let personID: Identifier<Person>
+    /// Reads this device's currently registered APNs token, if any, so
+    /// `signOut`/`deleteAccount` can unregister it while the session is
+    /// still valid (see docs/BACKEND.md "Message push notifications").
+    /// Defaults to `{ nil }` so previews/tests are unaffected. A `var` (not
+    /// `let`) because `SettingsView` supplies the real provider via
+    /// `configureDeviceToken` once its `@Environment(DeviceTokenStore.self)`
+    /// is resolved — a SwiftUI `View`'s environment isn't readable inside
+    /// its own `init`, so it can't be passed to this initializer directly.
+    private var deviceToken: @Sendable () -> String?
 
-    public init(backend: any Backend, personID: Identifier<Person>) {
+    public init(backend: any Backend, personID: Identifier<Person>, deviceToken: @escaping @Sendable () -> String? = { nil }) {
         self.backend = backend
         self.personID = personID
+        self.deviceToken = deviceToken
+    }
+
+    /// Supplies (or replaces) the device-token provider after construction —
+    /// see `deviceToken`'s doc comment for why this can't happen in `init`.
+    public func configureDeviceToken(_ provider: @escaping @Sendable () -> String?) {
+        deviceToken = provider
     }
 
     /// The one `PersonRole` this person doesn't yet hold, when they hold
@@ -89,6 +105,7 @@ public final class SettingsViewModel {
         isSigningOut = true
         defer { isSigningOut = false }
         do {
+            if let token = deviceToken() { try? await backend.deviceTokens.unregister(token: token) }
             try await backend.auth.signOut()
             errorMessage = nil
         } catch {
@@ -117,6 +134,8 @@ public final class SettingsViewModel {
         }
 
         backend.analytics.track(.accountDeleted(personID: personID))
+
+        if let token = deviceToken() { try? await backend.deviceTokens.unregister(token: token) }
 
         do {
             try await backend.auth.deleteAccount()
