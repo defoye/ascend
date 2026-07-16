@@ -135,10 +135,14 @@ struct PreviewBackend: Backend {
         ]
     }
 
-    /// Two time-separated `bodyweight` points on `engagementA` — enough,
-    /// combined with its completed session, succeeded payment, and (default)
-    /// granted consent, for `VerifiedOutcome.derive` to yield a real outcome
-    /// that `PreviewOutcomeRepository` can surface (see
+    /// Two time-separated `bodyweight` points, plus a single prior
+    /// `squat1RM` entry (feeds `WorkoutPlayerView`'s "Last time" chip and
+    /// top-set comparison previews — see `ConsumerProgramSummaries.
+    /// metricKind(forExerciseNamed:)`'s "Back Squat" mapping), on
+    /// `engagementA` — enough, combined with its completed session,
+    /// succeeded payment, and (default) granted consent, for
+    /// `VerifiedOutcome.derive` to yield a real outcome that
+    /// `PreviewOutcomeRepository` can surface (see
     /// `PreviewBackend+Payments.swift`'s sibling outcome fixture).
     private static func makeProgress(
         engagementA: Identifier<Engagement>,
@@ -160,6 +164,14 @@ struct PreviewBackend: Backend {
                     metric: .bodyweight,
                     value: MetricValue(value: 196, unit: .lb),
                     recordedAt: now.addingTimeInterval(-1 * 86_400),
+                    source: .clientSelfReported
+                ),
+                ProgressEntry(
+                    id: Identifier(),
+                    engagementID: engagementA,
+                    metric: .squat1RM,
+                    value: MetricValue(value: 225, unit: .lb),
+                    recordedAt: now.addingTimeInterval(-7 * 86_400),
                     source: .clientSelfReported
                 )
             ]

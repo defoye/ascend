@@ -2,37 +2,59 @@ import DesignSystem
 import Domain
 import SwiftUI
 
-/// The client's workout player: one card per prescribed exercise (sets/reps
-/// target, a rest timer, and per-set reps/weight logging), an optional
-/// bodyweight check-in, and a "Finish workout" action that persists the
-/// evidence described in `WorkoutPlayerViewModel`'s doc comment.
+/// The client's workout player: header + segmented exercise-progress bar,
+/// one card per prescribed exercise (sets/reps target, a "Last time"
+/// reference chip when history exists, per-set logging with a live rest
+/// timer between sets), an optional bodyweight check-in, and a
+/// "Finish workout" action that persists the evidence described in
+/// `WorkoutPlayerViewModel`'s doc comment and hands off to the
+/// `WorkoutCompleteView` summary (see docs/design/handoff/
+/// HANDOFF_README.md §05 "Consumer — Workout Player").
 public struct WorkoutPlayerView: View {
     @State private var viewModel: WorkoutPlayerViewModel
+    @State private var restEndDateByExercise: [Identifier<ExercisePrescription>: Date] = [:]
+    @State private var confirmationByExercise: [Identifier<ExercisePrescription>: SetConfirmation] = [:]
     @Environment(\.dismiss) private var dismiss
+
+    private static let restDuration: TimeInterval = 60
 
     public init(viewModel: WorkoutPlayerViewModel) {
         _viewModel = State(wrappedValue: viewModel)
     }
 
     public var body: some View {
+        Group {
+            if viewModel.isCompleted {
+                WorkoutCompleteView(
+                    workoutName: viewModel.workout.name,
+                    totals: viewModel.sessionTotals,
+                    comparison: viewModel.topSetComparison,
+                    onDone: { dismiss() }
+                )
+            } else {
+                player
+            }
+        }
+        .task { await viewModel.loadHistory() }
+    }
+
+    private var player: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.space6) {
+                header
                 ForEach(viewModel.workout.exercises) { exercise in
                     exerciseCard(exercise)
                 }
                 bodyweightCard
                 if let saveErrorMessage = viewModel.saveErrorMessage {
-                    Text(saveErrorMessage)
-                        .ascendType(.footnote)
-                        .foregroundStyle(Color.Ascend.danger)
+                    ErrorBanner(message: saveErrorMessage)
                         .padding(.horizontal, Spacing.space4)
                 }
             }
             .padding(.vertical, Spacing.space4)
         }
         .background(Color.Ascend.background)
-        .navigationTitle(viewModel.workout.name)
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom) {
             AscendButton(
                 "Finish workout",
@@ -42,12 +64,71 @@ public struct WorkoutPlayerView: View {
                 Task {
                     if await viewModel.completeWorkout() {
                         AscendHaptics.success()
-                        dismiss()
                     }
                 }
             }
             .padding(Spacing.space4)
             .background(Color.Ascend.background)
+        }
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        VStack(spacing: Spacing.space3) {
+            HStack {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .foregroundStyle(Color.Ascend.textSecondary)
+                        .frame(width: 44, height: 44)
+                        .background(Circle().fill(Color.Ascend.surfaceSecondary))
+                }
+                .accessibilityLabel("Close workout")
+                Spacer(minLength: Spacing.space2)
+                VStack(spacing: Spacing.space1) {
+                    Text(viewModel.workout.name)
+                        .ascendType(.headline)
+                        .foregroundStyle(Color.Ascend.textPrimary)
+                    Text("EXERCISE \(viewModel.currentExerciseIndex + 1) / \(viewModel.workout.exercises.count)")
+                        .ascendDataLabel()
+                        .foregroundStyle(Color.Ascend.textTertiary)
+                }
+                Spacer(minLength: Spacing.space2)
+                TimelineView(.periodic(from: viewModel.startedAt, by: 1)) { context in
+                    Text(ConsumerProgramSummaries.formattedDuration(context.date.timeIntervalSince(viewModel.startedAt)))
+                        .ascendType(.footnote)
+                        .fontWeight(.semibold)
+                        .monospacedDigit()
+                        .foregroundStyle(Color.Ascend.textSecondary)
+                        .frame(width: 46, alignment: .trailing)
+                }
+                .accessibilityHidden(true)
+            }
+            progressBar
+        }
+        .padding(.horizontal, Spacing.space4)
+    }
+
+    private var progressBar: some View {
+        HStack(spacing: Spacing.space1) {
+            ForEach(Array(viewModel.workout.exercises.enumerated()), id: \.element.id) { index, exercise in
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(segmentColor(index: index, exercise: exercise))
+                    .frame(height: 4)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func segmentColor(index: Int, exercise: ExercisePrescription) -> Color {
+        if viewModel.isExerciseFullyLogged(exercise) {
+            Color.Ascend.success
+        } else if index == viewModel.currentExerciseIndex {
+            Color.Ascend.primary
+        } else {
+            Color.Ascend.surfaceSecondary
         }
     }
 
@@ -69,28 +150,120 @@ public struct WorkoutPlayerView: View {
                             .foregroundStyle(Color.Ascend.textTertiary)
                     }
                 }
+                if let lastEntry = viewModel.lastLoggedEntry(for: exercise) {
+                    lastTimeChip(lastEntry)
+                }
                 VStack(spacing: Spacing.space2) {
                     ForEach(viewModel.setLogs(for: exercise)) { log in
                         setRow(log, for: exercise)
                     }
                 }
-                RestTimerView()
+                exerciseFooter(exercise)
             }
         }
         .padding(.horizontal, Spacing.space4)
     }
 
-    private func setRow(_ log: WorkoutPlayerViewModel.SetLog, for exercise: ExercisePrescription) -> some View {
-        HStack(spacing: Spacing.space2) {
-            Text("Set \(log.id + 1)")
+    private func lastTimeChip(_ entry: ProgressEntry) -> some View {
+        HStack(spacing: Spacing.space1) {
+            Image(systemName: "clock")
+                .foregroundStyle(Color.Ascend.textSecondary)
+            Text("Last time:")
                 .ascendType(.footnote)
                 .foregroundStyle(Color.Ascend.textSecondary)
-                .frame(width: 50, alignment: .leading)
+            Text("\(formattedWeight(entry.value.value)) \(entry.value.unit.shortLabel)")
+                .ascendType(.footnote)
+                .fontWeight(.semibold)
+                .monospacedDigit()
+                .foregroundStyle(Color.Ascend.textPrimary)
+        }
+        .padding(.horizontal, Spacing.space3)
+        .frame(minHeight: 40, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
+                .fill(Color.Ascend.surfaceSecondary)
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    private func setRow(_ log: WorkoutPlayerViewModel.SetLog, for exercise: ExercisePrescription) -> some View {
+        let state = viewModel.setRowState(log, for: exercise)
+        return HStack(spacing: Spacing.space2) {
+            HStack(spacing: Spacing.space1) {
+                if state == .done {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color.Ascend.success)
+                }
+                Text("Set \(log.id + 1)")
+                    .ascendType(.footnote)
+                    .foregroundStyle(Color.Ascend.textSecondary)
+            }
+            .frame(width: 64, alignment: .leading)
             AscendTextField(placeholder: "Reps", text: repsBinding(for: log, exercise: exercise))
                 .keyboardType(.numberPad)
+                .disabled(state == .done)
             AscendTextField(placeholder: "Weight (lb)", text: weightBinding(for: log, exercise: exercise))
                 .keyboardType(.decimalPad)
+                .disabled(state == .done)
         }
+        .padding(Spacing.space2)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
+                .fill(state == .done ? Color.Ascend.success.opacity(0.08) : Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
+                .strokeBorder(state == .active ? Color.Ascend.primary : .clear, lineWidth: 1.5)
+        )
+        .opacity(state == .pending ? 0.5 : 1)
+    }
+
+    @ViewBuilder
+    private func exerciseFooter(_ exercise: ExercisePrescription) -> some View {
+        if restEndDateByExercise[exercise.id] != nil {
+            let confirmation = confirmationByExercise[exercise.id]
+            RestTimerView(
+                restDuration: Self.restDuration,
+                restEndDate: restEndDateBinding(for: exercise),
+                setNumber: confirmation?.setNumber ?? 0,
+                confirmationValue: confirmation?.value ?? "",
+                confirmationDelta: confirmation?.delta ?? "",
+                nextSetNumber: (confirmation?.setNumber ?? 0) + 1
+            )
+        } else if viewModel.isExerciseFullyLogged(exercise), let confirmation = confirmationByExercise[exercise.id] {
+            LoggedConfirmation(value: confirmation.value, delta: confirmation.delta)
+        } else if let active = viewModel.setLogs(for: exercise).first(where: { !$0.logged }) {
+            AscendButton(
+                "Log set \(active.id + 1)",
+                isEnabled: !active.reps.trimmingCharacters(in: .whitespaces).isEmpty
+            ) {
+                logSet(for: exercise)
+            }
+        }
+    }
+
+    /// Commits the exercise's active set, records its confirmation copy, and
+    /// — when another set remains — starts that exercise's rest timer. The
+    /// committed set's `LoggedConfirmation` renders exactly once: either
+    /// inline (final set of the exercise) or as the rest timer's
+    /// confirmation chip (a set remains) — never both, so exactly one
+    /// success haptic fires per commit.
+    private func logSet(for exercise: ExercisePrescription) {
+        guard let committed = viewModel.commitActiveSet(for: exercise) else { return }
+        let copy = viewModel.confirmationCopy(for: committed, exercise: exercise)
+        confirmationByExercise[exercise.id] = SetConfirmation(setNumber: committed.id + 1, value: copy.value, delta: copy.delta)
+
+        let hasNextSet = viewModel.setLogs(for: exercise).contains { !$0.logged }
+        if hasNextSet {
+            restEndDateByExercise[exercise.id] = Date().addingTimeInterval(Self.restDuration)
+        }
+    }
+
+    private func restEndDateBinding(for exercise: ExercisePrescription) -> Binding<Date?> {
+        Binding(
+            get: { restEndDateByExercise[exercise.id] },
+            set: { restEndDateByExercise[exercise.id] = $0 }
+        )
     }
 
     private func repsBinding(for log: WorkoutPlayerViewModel.SetLog, exercise: ExercisePrescription) -> Binding<String> {
@@ -133,47 +306,25 @@ public struct WorkoutPlayerView: View {
     }
 }
 
-/// A minimal rest timer: tap to start a 60-second countdown, per
-/// docs/design/DESIGN_SPEC.md §4 ("Rest timer counts down live in the
-/// workout player; a subtle pulse + haptic at 0"). Purely local view state —
-/// nothing about rest duration is persisted.
-private struct RestTimerView: View {
-    private static let restDuration: TimeInterval = 60
-    @State private var restEndDate: Date?
-    @State private var pulse = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        if let restEndDate {
-            TimelineView(.periodic(from: .now, by: 1)) { context in
-                let remaining = max(0, Int(restEndDate.timeIntervalSince(context.date).rounded(.up)))
-                Text("Rest: \(remaining)s")
-                    .ascendType(.footnote)
-                    .monospacedDigit()
-                    .foregroundStyle(Color.Ascend.primary)
-                    .scaleEffect(pulse ? 1.15 : 1)
-                    .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.9), value: pulse)
-                    .onChange(of: remaining) { _, newValue in
-                        guard newValue == 0 else { return }
-                        pulse = true
-                        AscendHaptics.success()
-                        self.restEndDate = nil
-                    }
-            }
-        } else {
-            AscendButton("Start rest timer", variant: .secondary, size: .pill, systemImage: "timer") {
-                restEndDate = Date().addingTimeInterval(Self.restDuration)
-            }
-        }
-    }
+/// The just-committed set's confirmation copy, kept alongside a per-exercise
+/// rest timer so both the inline (final-set) and rest-timer (mid-exercise)
+/// confirmation paths can render the same `LoggedConfirmation` content.
+private struct SetConfirmation: Equatable {
+    let setNumber: Int
+    let value: String
+    let delta: String
 }
 
-#Preview("WorkoutPlayerView - Light") {
+private func formattedWeight(_ value: Double) -> String {
+    value.formatted(.number.precision(.fractionLength(0...1)))
+}
+
+#Preview("WorkoutPlayerView - Active logging - Light") {
     WorkoutPlayerPreview()
         .preferredColorScheme(.light)
 }
 
-#Preview("WorkoutPlayerView - Dark") {
+#Preview("WorkoutPlayerView - Active logging - Dark") {
     WorkoutPlayerPreview()
         .preferredColorScheme(.dark)
 }

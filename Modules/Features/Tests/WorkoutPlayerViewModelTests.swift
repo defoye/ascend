@@ -111,4 +111,132 @@ struct WorkoutPlayerViewModelTests {
         let updatedSession = try #require(try await backend.sessions.get(futureSession.id))
         #expect(updatedSession.status == .scheduled)
     }
+
+    // MARK: - Set logging: commit, row state, exercise progress
+
+    @Test("commitActiveSet marks the first not-yet-logged set logged and returns it; a blank reps commit is a no-op")
+    func commitActiveSetMarksLoggedAndSkipsBlankReps() async throws {
+        let backend = InMemoryStore.seeded()
+        let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
+        let backSquat = try #require(workout.exercises.first { $0.exercise.name == "Back Squat" })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate })
+
+        var firstSet = try #require(viewModel.setLogs(for: backSquat).first)
+        firstSet.weightText = "225"
+        viewModel.updateSetLog(firstSet, for: backSquat)
+
+        let committed = try #require(viewModel.commitActiveSet(for: backSquat))
+        #expect(committed.id == 0)
+        #expect(committed.logged)
+        #expect(viewModel.setLogs(for: backSquat)[0].logged)
+
+        // The next set has default (non-blank) reps from the prescription, so it commits too...
+        let secondCommit = viewModel.commitActiveSet(for: backSquat)
+        #expect(secondCommit?.id == 1)
+
+        // ...but a blank-reps set is left uncommitted.
+        var thirdSet = try #require(viewModel.setLogs(for: backSquat).first { $0.id == 2 })
+        thirdSet.reps = "  "
+        viewModel.updateSetLog(thirdSet, for: backSquat)
+        #expect(viewModel.commitActiveSet(for: backSquat) == nil)
+        #expect(!viewModel.setLogs(for: backSquat)[2].logged)
+    }
+
+    @Test("setRowState reports done for logged sets, active for the first unlogged set, pending for the rest")
+    func setRowStateReflectsPosition() async throws {
+        let backend = InMemoryStore.seeded()
+        let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
+        let backSquat = try #require(workout.exercises.first { $0.exercise.name == "Back Squat" })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate })
+
+        viewModel.commitActiveSet(for: backSquat)
+        let logs = viewModel.setLogs(for: backSquat)
+        #expect(viewModel.setRowState(logs[0], for: backSquat) == .done)
+        #expect(viewModel.setRowState(logs[1], for: backSquat) == .active)
+        #expect(viewModel.setRowState(logs[2], for: backSquat) == .pending)
+    }
+
+    @Test("isExerciseFullyLogged and currentExerciseIndex advance only once every set in an exercise is logged")
+    func exerciseProgressAdvancesOnceFullyLogged() async throws {
+        let backend = InMemoryStore.seeded()
+        let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
+        let backSquat = try #require(workout.exercises.first { $0.exercise.name == "Back Squat" })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate })
+
+        #expect(viewModel.currentExerciseIndex == 0)
+        #expect(!viewModel.isExerciseFullyLogged(backSquat))
+
+        for _ in viewModel.setLogs(for: backSquat) {
+            viewModel.commitActiveSet(for: backSquat)
+        }
+
+        #expect(viewModel.isExerciseFullyLogged(backSquat))
+        #expect(viewModel.currentExerciseIndex == 1)
+    }
+
+    // MARK: - History: "Last time" chip, confirmation delta, top-set comparison
+
+    @Test("loadHistory + lastLoggedEntry surfaces Sam Patel's seeded prior squat1RM entry for the mapped exercise")
+    func loadHistorySurfacesLastLoggedEntry() async throws {
+        let backend = InMemoryStore.seeded()
+        let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
+        let backSquat = try #require(workout.exercises.first { $0.exercise.name == "Back Squat" })
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate })
+
+        #expect(viewModel.lastLoggedEntry(for: backSquat) == nil) // nothing fabricated before history loads
+
+        await viewModel.loadHistory()
+        let last = try #require(viewModel.lastLoggedEntry(for: backSquat))
+        #expect(last.value.value == 225) // most recent of the seeded 185/205/225 entries (see MockData+Activity.swift)
+    }
+
+    @Test("confirmationCopy reports a factual weight delta vs. history, and an empty delta when there's no honest comparison")
+    func confirmationCopyReportsFactualDeltaOrEmpty() async throws {
+        let backend = InMemoryStore.seeded()
+        let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
+        let backSquat = try #require(workout.exercises.first { $0.exercise.name == "Back Squat" })
+        let walkingLunge = ExercisePrescription(id: Identifier(), exercise: Exercise(id: Identifier(), name: "Walking Lunge"), sets: 1, reps: "12", notes: nil)
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { InMemoryStore.referenceDate })
+        await viewModel.loadHistory()
+
+        var squatSet = try #require(viewModel.setLogs(for: backSquat).first)
+        squatSet.weightText = "230"
+        viewModel.updateSetLog(squatSet, for: backSquat)
+        let squatCopy = viewModel.confirmationCopy(for: squatSet, exercise: backSquat)
+        #expect(squatCopy.value == "230 lb × 5")
+        #expect(squatCopy.delta == "+5 lb vs. last logged") // 230 - 225 (seeded prior top)
+
+        // An exercise with no MetricKind mapping has no history to compare against.
+        let unmappedLog = WorkoutPlayerViewModel.SetLog(id: 0, reps: "12", weightText: "40")
+        let unmappedCopy = viewModel.confirmationCopy(for: unmappedLog, exercise: walkingLunge)
+        #expect(unmappedCopy.value == "40 lb × 12")
+        #expect(unmappedCopy.delta.isEmpty)
+    }
+
+    @Test("sessionTotals and topSetComparison on the view model reflect only committed (logged) sets")
+    func sessionTotalsAndTopSetComparisonReflectCommittedSetsOnly() async throws {
+        let backend = InMemoryStore.seeded()
+        let (engagementID, workout) = try await samPatelLowerBodyWorkout(backend: backend)
+        let backSquat = try #require(workout.exercises.first { $0.exercise.name == "Back Squat" })
+        let now = InMemoryStore.referenceDate
+        let viewModel = WorkoutPlayerViewModel(backend: backend, engagementID: engagementID, workout: workout, clock: { now })
+        await viewModel.loadHistory()
+
+        // Typing a weight without committing shouldn't count toward totals or the comparison.
+        var uncommitted = try #require(viewModel.setLogs(for: backSquat).first)
+        uncommitted.weightText = "500"
+        viewModel.updateSetLog(uncommitted, for: backSquat)
+        #expect(viewModel.sessionTotals.totalSetsLogged == 0)
+        #expect(viewModel.topSetComparison == nil)
+
+        // Committing it makes it real evidence.
+        let committed = try #require(viewModel.commitActiveSet(for: backSquat))
+        #expect(committed.weightText == "500")
+        #expect(viewModel.sessionTotals.totalSetsLogged == 1)
+        #expect(viewModel.sessionTotals.poundsMoved == 500 * 5)
+
+        let comparison = try #require(viewModel.topSetComparison)
+        #expect(comparison.exerciseName == "Back Squat")
+        #expect(comparison.deltaValue == 500 - 225)
+    }
 }

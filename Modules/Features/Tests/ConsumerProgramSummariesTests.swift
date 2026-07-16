@@ -140,4 +140,88 @@ struct ConsumerProgramSummariesTests {
         let none = ConsumerProgramSummaries.weeklySessionSummary(sessions: [outsideWeek], now: now, calendar: calendar)
         #expect(none == nil)
     }
+
+    // MARK: - Workout Player: session totals, "last time", top-set comparison
+
+    @Test("sessionTotals sums weight × reps across every logged set and measures wall-clock duration")
+    func sessionTotalsSumsVolumeAndDuration() {
+        let start = Date(timeIntervalSince1970: 0)
+        let loggedSets = [
+            ConsumerProgramSummaries.LoggedSetSummary(weight: 185, reps: 5),
+            ConsumerProgramSummaries.LoggedSetSummary(weight: 185, reps: 5),
+            ConsumerProgramSummaries.LoggedSetSummary(weight: 135, reps: 12)
+        ]
+        let totals = ConsumerProgramSummaries.sessionTotals(loggedSets: loggedSets, startedAt: start, completedAt: start.addingTimeInterval(47 * 60 + 12))
+
+        let expectedVolume: Double = 185 * 5 + 185 * 5 + 135 * 12
+        #expect(totals.totalSetsLogged == 3)
+        #expect(totals.poundsMoved == expectedVolume)
+        #expect(totals.durationSeconds == TimeInterval(47 * 60 + 12))
+    }
+
+    @Test("sessionTotals with no logged sets is a factual, empty roll-up, never negative duration")
+    func sessionTotalsEmptyIsHonest() {
+        let start = Date(timeIntervalSince1970: 100)
+        let totals = ConsumerProgramSummaries.sessionTotals(loggedSets: [], startedAt: start, completedAt: start.addingTimeInterval(-5))
+
+        #expect(totals.totalSetsLogged == 0)
+        #expect(totals.poundsMoved == 0)
+        #expect(totals.durationSeconds == 0) // clamped, never negative even if completedAt precedes startedAt
+    }
+
+    @Test("formattedDuration renders tabular m:ss, clamping negatives to 0:00")
+    func formattedDurationRendersMinutesSeconds() {
+        #expect(ConsumerProgramSummaries.formattedDuration(47 * 60 + 12) == "47:12")
+        #expect(ConsumerProgramSummaries.formattedDuration(5) == "0:05")
+        #expect(ConsumerProgramSummaries.formattedDuration(-10) == "0:00")
+    }
+
+    @Test("lastLoggedEntry picks the most recent entry strictly before `now`, ignoring same/future-dated entries")
+    func lastLoggedEntryPicksMostRecentPriorEntry() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let engagementID = Identifier<Engagement>()
+        let older = ProgressEntry(id: Identifier(), engagementID: engagementID, metric: .squat1RM, value: MetricValue(value: 205, unit: .lb), recordedAt: now.addingTimeInterval(-14 * 86_400), source: .clientSelfReported)
+        let recent = ProgressEntry(id: Identifier(), engagementID: engagementID, metric: .squat1RM, value: MetricValue(value: 220, unit: .lb), recordedAt: now.addingTimeInterval(-7 * 86_400), source: .clientSelfReported)
+        let future = ProgressEntry(id: Identifier(), engagementID: engagementID, metric: .squat1RM, value: MetricValue(value: 230, unit: .lb), recordedAt: now.addingTimeInterval(3_600), source: .clientSelfReported)
+
+        let last = ConsumerProgramSummaries.lastLoggedEntry(entries: [older, recent, future], metric: .squat1RM, before: now)
+        #expect(last?.value.value == 220)
+
+        #expect(ConsumerProgramSummaries.lastLoggedEntry(entries: [], metric: .squat1RM, before: now) == nil)
+    }
+
+    @Test("topSetComparison picks the first workout-order exercise with both a logged top weight and prior history")
+    func topSetComparisonPicksFirstQualifyingExercise() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let backSquat = ExercisePrescription(id: Identifier(), exercise: Exercise(id: Identifier(), name: "Back Squat"), sets: 3, reps: "5", notes: nil)
+        let gobletSquat = ExercisePrescription(id: Identifier(), exercise: Exercise(id: Identifier(), name: "Goblet Squat"), sets: 3, reps: "12", notes: nil)
+        let deadlift = ExercisePrescription(id: Identifier(), exercise: Exercise(id: Identifier(), name: "Deadlift"), sets: 1, reps: "5", notes: nil)
+        let testWorkout = workout("Lower Body", exercises: [gobletSquat, backSquat, deadlift])
+
+        let priorSquat = ProgressEntry(id: Identifier(), engagementID: Identifier(), metric: .squat1RM, value: MetricValue(value: 220, unit: .lb), recordedAt: now.addingTimeInterval(-7 * 86_400), source: .clientSelfReported)
+
+        let comparison = ConsumerProgramSummaries.topSetComparison(
+            workout: testWorkout,
+            loggedTopWeightByExerciseID: [backSquat.id: 225, gobletSquat.id: 45],
+            priorEntriesByMetric: [.squat1RM: [priorSquat]],
+            now: now
+        )
+        #expect(comparison?.exerciseName == "Back Squat")
+        #expect(comparison?.deltaValue == 5)
+        #expect(comparison?.unit == .lb)
+    }
+
+    @Test("topSetComparison is nil when no exercise has both a logged top weight and prior history — never fabricated")
+    func topSetComparisonNilWithoutHonestData() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let backSquat = ExercisePrescription(id: Identifier(), exercise: Exercise(id: Identifier(), name: "Back Squat"), sets: 3, reps: "5", notes: nil)
+        let testWorkout = workout("Lower Body", exercises: [backSquat])
+
+        // No prior history at all.
+        #expect(ConsumerProgramSummaries.topSetComparison(workout: testWorkout, loggedTopWeightByExerciseID: [backSquat.id: 225], priorEntriesByMetric: [:], now: now) == nil)
+
+        // Prior history exists, but nothing was logged this session.
+        let priorSquat = ProgressEntry(id: Identifier(), engagementID: Identifier(), metric: .squat1RM, value: MetricValue(value: 220, unit: .lb), recordedAt: now.addingTimeInterval(-7 * 86_400), source: .clientSelfReported)
+        #expect(ConsumerProgramSummaries.topSetComparison(workout: testWorkout, loggedTopWeightByExerciseID: [:], priorEntriesByMetric: [.squat1RM: [priorSquat]], now: now) == nil)
+    }
 }
