@@ -61,6 +61,56 @@ struct RowCodingTests {
         #expect(decoded.photoConsentGranted == false)
     }
 
+    @Test("EngagementInviteRow round-trips snake_case keys and nil claim fields")
+    func engagementInviteRowRoundTrips() throws {
+        let invite = EngagementInvite(
+            id: Identifier(),
+            code: "ABCD2345",
+            professionalID: Identifier(),
+            suggestedClientName: "Jordan",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000),
+            claimedByPersonID: nil,
+            claimedAt: nil,
+            engagementID: nil
+        )
+        let row = EngagementInviteRow(domain: invite)
+
+        let data = try SupabaseBackend.jsonEncoder.encode(row)
+        let json = try #require(String(data: data, encoding: .utf8))
+        #expect(json.contains("\"professional_id\""))
+        #expect(json.contains("\"suggested_client_name\""))
+
+        let decoded = try SupabaseBackend.jsonDecoder.decode(EngagementInviteRow.self, from: data)
+        #expect(decoded.toDomain == invite)
+        #expect(decoded.claimedBy == nil)
+        #expect(decoded.claimedAt == nil)
+        #expect(decoded.engagementID == nil)
+    }
+
+    @Test("EngagementInviteRow round-trips a claimed invite's claim fields")
+    func engagementInviteRowRoundTripsClaimed() throws {
+        let invite = EngagementInvite(
+            id: Identifier(),
+            code: "WXYZ6789",
+            professionalID: Identifier(),
+            suggestedClientName: nil,
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000),
+            claimedByPersonID: Identifier(),
+            claimedAt: Date(timeIntervalSince1970: 1_700_001_000),
+            engagementID: Identifier()
+        )
+        let row = EngagementInviteRow(domain: invite)
+
+        let data = try SupabaseBackend.jsonEncoder.encode(row)
+        let json = try #require(String(data: data, encoding: .utf8))
+        #expect(json.contains("\"claimed_by\""))
+        #expect(json.contains("\"claimed_at\""))
+        #expect(json.contains("\"engagement_id\""))
+
+        let decoded = try SupabaseBackend.jsonDecoder.decode(EngagementInviteRow.self, from: data)
+        #expect(decoded.toDomain == invite)
+    }
+
     @Test("ProgressEntryRow flattens MetricValue into value/unit columns")
     func progressEntryRowFlattensMetricValue() throws {
         let entry = ProgressEntry(

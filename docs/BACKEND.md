@@ -126,9 +126,9 @@ code the client claims themselves.
 
 `InMemoryBackend` implements it entirely in memory
 (`InMemoryBackend+InviteRepository.swift`). `SupabaseBackend` implements it
-(`SupabaseBackend+InviteRepository.swift`) against a schema that **does not exist
-yet** — this adapter is written against the contract a follow-up migration (LH-3)
-must create:
+(`SupabaseBackend+InviteRepository.swift`) against a schema that now exists as SQL
+— `Server/supabase/migrations/20260716120000_engagement_invites.sql` (LH-3), the
+13th migration:
 
 - Table `engagement_invites`: `id uuid` (pk), `code text`, `professional_id uuid`,
   `suggested_client_name text`, `created_at timestamptz`, `claimed_by uuid`,
@@ -146,7 +146,12 @@ must create:
   adapter maps those three strings to the matching `InviteError` case and rethrows
   anything else as-is.
 
-Until that migration lands, `SupabaseBackend`'s invite methods compile and are
-wired into `Backend`, but calling them against a real project fails (no such table/
-function) — the same "adapter exists, SQL doesn't yet" state every other
-Supabase-backed repository passed through before its own migration landed.
+The migration has been reviewed and applied locally to the extent this environment
+allows — no Docker/Postgres tooling was available to actually run `supabase db
+reset` here, so it is unexecuted against a real Postgres instance and syntax has
+only been reviewed by hand, not verified by the planner. The owner still needs to
+run `supabase db push` (from `Server/supabase/`) against the live project to apply
+it — until then, `SupabaseBackend`'s invite methods compile and are wired into
+`Backend`, but calling them against a real project fails (no such table/function),
+the same "adapter exists, SQL doesn't yet" state every other Supabase-backed
+repository passed through before its own migration landed.

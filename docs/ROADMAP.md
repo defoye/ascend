@@ -364,3 +364,5 @@ on top of the verified-outcome substrate — it is explicitly **not** the moat.
       across all backends, coach invite-code flow replaces the RLS-doomed
       create-a-person Add Client, client claim flow on the no-coach screen.
       (Supabase SQL migration lands in LH-3.)
+- [x] **LH-3** — engagement_invites migration + claim_invite security-definer RPC + RLS;
+      RowCoding coverage for EngagementInviteRow. Live apply still owner's supabase db push.
