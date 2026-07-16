@@ -67,8 +67,8 @@ struct DemoScreenCatalogView: View {
                 )
             }
         }
-        catalogLink("Add Client", subtitle: "Start a new engagement") {
-            AddClientView(viewModel: AddClientViewModel(backend: bundle.backend, professionalID: bundle.professionalID, clock: clock))
+        catalogLink("Invite Client", subtitle: "Start a new engagement") {
+            InviteClientView(viewModel: InviteClientViewModel(backend: bundle.backend, professionalID: bundle.professionalID))
         }
         catalogLink("Programs", subtitle: "Authored programs") {
             ProgramsListView(

@@ -26,6 +26,7 @@ struct PreviewBackend: Backend {
     private let availabilityWindowsList: [AvailabilityWindow]
     private let progressPhotosByEngagement: [Identifier<Engagement>: [ProgressPhoto]]
     private let photoConsentByEngagement: [Identifier<Engagement>: Bool]
+    private let pendingInvitesList: [EngagementInvite]
 
     /// Exposed so previews of screens that need a concrete engagement (e.g.
     /// `ClientDetailView`) can reference this fixture's primary engagement.
@@ -74,6 +75,7 @@ struct PreviewBackend: Backend {
         availabilityWindowsList = Self.makeAvailabilityWindows(professionalID: professionalID)
         progressPhotosByEngagement = Self.makeProgressPhotos(engagementA: engagementA, now: now)
         photoConsentByEngagement = [engagementA: true, engagementB: false]
+        pendingInvitesList = Self.makePendingInvites(professionalID: professionalID, now: now)
     }
 
     // MARK: - Fixture factories
@@ -273,6 +275,7 @@ struct PreviewBackend: Backend {
     }
     var notes: any NotesRepository { PreviewNotesRepository(notesByEngagement: notesByEngagement) }
     var availability: any AvailabilityRepository { PreviewAvailabilityRepository(windowsList: availabilityWindowsList) }
+    var invites: any InviteRepository { PreviewInviteRepository(pendingInvitesList: pendingInvitesList) }
     var auth: any AuthGateway { PreviewAuthGateway() }
     var analytics: any AnalyticsTracking { NoOpAnalyticsTracker() }
 }

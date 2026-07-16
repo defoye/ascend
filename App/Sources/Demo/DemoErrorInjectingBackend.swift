@@ -31,6 +31,7 @@ struct DemoErrorInjectingBackend: Backend {
     var outcomes: any OutcomeRepository { DemoFailingOutcomeRepository() }
     var notes: any NotesRepository { DemoFailingNotesRepository() }
     var availability: any AvailabilityRepository { DemoFailingAvailabilityRepository() }
+    var invites: any InviteRepository { DemoFailingInviteRepository() }
     var auth: any AuthGateway { wrapped.auth }
     var analytics: any AnalyticsTracking { wrapped.analytics }
 }
@@ -146,6 +147,15 @@ private struct DemoFailingAvailabilityRepository: AvailabilityRepository {
     func windows(forProfessional professionalID: Identifier<Person>) async throws -> [AvailabilityWindow] { throw offlineError }
     func upsert(_ window: AvailabilityWindow) async throws -> AvailabilityWindow { throw offlineError }
     func delete(_ id: Identifier<AvailabilityWindow>) async throws { throw offlineError }
+}
+
+private struct DemoFailingInviteRepository: InviteRepository {
+    func createInvite(forProfessional professionalID: Identifier<Person>, suggestedClientName: String?) async throws -> EngagementInvite {
+        throw offlineError
+    }
+    func pendingInvites(forProfessional professionalID: Identifier<Person>) async throws -> [EngagementInvite] { throw offlineError }
+    func revokeInvite(_ id: Identifier<EngagementInvite>) async throws { throw offlineError }
+    func claimInvite(code: String, clientID: Identifier<Person>) async throws -> Engagement { throw offlineError }
 }
 
 #endif

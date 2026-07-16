@@ -28,6 +28,7 @@ public struct ConsumerRootView: View {
     @State private var engagement: Engagement?
     @State private var isResolvingEngagement = true
     @State private var selectedTab: Tab = .today
+    @State private var claimViewModel: ClaimInviteViewModel
 
     private enum Tab: Hashable {
         case today, progress, coach, me
@@ -49,6 +50,7 @@ public struct ConsumerRootView: View {
         self.onSwitchRole = onSwitchRole
         self.otherRoleHasUpdates = otherRoleHasUpdates
         self.onRolesChanged = onRolesChanged
+        _claimViewModel = State(wrappedValue: ClaimInviteViewModel(backend: backend, clientID: clientID))
     }
 
     public var body: some View {
@@ -75,17 +77,43 @@ public struct ConsumerRootView: View {
     private var noCoachState: some View {
         NavigationStack {
             ScrollView {
-                Card {
-                    EmptyState(
-                        systemImage: "person.crop.circle.badge.questionmark",
-                        title: "No coach yet",
-                        message: "Once you start working with a coach, your Today, Progress, and messages will show up here."
-                    )
+                VStack(spacing: Spacing.space4) {
+                    Card {
+                        EmptyState(
+                            systemImage: "person.crop.circle.badge.questionmark",
+                            title: "No coach yet",
+                            message: "Once you start working with a coach, your Today, Progress, and messages will show up here."
+                        )
+                    }
+                    claimInviteCard
                 }
                 .padding(Spacing.space4)
             }
             .background(Color.Ascend.background)
             .navigationTitle("Ascend")
+        }
+    }
+
+    private var claimInviteCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SectionHeader("Have an invite code?")
+            Card {
+                VStack(alignment: .leading, spacing: Spacing.space4) {
+                    AscendTextField(
+                        label: "Invite code",
+                        placeholder: "ABCD1234",
+                        text: $claimViewModel.code,
+                        errorText: claimViewModel.errorMessage
+                    )
+                    AscendButton("Join", isEnabled: claimViewModel.isValid, isLoading: claimViewModel.isSaving) {
+                        Task {
+                            if await claimViewModel.claim() {
+                                await resolveEngagement()
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 

@@ -40,6 +40,43 @@ that collides with `Identifiable.ID`. Codable as a bare string. `Hashable`,
 - `Session(id, engagementID, scheduledAt, status: SessionStatus)`
   - `SessionStatus { scheduled, completed, cancelled, noShow }`
 
+## Engagement invites — how a coaching relationship actually starts
+
+- `EngagementInvite(id, code, professionalID, suggestedClientName: String?,
+  createdAt, claimedByPersonID: Identifier<Person>?, claimedAt: Date?,
+  engagementID: Identifier<Engagement>?)` — a coach-issued invite code; `isClaimed`
+  is `claimedByPersonID != nil`. `suggestedClientName` is what the coach typed when
+  creating the invite — display-only, never used to create or match a `Person`.
+
+  This is the **only** way a new coaching relationship is created. A coach can
+  never create another person's `Person` row directly: production Supabase RLS
+  requires `people.id == auth.uid()`, so any "add client" flow that fabricates a
+  client id is dead on arrival. Instead the coach creates an `EngagementInvite`
+  (`EngagementInvite.generateCode()` — 8 characters from the unambiguous alphabet
+  `ABCDEFGHJKMNPQRSTUVWXYZ23456789`, no `I`/`L`/`O`/`0`/`1`), shares the code
+  out-of-band, and the client claims it under their own authenticated account.
+
+  `InviteRepository` (`DataInterfaces`) provides `createInvite(forProfessional:
+  suggestedClientName:)`, `pendingInvites(forProfessional:)`,
+  `revokeInvite(_:)`, and `claimInvite(code:clientID:)`; `Backend` vends it as
+  `var invites: any InviteRepository`. Implemented in-memory by `InMemoryBackend`
+  (`InMemoryBackend+InviteRepository.swift`, regenerating the code on the
+  unlikely collision) and against Supabase by `SupabaseBackend`
+  (`SupabaseBackend+InviteRepository.swift`) — see docs/BACKEND.md for the
+  `engagement_invites`/`claim_invite` contract the Supabase adapter is written
+  against (SQL migration is a follow-up).
+
+  **Claim semantics**, honored identically by every backend: matching is
+  case-insensitive and whitespace-trimmed (`EngagementInvite.normalize(_:)`).
+  Looking up the (normalized) code throws `InviteError.invalidCode` if no
+  unclaimed invite matches, `InviteError.alreadyClaimed` if it's already
+  claimed, and `InviteError.cannotClaimOwnInvite` if the claimer is the invite's
+  own professional. On success: a new `.active` `Engagement` is created linking
+  the claimer to the invite's professional, the invite is marked claimed
+  (`claimedByPersonID`/`claimedAt`/`engagementID`), and — if the claiming
+  `Person` exists and lacks `.consumer` in `roles` — that role is added, since
+  role-gated UI depends on `roles` being truthful.
+
 ## Programs
 
 - `Program(id, authorID, title, summary, weeks: [ProgramWeek])`

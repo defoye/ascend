@@ -360,3 +360,7 @@ on top of the verified-outcome substrate — it is explicitly **not** the moat.
 - [x] **LH-1** — Consumer role identity: Release consumer experience runs as the
       signed-in user's personID; the seeded-demo-client substitution is now a
       DEBUG-only AppContainer composition detail.
+- [x] **LH-2** — Invite-based client onboarding: EngagementInvite + InviteRepository
+      across all backends, coach invite-code flow replaces the RLS-doomed
+      create-a-person Add Client, client claim flow on the no-coach screen.
+      (Supabase SQL migration lands in LH-3.)

@@ -29,6 +29,7 @@ struct PaymentsModeBackend: Backend {
     var outcomes: any OutcomeRepository { wrapped.outcomes }
     var notes: any NotesRepository { wrapped.notes }
     var availability: any AvailabilityRepository { wrapped.availability }
+    var invites: any InviteRepository { wrapped.invites }
     var auth: any AuthGateway { wrapped.auth }
     var analytics: any AnalyticsTracking { wrapped.analytics }
 

@@ -4,7 +4,7 @@ import Domain
 import SwiftUI
 
 /// The coach's client roster: filterable by `EngagementStatus`, searchable
-/// by name, with an "Add client" flow and a push to `ClientDetailView` per
+/// by name, with an "Invite client" flow and a push to `ClientDetailView` per
 /// row (see docs/design/DESIGN_SPEC.md).
 ///
 /// Expects to be hosted inside a `NavigationStack` supplied by its parent
@@ -12,7 +12,7 @@ import SwiftUI
 /// further onto that same stack.
 public struct ClientsListView: View {
     @State private var viewModel: ClientsListViewModel
-    @State private var showingAddClient = false
+    @State private var showingInviteClient = false
     private let backend: any Backend
     private let professionalID: Identifier<Person>
     private let clock: @Sendable () -> Date
@@ -36,19 +36,16 @@ public struct ClientsListView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        showingAddClient = true
+                        showingInviteClient = true
                     } label: {
                         Image(systemName: "plus")
                     }
-                    .accessibilityLabel("Add client")
+                    .accessibilityLabel("Invite client")
                 }
             }
-            .sheet(isPresented: $showingAddClient) {
-                AddClientView(
-                    viewModel: AddClientViewModel(backend: backend, professionalID: professionalID, clock: clock),
-                    onSaved: { Task { await viewModel.load() } }
-                )
-                .presentationDetents([.medium, .large])
+            .sheet(isPresented: $showingInviteClient) {
+                InviteClientView(viewModel: InviteClientViewModel(backend: backend, professionalID: professionalID))
+                    .presentationDetents([.medium, .large])
             }
             .refreshable { await viewModel.load() }
             .task { await viewModel.load() }
@@ -66,8 +63,8 @@ public struct ClientsListView: View {
                     systemImage: "person.2",
                     title: "No clients yet",
                     message: "When you start an engagement with a client, it will show up here.",
-                    actionTitle: "Add client",
-                    action: { showingAddClient = true }
+                    actionTitle: "Invite client",
+                    action: { showingInviteClient = true }
                 )
             }
             .frame(maxHeight: .infinity)

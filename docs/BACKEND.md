@@ -112,3 +112,41 @@ server-side calls from. The plan, so it's not lost:
   `StripeGateway` (implementing the exact same two methods against the Edge
   Functions above) is exactly the kind of adapter swap docs/ARCHITECTURE.md
   describes for every other repository — no `Features` code changes.
+
+## Invite-based client onboarding
+
+`InviteRepository` (`var invites: any InviteRepository` on `Backend`) is how every
+coaching relationship starts — see docs/DATA_MODEL.md's "Engagement invites" for the
+full semantics (`createInvite`/`pendingInvites`/`revokeInvite`/`claimInvite`, the
+`InviteError` cases, and the role-add-on-claim behavior). It replaced a coach-creates-
+a-`Person` "Add client" flow that could never work against real Supabase RLS
+(`people` inserts require `id == auth.uid()`); a coach cannot create another
+person's account row under any circumstances, so onboarding has to run through a
+code the client claims themselves.
+
+`InMemoryBackend` implements it entirely in memory
+(`InMemoryBackend+InviteRepository.swift`). `SupabaseBackend` implements it
+(`SupabaseBackend+InviteRepository.swift`) against a schema that **does not exist
+yet** — this adapter is written against the contract a follow-up migration (LH-3)
+must create:
+
+- Table `engagement_invites`: `id uuid` (pk), `code text`, `professional_id uuid`,
+  `suggested_client_name text`, `created_at timestamptz`, `claimed_by uuid`,
+  `claimed_at timestamptz`, `engagement_id uuid`. `createInvite`/`revokeInvite` are
+  plain `SupabaseTable<EngagementInviteRow>` upsert/delete; `pendingInvites` filters
+  `professional_id eq` + `claimed_by is null`.
+- RPC `claim_invite(invite_code text) returns <engagement row shape>`: must run as
+  the authenticated caller (`auth.uid()` is authoritative for who's claiming — the
+  Swift adapter's `clientID` parameter is accepted for protocol symmetry but
+  otherwise unused), and implement the exact claim semantics documented in
+  docs/DATA_MODEL.md (invalid/already-claimed/own-invite checks, `Engagement`
+  creation, marking the invite claimed, granting `.consumer` on the claimer).
+  Distinguishable failures must `RAISE EXCEPTION` with a message of exactly
+  `"invalid_code"`, `"already_claimed"`, or `"cannot_claim_own_invite"` — the Swift
+  adapter maps those three strings to the matching `InviteError` case and rethrows
+  anything else as-is.
+
+Until that migration lands, `SupabaseBackend`'s invite methods compile and are
+wired into `Backend`, but calling them against a real project fails (no such table/
+function) — the same "adapter exists, SQL doesn't yet" state every other
+Supabase-backed repository passed through before its own migration landed.

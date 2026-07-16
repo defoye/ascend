@@ -36,6 +36,7 @@ private struct HangingClientEngagementsBackend: Backend {
     var outcomes: any OutcomeRepository { base.outcomes }
     var notes: any NotesRepository { base.notes }
     var availability: any AvailabilityRepository { base.availability }
+    var invites: any InviteRepository { base.invites }
     var auth: any AuthGateway { base.auth }
     var analytics: any AnalyticsTracking { base.analytics }
 }

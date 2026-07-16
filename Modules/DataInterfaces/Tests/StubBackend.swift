@@ -138,6 +138,26 @@ struct StubAvailabilityRepository: AvailabilityRepository {
     func delete(_ id: Identifier<AvailabilityWindow>) async throws {}
 }
 
+struct StubInviteRepository: InviteRepository {
+    func createInvite(forProfessional professionalID: Identifier<Person>, suggestedClientName: String?) async throws -> EngagementInvite {
+        EngagementInvite(
+            id: Identifier(),
+            code: "STUBCODE",
+            professionalID: professionalID,
+            suggestedClientName: suggestedClientName,
+            createdAt: Date(),
+            claimedByPersonID: nil,
+            claimedAt: nil,
+            engagementID: nil
+        )
+    }
+    func pendingInvites(forProfessional professionalID: Identifier<Person>) async throws -> [EngagementInvite] { [] }
+    func revokeInvite(_ id: Identifier<EngagementInvite>) async throws {}
+    func claimInvite(code: String, clientID: Identifier<Person>) async throws -> Engagement {
+        Engagement(id: Identifier(), clientID: clientID, professionalID: Identifier(), status: .active, startedAt: Date(), endedAt: nil)
+    }
+}
+
 struct StubAuthGateway: AuthGateway {
     var currentAuth: AsyncStream<AuthState> { AsyncStream { $0.finish() } }
     func signIn(email: String, password: String) async throws {}
@@ -159,6 +179,7 @@ struct StubBackend: Backend {
     let outcomes: any OutcomeRepository = StubOutcomeRepository()
     let notes: any NotesRepository = StubNotesRepository()
     let availability: any AvailabilityRepository = StubAvailabilityRepository()
+    let invites: any InviteRepository = StubInviteRepository()
     let auth: any AuthGateway = StubAuthGateway()
     let analytics: any AnalyticsTracking = NoOpAnalyticsTracker()
 }
