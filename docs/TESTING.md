@@ -22,8 +22,8 @@ and requires no server.
 
 ## Test targets
 
-Each module with logic worth testing has a corresponding `<Module>Tests` target:
-`DomainTests`, `DataInterfacesTests`, `InMemoryStoreTests`, `FeaturesTests`. Run them
-with `xcodebuild test` against an iOS simulator (see the root `README`/`CLAUDE.md`
-for exact invocations), or `swift test` for any module that's pure Swift Package
-Manager.
+Each module with logic worth testing has a corresponding `<Module>Tests` target —
+see `Project.swift` for the current list rather than an enumeration here, which
+would drift the next time a target is added. Run them with `xcodebuild test`
+against an iOS simulator; see `.claude/rules/swift-conventions.md` for the
+exact invocation.

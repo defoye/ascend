@@ -1,44 +1,15 @@
 # Data Model
 
-Authoritative field spec for the `Domain` module. Prompt 1 implements this.
+Semantics for the `Domain` module that are NOT derivable from reading the
+source. For field-level types themselves, read the source directly —
+`Modules/Domain/Sources/` is one public type per file (e.g. `Engagement.swift`,
+`VerifiedOutcome.swift`), so it can't drift out of sync with a doc the way a
+copied field list can.
 All types are `Codable`, `Sendable`, `Hashable`, and `Identifiable` where they carry
 an `id`.
 
-## Identifier
-
-`Identifier<Entity>` — a phantom-typed `UUID` wrapper. **Not** named `ID`, because
-that collides with `Identifiable.ID`. Codable as a bare string. `Hashable`,
-`Sendable`.
-
-## People & goals
-
-- `Person(id, displayName, roles: Set<PersonRole>, goals: [Goal])`
-- `PersonRole { consumer, professional }`
-- `Goal(id, kind: GoalKind, metric: MetricKind?, target: MetricValue?, deadline: Date?)`
-- `GoalKind { loseWeight, buildMuscle, getStronger, improveMobility,
-  recoverFromInjury, trainForSport, improveEndurance, generalHealth }`
-
-## Professional profile & services
-
-- `ProfessionalProfile(id, personID, displayName, headline, bio, services: [Service],
-  verifications: [Verification])`
-- `ServiceCategory { strengthTraining, weightLoss, mobility, running,
-  sportsPerformance, yoga, pilates, physicalTherapy, generalFitness }`
-- `Service(id, category, title, priceCents, currency, modality: Modality)`
-  - `Modality { inPerson, virtual, hybrid }`
-- `Verification(id, kind: VerificationKind, status: VerificationStatus,
-  evidenceURL: URL?)`
-  - `VerificationKind { identity, certification, insurance }`
-  - `VerificationStatus { unverified, pending, verified, rejected }`
-
-## Engagement & sessions
-
-- `Engagement(id, clientID, professionalID, status: EngagementStatus,
-  startedAt: Date?, endedAt: Date?)`
-  - `EngagementStatus { pending, active, paused, completed, ended }`
-  - `isEstablished`: `startedAt != nil && status != .pending`
-- `Session(id, engagementID, scheduledAt, status: SessionStatus)`
-  - `SessionStatus { scheduled, completed, cancelled, noShow }`
+`Identifier<Entity>` is a phantom-typed `UUID` wrapper — **not** named `ID`,
+because that collides with `Identifiable.ID`.
 
 ## Engagement invites — how a coaching relationship actually starts
 
@@ -64,7 +35,7 @@ that collides with `Identifiable.ID`. Codable as a bare string. `Hashable`,
   unlikely collision) and against Supabase by `SupabaseBackend`
   (`SupabaseBackend+InviteRepository.swift`) — see docs/BACKEND.md for the
   `engagement_invites`/`claim_invite` contract the Supabase adapter is written
-  against (SQL migration is a follow-up).
+  against.
 
   **Claim semantics**, honored identically by every backend: matching is
   case-insensitive and whitespace-trimmed (`EngagementInvite.normalize(_:)`).
@@ -79,23 +50,17 @@ that collides with `Identifiable.ID`. Codable as a bare string. `Hashable`,
 
 ## Programs
 
-- `Program(id, authorID, title, summary, weeks: [ProgramWeek])`
-- `ProgramWeek(id, index, workouts: [Workout])`
-- `Workout(id, name, exercises: [ExercisePrescription])`
-- `ExercisePrescription(id, exercise: Exercise, sets: Int, reps: String, notes: String?)`
-- `Exercise(id, name)`
-- `ProgramAssignment(id, programID, engagementID, assignedAt, startDate)`
+Field-level types (`Program`, `ProgramWeek`, `Workout`, `ExercisePrescription`,
+`Exercise`, `ProgramAssignment`) live in `Modules/Domain/Sources/`; read them
+there. Nothing about their semantics is non-obvious from the fields alone.
 
 ## Metrics & progress
 
-- `MetricKind { bodyweight, waistCircumference, squat1RM, bench1RM, deadlift1RM,
-  bodyFatPercentage, restingHeartRate, fiveKTime }` — carries
-  `lowerIsGenerallyBetter: Bool`.
-- `MetricValue(value: Double, unit: MetricUnit)`
-  - `MetricUnit { lb, kg, inch, cm, percent, bpm, seconds }`
-- `ProgressEntry(id, engagementID, metric: MetricKind, value: MetricValue,
-  recordedAt, source: ProgressSource)`
-  - `ProgressSource { clientSelfReported, coachRecorded, inAppMeasured }`
+Field-level types (`MetricKind`, `MetricValue`, `MetricUnit`, `ProgressEntry`,
+`ProgressSource`) live in `Modules/Domain/Sources/`. One thing worth knowing
+that isn't obvious from the fields: `MetricKind` carries a
+`lowerIsGenerallyBetter: Bool` used to interpret a delta's direction correctly
+(see "Verified outcomes" below).
 
 ## Progress photos — sensitive, consent-gated
 
@@ -130,36 +95,27 @@ that collides with `Identifiable.ID`. Codable as a bare string. `Hashable`,
 
 ## Coach notes
 
-- `CoachNote(id, engagementID, authorID: Identifier<Person>, body, createdAt, updatedAt)`
-  — a coach's private note about a client engagement, not visible to the client.
-  `NotesRepository` (`DataInterfaces`) provides `notes(forEngagement:)`,
-  `upsert(_:)`, and `delete(_:)`; `Backend` vends it as `var notes: any
-  NotesRepository`. Implemented in-memory by `InMemoryBackend`
-  (`InMemoryBackend+NotesRepository.swift`), seeded with a note each on two
-  engagements in `MockData` (`MockData+Notes.swift`).
+`CoachNote` (`Modules/Domain/Sources/CoachNote.swift`) is a coach's private
+note about a client engagement, not visible to the client — the one fact not
+obvious from the fields themselves. Backed by `NotesRepository`
+(`DataInterfaces`), implemented in-memory by `InMemoryBackend`
+(`InMemoryBackend+NotesRepository.swift`).
 
 ## Coach availability
 
-- `AvailabilityWindow(id, professionalID: Identifier<Person>, weekday: Int
-  /* 1=Sun...7=Sat, matching Calendar's `weekday` component */, startMinute: Int
-  /* minutes from midnight */, endMinute: Int)` — a coach's recurring weekly
-  availability window (e.g. "Mondays 9am-5pm"), used to give the schedule
-  view context for when the professional is generally open for sessions.
-  Purely descriptive — it does not block booking a session outside a window.
-  `AvailabilityRepository` (`DataInterfaces`) provides
-  `windows(forProfessional:)`, `upsert(_:)`, and `delete(_:)`; `Backend` vends
-  it as `var availability: any AvailabilityRepository`. Implemented in-memory
-  by `InMemoryBackend` (`InMemoryBackend+AvailabilityRepository.swift`),
-  seeded with a few weekday windows for the professional in `MockData`
-  (`MockData+Availability.swift`).
+`AvailabilityWindow` (`Modules/Domain/Sources/AvailabilityWindow.swift`) is
+purely descriptive — it does **not** block booking a session outside a
+window; it only gives the schedule view context for when a professional is
+generally open. Backed by `AvailabilityRepository` (`DataInterfaces`),
+implemented in-memory by `InMemoryBackend`
+(`InMemoryBackend+AvailabilityRepository.swift`).
 
 ## Messaging & payments
 
-- `Message(id, engagementID, authorID: Identifier<Person>, body, sentAt)`
-- `Payment(id, engagementID, amountCents, currency, status: PaymentStatus,
-  platformFeeCents, stripePaymentIntentID: String?, createdAt: Date)`
-  - `PaymentStatus { pending, succeeded, refunded, failed }`
-  - the coach's net for a `.succeeded` payment is `amountCents - platformFeeCents`
+Field-level types (`Message`, `Payment`, `PaymentStatus`) live in
+`Modules/Domain/Sources/`. One thing worth knowing that isn't obvious from the
+fields: the coach's net for a `.succeeded` payment is `amountCents -
+platformFeeCents`.
 
 ## Verified outcomes — the core invariant
 

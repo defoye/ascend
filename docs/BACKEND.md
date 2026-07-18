@@ -81,9 +81,9 @@ of its four pillars (see docs/DATA_MODEL.md) — a gateway that silently wrote a
 fake `.succeeded` `Payment` row would falsely satisfy that pillar if
 `PaymentsMode` were ever flipped to `.live` against `SupabaseBackend` before
 Stripe exists. A live-mode charge must fail loudly instead. In practice launch
-ships with `PaymentsMode.free` (see docs/BUILD_STATUS.md "Rollout strategy —
-free first, monetize later"), so `PaymentsModeBackend` substitutes
-`NoOpPaymentGateway` ahead of this ever being reached anyway.
+ships with `PaymentsMode.free` (see "PaymentsMode: free-first rollout" below),
+so `PaymentsModeBackend` substitutes `NoOpPaymentGateway` ahead of this ever
+being reached anyway.
 
 ### The real plan: Stripe Connect Express (Prompt 14, deferred)
 
@@ -128,6 +128,60 @@ server-side calls from. The plan, so it's not lost:
   Functions above) is exactly the kind of adapter swap docs/ARCHITECTURE.md
   describes for every other repository — no `Features` code changes.
 
+### PaymentsMode: free-first rollout
+
+Deliberate decision: **launch free (no live payments), validate a two-sided
+userbase, then flip payments on.** Rationale:
+
+- Stripe Connect (Prompt 14) is the most complex, highest-liability part of
+  the system — coach KYC/onboarding, payouts, webhooks, refunds/disputes, tax
+  (1099s). Deferring it removes that weight from v1 and speeds App Review (a
+  free app has no IAP/payment review surface).
+- It costs almost nothing to add back later, because payments already sit
+  behind the `PaymentGateway` protocol and the gateway is selected in one
+  place (the composition root). Turning payments on is a config flip, not a
+  rewrite.
+
+**The catch, handled deliberately (Option B — "Tracked → Verified"):** the
+product's differentiator, `VerifiedOutcome`, requires a *succeeded payment* as
+one of its four pillars (docs/DATA_MODEL.md). With payments off, no outcome is
+"Verified". Rather than lose the moat in v1, the free phase surfaces the same
+journeys labeled **"Tracked results"** (relationship + activity + consent +
+progress, honestly *not* claiming the payment pillar), and the **"Verified"
+badge only lights up once real payments are on**. This does NOT change the
+Domain invariant: a `VerifiedOutcome` is still only ever constructed via
+`Domain.derive` (all four pillars); a "Tracked" journey is a separate,
+clearly-labeled Features-level view type, never a `VerifiedOutcome`.
+
+**The switch:** `PaymentsMode` (`DataInterfaces/Sources/PaymentsMode.swift`,
+a two-case enum: `.free`/`.live`) is read at the composition root —
+`AppContainer.paymentsMode` (`App/Sources/AppContainer.swift`), a `static let`
+defaulted to `.free`. `AppContainer.makeBackend(paymentsMode:)` wraps whichever
+concrete backend it builds in `PaymentsModeBackend`
+(`App/Sources/PaymentsModeBackend.swift`), a `Backend` decorator that forwards
+every repository unchanged and swaps `paymentGateway` for
+`NoOpPaymentGateway` (always throws) while `.free`, or the wrapped backend's
+real gateway while `.live`. `RootView` threads `container.paymentsMode` down
+into the view models/views that branch on it: `TodayViewModel`/`TodayView`
+(revenue snapshot hidden while `.free`), `CoachProfileView` (the whole
+"Business" pricing/charge/history section skipped while `.free`), and
+`ProofProfileViewModel`/`ProofProfileView` (Verified journeys via
+`Domain.VerifiedOutcome.derive` while `.live`; "Tracked results" via
+`TrackedJourneySummaries` — mirrors `derive`'s non-payment pillars, never
+constructs a `VerifiedOutcome` — while `.free`). Flipping to `.live` once
+Prompt 14 lands is a one-line change to `AppContainer.paymentsMode`.
+
+A DEBUG-only *runtime* toggle in Settings was considered but skipped: making
+`paymentsMode` reactively togglable would require `Backend.paymentGateway` (a
+`nonisolated` synchronous requirement) to read `@MainActor`-isolated state,
+which Swift 6 strict concurrency disallows without `await`.
+
+| Phase | Payments | Backend |
+|---|---|---|
+| 1 — Private beta | Off (`.free`), outcomes = "Tracked" | Supabase (Prompt 13) |
+| 2 — Public launch | Still off — grow both sides | Supabase |
+| 3 — Monetize | On (`.live`) — "Verified" activates, platform fee collected | Supabase + Stripe edge functions (Prompt 14) |
+
 ## Invite-based client onboarding
 
 `InviteRepository` (`var invites: any InviteRepository` on `Backend`) is how every
@@ -141,9 +195,8 @@ code the client claims themselves.
 
 `InMemoryBackend` implements it entirely in memory
 (`InMemoryBackend+InviteRepository.swift`). `SupabaseBackend` implements it
-(`SupabaseBackend+InviteRepository.swift`) against a schema that now exists as SQL
-— `Server/supabase/migrations/20260716120000_engagement_invites.sql` (LH-3), the
-13th migration:
+(`SupabaseBackend+InviteRepository.swift`) against
+`Server/supabase/migrations/20260716120000_engagement_invites.sql`:
 
 - Table `engagement_invites`: `id uuid` (pk), `code text`, `professional_id uuid`,
   `suggested_client_name text`, `created_at timestamptz`, `claimed_by uuid`,
@@ -161,15 +214,8 @@ code the client claims themselves.
   adapter maps those three strings to the matching `InviteError` case and rethrows
   anything else as-is.
 
-The migration has been reviewed and applied locally to the extent this environment
-allows — no Docker/Postgres tooling was available to actually run `supabase db
-reset` here, so it is unexecuted against a real Postgres instance and syntax has
-only been reviewed by hand, not verified by the planner. The owner still needs to
-run `supabase db push` (from `Server/supabase/`) against the live project to apply
-it — until then, `SupabaseBackend`'s invite methods compile and are wired into
-`Backend`, but calling them against a real project fails (no such table/function),
-the same "adapter exists, SQL doesn't yet" state every other Supabase-backed
-repository passed through before its own migration landed.
+Applying this migration to the live project is an owner action — see the
+`release-deploy` skill.
 
 ## Account deletion (LH-7)
 
@@ -189,11 +235,8 @@ service-role client (`SUPABASE_SERVICE_ROLE_KEY`, a Supabase server-side
 secret) to delete the auth user. The client never passes an id — the
 function derives the target entirely from the caller's own session.
 
-Same "reviewed-only" state as the invite RPC above: no Docker/Postgres
-tooling here means it hasn't run locally. The owner needs to run
-`supabase functions deploy delete-account` (from `Server/supabase/`) against
-the live project before `SettingsViewModel.deleteAccount()` can succeed
-against `SupabaseBackend`.
+Deploying this function to the live project is an owner action — see the
+`release-deploy` skill.
 
 ## Email confirmation (LH-10)
 
@@ -234,43 +277,29 @@ does not prompt; it only yields a token once permission already exists.
 device's token (while the session is still valid) before destroying it, so a
 signed-out device stops receiving pushes for the account that left it.
 
-### Server side: reviewed-only, not run locally
+### Server side
 
-Same "reviewed-only" state as every other Supabase artifact in this repo (no
-Docker/Postgres/Deno tooling in this environment): the
-`device_tokens` migration
+The `device_tokens` migration
 (`Server/supabase/migrations/20260716122000_device_tokens.sql` — a
 self-only-RLS table, mirroring `engagement_invites`) and the
 `notify-message` Edge Function
-(`Server/supabase/functions/notify-message/index.ts`) have been reviewed by
-hand but not executed against a real project. `notify-message` is invoked by
-a Supabase Database Webhook on `public.messages` INSERT (dashboard-
-configured, not a SQL migration — webhook config is project-specific and
-isn't portable the way a `pg_net` trigger would pretend to be); it resolves
-the message's recipient (the engagement party who isn't the author — a pure,
-`deno test`-covered helper in `recipient.ts`), fetches their device tokens,
-and sends each an APNs push using token-based (`.p8`) auth: an ES256 JWT
-built with Web Crypto, no external APNs library. A `410` response from Apple
-for a given token deletes that row — it's no longer registered.
+(`Server/supabase/functions/notify-message/index.ts`) implement the push
+path. `notify-message` is invoked by a Supabase Database Webhook on
+`public.messages` INSERT (dashboard-configured, not a SQL migration — webhook
+config is project-specific and isn't portable the way a `pg_net` trigger
+would pretend to be); it resolves the message's recipient (the engagement
+party who isn't the author — a pure, `deno test`-covered helper in
+`recipient.ts`), fetches their device tokens, and sends each an APNs push
+using token-based (`.p8`) auth: an ES256 JWT built with Web Crypto, no
+external APNs library. A `410` response from Apple for a given token deletes
+that row — it's no longer registered.
 
-**Owner actions** (everything else — Swift, SQL, Deno, the entitlement — is
-done):
-1. Create an APNs Auth Key (`.p8`) in the Apple Developer portal; note its
-   Key ID and Team ID.
-2. Enable the Push Notifications capability on the App ID, and provisioning.
-3. Set the Edge Function's secrets (`supabase secrets set`, from
-   `Server/supabase/`): `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY`
-   (the full `.p8` PEM contents), `APNS_BUNDLE_ID=com.ascend.Ascend`, and
-   `SUPABASE_SERVICE_ROLE_KEY` if not already auto-provided.
-4. `supabase db push` (from `Server/supabase/`) to apply the
-   `device_tokens` migration.
-5. `supabase functions deploy notify-message`.
-6. Configure a Database Webhook in the Supabase dashboard: table
-   `public.messages`, event `INSERT`, type "Supabase Edge Functions",
-   pointing at `notify-message`.
+Applying the migration, setting the Edge Function's APNs secrets, deploying
+it, and configuring the Database Webhook are owner actions — see the
+`release-deploy` skill.
 
 The app-side entitlement (`App/Ascend.entitlements`, `aps-environment =
 development`) is wired via `Project.swift`; a distribution build needs
 `aps-environment = production`, which Xcode/App Store Connect set
 automatically from the release provisioning profile at archive/export time
-once step 2 above is done.
+once the Push Notifications capability is enabled on the App ID.

@@ -5,16 +5,10 @@ Tuist module boundaries, not just by convention.
 
 ## Dependency rule
 
-```
-App (composition root)
- └─> Features, DesignSystem, InMemoryStore, DataInterfaces, Domain
-
-Domain          -> Foundation only
-DataInterfaces  -> Domain
-InMemoryStore   -> DataInterfaces, Domain
-DesignSystem    -> (none)
-Features        -> DesignSystem, DataInterfaces, Domain   (never a concrete backend)
-```
+The exact module edges are the single source of truth in
+`.claude/rules/project-structure.md` (refreshed against `Project.swift`, not
+duplicated here — a diagram here would drift the next time a module gains a
+dependency).
 
 `Domain` imports **only** Foundation — no SwiftUI, no Combine, no backend SDKs. This
 keeps the core business types portable and trivially testable.

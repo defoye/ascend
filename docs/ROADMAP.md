@@ -1,8 +1,8 @@
 # Roadmap
 
-Ordered checklist of build prompts. Each prompt is dispatched per the "Execution
-Protocol" in `CLAUDE.md`. Ordering after Prompt 3 is a reasonable plan, not a
-contract — adjust as the product dictates.
+Ordered checklist of build prompts. Each prompt is dispatched per the
+`execute-roadmap-prompt` skill. Ordering after Prompt 3 is a reasonable plan,
+not a contract — adjust as the product dictates.
 
 - [x] **Prompt 0** — Project skeleton, Tuist modules, docs, CI-less build, git+GitHub.
 - [x] **Prompt 1** — Implement the `Domain` data model per docs/DATA_MODEL.md,
@@ -106,7 +106,9 @@ contract — adjust as the product dictates.
       (`InMemoryStore` has no real assets) and a `PhotosPicker`-backed
       capture flow that stores only a reference, never image bytes.
 - [ ] **Prompt 10** — Progress logging: `ProgressEntry` capture UI for coaches and
-      clients, per metric.
+      clients, per metric. This is a renumbering artifact: the capture UI it
+      describes was already delivered in Prompt 9. No separate work is owed
+      for it.
 - [x] **Prompt 11** — Messaging: stream-first chat UI per engagement.
 - [x] **Prompt 12** — Verified Outcomes surface: showing derived outcomes on a
       provider's profile, respecting Invariant 2 (journeys, not causation) in all
@@ -168,8 +170,8 @@ contract — adjust as the product dictates.
       `Identifier`/snake_case mapping, pure and network-free. Debug and
       Release both build clean; the full suite (206 tests) passes with the
       integration target skipping cleanly; SwiftLint `--strict` 0 violations.
-      The live DB round trip itself is the owner's follow-up — see
-      docs/BUILD_STATUS.md for the exact `supabase login`/`link`/`db push`
+      The live DB round trip itself is the owner's follow-up — see the
+      `release-deploy` skill for the exact `supabase login`/`link`/`db push`
       runbook.
 - [x] **Prompt 11 (payments, mock)** — Payments behind a `PaymentGateway`
       protocol: `DataInterfaces` protocol + `MockPaymentGateway` in
@@ -180,7 +182,7 @@ contract — adjust as the product dictates.
 - [ ] **Prompt 14** — Payments: Stripe integration via Supabase Edge Functions
       (`Payment` lifecycle, platform fee handling); no Stripe secret keys in the app.
 - [x] **Prompt 15** — Consumer/client experience slice, backend-agnostic and
-      built entirely on `InMemoryStore` (see docs/BUILD_STATUS.md — this is
+      built entirely on `InMemoryStore` — this is
       the client-facing daily-use surface, distinct from the *discovery/
       marketplace* surface the founding vision's Phase 2 describes, which
       remains a later, deliberately deferred layer per docs/PRODUCT.md's
@@ -257,7 +259,7 @@ contract — adjust as the product dictates.
       (`AccountDeletionEffectTests`). Release build configuration builds
       clean; bundle id/version/entitlements sane. The archive + TestFlight +
       App Store Connect upload steps (which need the owner's Apple account)
-      are documented in docs/BUILD_STATUS.md's owner action items — Claude
+      are documented in the `release-deploy` skill — Claude
       cannot run them. Tagged `v0.1.0`.
 - [x] **Prompt 17** — Real, persisted, roles-gated role switch for both-role
       people, plus a quiet cross-role "something new" indicator. `RootView`
@@ -373,4 +375,18 @@ on top of the verified-outcome substrate — it is explicitly **not** the moat.
 - [x] **LH-8** — Progress-photo UI hidden for launch (it never uploaded real bytes); Domain/repositories/Storage policies/consent plumbing kept dark for the real feature.
 - [x] **LH-9** — Dark payments surface removed: charge/pay/pricing/history UI deleted, SupabaseBackend's fake gateway replaced with NoOpPaymentGateway (a live-mode charge now throws instead of fabricating a succeeded payment); PaymentsMode gating, Payment domain/repositories, and revenue reads kept.
 - [x] **LH-10** — Email-confirmation sign-up flow: AuthGateway.signUp returns SignUpOutcome, the auth screen shows a check-your-email notice instead of silently doing nothing, and an unconfirmed sign-in gets a specific message. Works with confirmation on or off.
-- [x] **LH-11** — Message push notifications: a new `device_tokens` table + `DeviceTokenRepository` (`DataInterfaces`/`InMemoryStore`/`SupabaseBackend`, defaulted to a no-op for every other conformer) registers this device's APNs token for the signed-in person; `App/Sources/AppDelegate.swift` obtains the token and `RootView` registers it, reusing the existing Settings notification-permission flow rather than adding a new prompt; `SettingsViewModel` unregisters the device on sign-out/account deletion. Server side (reviewed-only, not run locally): a self-only-RLS `device_tokens` migration and a `notify-message` Edge Function (invoked by a Database Webhook on `messages` INSERT) that resolves the recipient, builds a token-based APNs JWT via Web Crypto, and pushes — with a pure, `deno test`-covered recipient-resolution helper. Owner-action boundary documented in docs/BACKEND.md.
+- [x] **LH-11** — Message push notifications: a new `device_tokens` table + `DeviceTokenRepository` (`DataInterfaces`/`InMemoryStore`/`SupabaseBackend`, defaulted to a no-op for every other conformer) registers this device's APNs token for the signed-in person; `App/Sources/AppDelegate.swift` obtains the token and `RootView` registers it, reusing the existing Settings notification-permission flow rather than adding a new prompt; `SettingsViewModel` unregisters the device on sign-out/account deletion. Server side: a self-only-RLS `device_tokens` migration and a `notify-message` Edge Function (invoked by a Database Webhook on `messages` INSERT) that resolves the recipient, builds a token-based APNs JWT via Web Crypto, and pushes — with a pure, `deno test`-covered recipient-resolution helper. Owner-action boundary documented in docs/BACKEND.md.
+
+## Owner actions outstanding
+
+Steps only the owner can do (accounts, secrets, live infrastructure); the
+`release-deploy` skill has the exact commands for each.
+
+- **Apply the `device_tokens` migration, deploy `notify-message`, set its APNs
+  secrets, and configure the Database Webhook** (LH-11) — unblocks message
+  push notifications end to end.
+- **Stripe account with Connect enabled in test mode** — provides the
+  server-side test keys. Unblocks Prompt 14's live charge flow.
+- **Apple Developer account** — signing/provisioning for archiving and
+  TestFlight/App Store upload. Prompt 16's code is done and tagged `v0.1.0`;
+  the only remaining work is the archive/upload itself.

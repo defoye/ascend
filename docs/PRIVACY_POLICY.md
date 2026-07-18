@@ -13,7 +13,9 @@ change what the app collects, update all three.
 - **Progress metrics** (`Domain.MetricKind` — bodyweight, strength 1RMs, body
   composition, etc.), logged by you or your coach.
 - **Progress photos**, only ever if you explicitly opt in per coaching
-  engagement.
+  engagement. (The in-app UI for capturing/viewing photos is not currently
+  live — see "Progress metrics and photos are sensitive" below — but the
+  consent grant and data model exist for when it returns.)
 - **Messages** between you and your coach.
 
 ## Progress metrics and photos are sensitive
@@ -21,11 +23,12 @@ change what the app collects, update all three.
 We treat progress metrics and progress photos as sensitive, health-adjacent
 data:
 
-- Photos are invisible to your coach until you grant photo-sharing consent
-  for that specific engagement (`EngagementRepository.photoConsent`), and
-  revoking it immediately stops your coach from seeing any of your photos —
-  verified in `EngagementProgressView+Photos.swift` (no photo UI renders at
-  all without consent, not merely hidden).
+- Photo-sharing consent is scoped per coaching engagement
+  (`EngagementRepository.photoConsent`) and independently revocable. The
+  progress-photo UI itself is not currently reachable in the app (hidden
+  pre-launch pending a real upload pipeline — see docs/ROADMAP.md's LH-8);
+  the consent grant, data model, and Storage policies remain in place
+  underneath for when that UI returns.
 - Whether your progress metrics contribute to a "verified outcome" surfaced
   on your coach's profile is a **separate** consent
   (`EngagementRepository.consent`), also revocable at any time from the
@@ -59,10 +62,9 @@ data:
 
 ## Today's build
 
-This build runs entirely on `InMemoryStore`, an in-process mock backend with
-no network calls and no persistence beyond the running process (see
-docs/BACKEND.md, docs/TESTING.md) — nothing described above is actually
-transmitted or stored anywhere durable yet. This document describes the
-product's real data-handling model so it's accurate once a production
-backend (Supabase, Prompt 13) is wired in, not just "what happens in the
-demo."
+Debug builds (development and internal testing) run entirely on
+`InMemoryStore`, an in-process mock backend with no network calls and no
+persistence beyond the running process — nothing described above is
+transmitted or stored anywhere durable in that configuration. Release builds
+run against Supabase (see docs/BACKEND.md), which is where this policy's data
+handling actually applies.

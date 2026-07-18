@@ -1,43 +1,47 @@
 # CLAUDE.md
 
-Guidance for Claude Code (and any future orchestrator) working in this repository.
+Map, not a knowledge base. Read the linked doc when its trigger applies.
 
-## How to work here
+<!-- Maintainer note: this file should stay under ~200 lines. New durable
+knowledge goes in docs/ or .claude/rules/, not here — add a pointer instead. -->
 
-- Read `docs/` first: `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`,
-  `docs/DATA_MODEL.md`, `docs/BACKEND.md`, `docs/CONVENTIONS.md`,
-  `docs/TESTING.md`, and `docs/ROADMAP.md`. They are the source of truth; this file
-  is about process, not product/architecture detail.
-- The dependency rule (enforced by Tuist module boundaries — do not violate it):
-  - `Domain` -> Foundation only.
-  - `DataInterfaces` -> `Domain`.
-  - `InMemoryStore` -> `DataInterfaces`, `Domain`.
-  - `DesignSystem` -> (none).
-  - `Features` -> `DesignSystem`, `DataInterfaces`, `Domain`.
-  - `Ascend` (App) is the **only** composition root — the only target allowed to
-    depend on a concrete backend adapter and wire it in.
-- Add/remove files by editing `Project.swift` globs, then regenerate with
-  `tuist generate`. **Never** hand-edit `.xcodeproj` / `.xcworkspace` internals —
-  they are generated and gitignored.
-- `InMemoryStore` is the default backend: `DEBUG` builds use
-  `InMemoryStore.seeded()`. The whole app, its previews, and its unit tests run
-  against it with zero backend cost (see docs/BACKEND.md, docs/TESTING.md).
-- Convention after each prompt: update code/tests/docs, tick the prompt's box in
-  `docs/ROADMAP.md`, commit, and push to `origin`.
+## Critical gotchas (absence of these causes a mistake every session)
 
-## Execution Protocol
+- `DEBUG` builds run on `InMemoryStore.seeded()` — the whole app, previews,
+  and unit tests run with zero backend cost. Rationale: docs/BACKEND.md.
+- Add/remove files by editing `Project.swift` globs, then `tuist generate`.
+  **Never** hand-edit `.xcodeproj`/`.xcworkspace` — generated and gitignored.
+  Full rule: `.claude/rules/project-structure.md`.
+- The module dependency rule is enforced by Tuist; only the `Ascend` app
+  target may wire in a concrete backend. Full rule:
+  `.claude/rules/project-structure.md`.
 
-You are the Opus orchestrator. Do not implement features yourself. (1) Read the docs
-the prompt names — this CLAUDE.md is already in context. (2) Write a short execution
-plan. (3) Dispatch ONE fresh-context Sonnet subagent to execute: Agent tool,
-subagent_type 'general-purpose', model 'sonnet', run_in_background false; give it a
-complete self-contained brief (plan + task + doc pointers + Definition of Done).
-Tell it to: add/remove files via Project.swift globs; regenerate with
-`tuist generate`; NEVER hand-edit .xcodeproj internals; ACTUALLY BUILD AND TEST so
-the code genuinely works — run `tuist generate`, then `xcodebuild build` and
-`xcodebuild test` on an iOS simulator (or `swift test` for pure-Swift modules) plus
-SwiftLint; fix compile/test failures and iterate until the build is clean and tests
-pass; tick this prompt's box in docs/ROADMAP.md; commit; and `git push` to origin.
-(4) Confirm the build succeeded, tests passed, and the commit is pushed to GitHub,
-then report status. If short (build errors/failing tests), dispatch another Sonnet
-subagent with the gap.
+## Doc map
+
+- `docs/PRODUCT.md` — strategy and the two product invariants. Read before any
+  product, copy, or scope decision.
+- `docs/ARCHITECTURE.md` — why the module boundaries and the backend-behind-
+  protocols seam exist. Read before changing module structure or the backend
+  seam.
+- `docs/DATA_MODEL.md` — domain semantics: invite claim rules,
+  `VerifiedOutcome` eligibility, consent gating. Read before touching `Domain`
+  types or engagement/invite/outcome logic.
+- `docs/BACKEND.md` — backend selection, offline queue, payments seam. Read
+  when working on persistence, sync, payments, or the Supabase adapter.
+- `docs/TESTING.md` — testing philosophy. Read before writing tests; see
+  `.claude/rules/swift-conventions.md` for the exact run command.
+- `docs/ROADMAP.md` — what shipped, what's next, the single status source of
+  truth. Read when picking up work or asking "why does X exist."
+- `docs/DEMO_HARNESS.md` — the DEBUG demo/scenario harness. Read only when
+  extending that harness.
+- `docs/PRIVACY_POLICY.md` — user-facing privacy text. Read when data
+  collection changes; see `.claude/rules/privacy-sync.md`.
+- `docs/design/` — design tokens, spec, and the design-pass handoff bundle.
+  Read when touching `DesignSystem` or building screens from the design pass.
+
+## Workflows
+
+- Implementing a numbered `docs/ROADMAP.md` prompt end-to-end (build, test,
+  lint, tick the box, commit, push): `execute-roadmap-prompt` skill.
+- Cutting a release or deploying backend changes (Supabase migrations, Edge
+  Functions, APNs, Archive/TestFlight/App Store): `release-deploy` skill.
