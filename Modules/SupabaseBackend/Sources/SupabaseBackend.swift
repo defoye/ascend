@@ -40,6 +40,21 @@ public struct SupabaseBackend: Backend, Sendable {
         self.queue = queue
     }
 
+    /// Test-only seam: builds the client against an injected `URLSession` so a
+    /// `URLProtocol` stub can intercept every PostgREST call, exercising the
+    /// network-write paths (`SupabaseTable` upsert/delete queue-vs-rethrow,
+    /// fetch overlay) and per-repository query construction without a live
+    /// project. Production always uses the public `init` above (which lets the
+    /// SDK default to `URLSession.shared`).
+    init(supabaseURL: URL, supabaseKey: String, session: URLSession, queue: OfflineWriteQueue) {
+        client = SupabaseClient(
+            supabaseURL: supabaseURL,
+            supabaseKey: supabaseKey,
+            options: SupabaseClientOptions(global: .init(session: session))
+        )
+        self.queue = queue
+    }
+
     // MARK: - Backend
 
     public var people: any PersonRepository { self }
