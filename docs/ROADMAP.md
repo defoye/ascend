@@ -384,7 +384,10 @@ Steps only the owner can do (accounts, secrets, live infrastructure); the
 
 - **Apply the `device_tokens` migration, deploy `notify-message`, set its APNs
   secrets, and configure the Database Webhook** (LH-11) — unblocks message
-  push notifications end to end.
+  push notifications end to end. The same `supabase db push` also applies
+  `20260717120000_messages_author_guard.sql`, a follow-up RLS hardening that
+  restricts `messages` inserts to `author_id = auth.uid()` (closes a
+  message-attribution spoof in the LH-4 class).
 - **Stripe account with Connect enabled in test mode** — provides the
   server-side test keys. Unblocks Prompt 14's live charge flow.
 - **Apple Developer account** — signing/provisioning for archiving and
