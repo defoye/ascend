@@ -5,8 +5,8 @@ import SwiftUI
 /// and tone (a muted trend-line glyph in `Color.Ascend.textSecondary`
 /// instead of `VerifiedBadge`'s bold seal glyph in `Color.Ascend.verified`)
 /// so a coach or client can never mistake a Tracked journey for a
-/// `Domain.VerifiedOutcome`-backed Verified one (see docs/BUILD_STATUS.md
-/// "Rollout strategy — free first, monetize later", Option B). The muted
+/// `Domain.VerifiedOutcome`-backed Verified one (see docs/BACKEND.md
+/// "PaymentsMode: free-first rollout", Option B). The muted
 /// tone is deliberate: Tracked is honestly a step below Verified, and
 /// turning payments on is what upgrades it. Like `VerifiedBadge`, it never
 /// animates on its own — trust marks stay still and factual

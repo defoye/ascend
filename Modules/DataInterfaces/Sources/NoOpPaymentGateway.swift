@@ -2,7 +2,7 @@ import Domain
 
 /// A `PaymentGateway` that never succeeds — the stand-in the composition
 /// root wires in when `PaymentsMode` is `.free` (see `PaymentsMode`,
-/// docs/BUILD_STATUS.md "Rollout strategy — free first, monetize later").
+/// docs/BACKEND.md "PaymentsMode: free-first rollout").
 ///
 /// The free phase's UI hides every charge/pay entry point, so in practice
 /// nothing calls this; it exists so `Backend.paymentGateway` always vends a

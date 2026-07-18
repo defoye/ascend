@@ -7,7 +7,7 @@ import SwiftUI
 /// The demo harness's discoverable entry point: a small wrench button that
 /// floats in the bottom-right corner of every DEBUG launch, whether or not
 /// demo mode is currently on — tapping it always opens the control panel,
-/// whose first control is the on/off switch itself (see docs/TESTABILITY.md
+/// whose first control is the on/off switch itself (see docs/DEMO_HARNESS.md
 /// "How to use it").
 struct DemoLauncherButton: View {
     let demoModeStore: DemoModeStore

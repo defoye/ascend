@@ -44,8 +44,8 @@ final class AppContainer {
         backend.auth
     }
 
-    /// The single switch for Option B (see docs/BUILD_STATUS.md "Rollout
-    /// strategy — free first, monetize later"): `.free` ships first with no
+    /// The single switch for Option B (see docs/BACKEND.md "PaymentsMode:
+    /// free-first rollout"): `.free` ships first with no
     /// live payment flows and "Tracked results" instead of "Verified
     /// journeys"; flipping this one line to `.live` restores the charge/pay
     /// UI and the "Verified" badge. Nothing else in the app hardcodes a

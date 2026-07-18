@@ -80,7 +80,7 @@ let appTarget = Target(
 
 // Unit tests for the App target's own composition-root logic — notably the
 // DEBUG-only demo/testability harness (`App/Sources/Demo/**`, see
-// docs/TESTABILITY.md): the persisted demo-mode toggle, scenario fixture
+// docs/DEMO_HARNESS.md): the persisted demo-mode toggle, scenario fixture
 // selection, the demo clock, and the demo payment-outcome gateway. Hosted
 // against the `Ascend` app target itself (the only place these types live),
 // the same way every other module's tests are hosted against their module.
@@ -102,7 +102,7 @@ let appTestsTarget = Target(
 )
 
 // A real, tap-driven UI test proving the demo harness's toggle works end to
-// end (see docs/TESTABILITY.md and `App/UITests/DemoHarnessUITests.swift`):
+// end (see docs/DEMO_HARNESS.md and `App/UITests/DemoHarnessUITests.swift`):
 // the wrench button opens the control panel, the toggle flips demo mode on,
 // and that persists across a relaunch. Runs against the `Ascend` app target
 // via the simulator's real accessibility tree, independent of host-machine

@@ -41,8 +41,9 @@ enum SupabaseConfig {
     ///   here, the value is already the plain `https://host` form. No
     ///   unescaping is needed at this layer; verified for real by inspecting
     ///   `xcodebuild -showBuildSettings -configuration Release`'s resolved
-    ///   `SUPABASE_URL` (there is no App unit-test target to assert this in —
-    ///   see docs/BUILD_STATUS.md for the exact command run to confirm it).
+    ///   `SUPABASE_URL` (there is no App unit-test target to assert this in;
+    ///   confirmed by inspecting `xcodebuild -showBuildSettings -configuration
+    ///   Release`'s resolved value directly).
     static func read(bundle: Bundle = .main) throws -> Credentials {
         guard
             let rawURL = bundle.object(forInfoDictionaryKey: "SUPABASE_URL") as? String,

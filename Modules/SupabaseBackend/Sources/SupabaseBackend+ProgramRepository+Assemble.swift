@@ -4,8 +4,8 @@ import Foundation
 
 /// The nested-tree assembly/replacement half of `ProgramRepository`, split
 /// into its own file to keep `SupabaseBackend+ProgramRepository.swift`
-/// focused on the protocol's public surface (see docs/CONVENTIONS.md file
-/// organization / SwiftLint `file_length`).
+/// focused on the protocol's public surface (see
+/// .claude/rules/swift-conventions.md file organization / SwiftLint `file_length`).
 extension SupabaseBackend {
     /// Reassembles a full `Program` (weeks -> workouts -> exercise
     /// prescriptions, each prescription's `Exercise` resolved from the shared

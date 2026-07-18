@@ -1,7 +1,7 @@
 import XCTest
 
 /// Drives the real tap path for the DEBUG-only demo harness (see
-/// docs/TESTABILITY.md) inside the simulator via Xcode's UI-testing
+/// docs/DEMO_HARNESS.md) inside the simulator via Xcode's UI-testing
 /// infrastructure — the deterministic equivalent of a human tapping the
 /// wrench button, flipping the toggle, and relaunching to check it stuck.
 final class DemoHarnessUITests: XCTestCase {

@@ -40,7 +40,7 @@ enum DemoScenarioFactory {
     }
 
     /// Rich demo data plus one guaranteed refund, so every important state
-    /// exists at once (see docs/TESTABILITY.md's "showcase" fixture): a
+    /// exists at once (see docs/DEMO_HARNESS.md's "showcase" fixture): a
     /// verified outcome, consent on and off, an empty (`.pending`, no
     /// activity) client, upcoming and past sessions, and unread messages
     /// all already exist in the base seeded fixture (see

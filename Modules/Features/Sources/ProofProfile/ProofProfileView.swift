@@ -181,7 +181,7 @@ public struct ProofProfileView: View {
     /// framing changes: in `.live` it's a requirement already satisfied by
     /// every journey shown; in `.free` it's named as what upgrades a Tracked
     /// result once payments are turned on (Option B, see
-    /// docs/BUILD_STATUS.md "Rollout strategy — free first, monetize later").
+    /// docs/BACKEND.md "PaymentsMode: free-first rollout").
     /// The `.free` copy deliberately never spells out the word "Verified" —
     /// see `ProofProfileCopy`/Invariant 2, docs/PRODUCT.md.
     private var explainerPoints: [String] {

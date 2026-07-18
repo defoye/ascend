@@ -7,7 +7,7 @@ import Observation
 /// `@Sendable () -> Date` closures `CoachRootView`/`ConsumerRootView` accept
 /// are plain, nonisolated, synchronous functions (see `AscendApp`'s
 /// `demoClock`) — they cannot `await` into `@MainActor`-isolated state (the
-/// same constraint docs/BUILD_STATUS.md documents for why `PaymentsMode`
+/// same constraint docs/BACKEND.md documents for why `PaymentsMode`
 /// isn't a `@MainActor`-backed runtime toggle), so the value the demo
 /// control panel edits lives in this lock-protected box instead of an
 /// `@Observable` class.

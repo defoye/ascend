@@ -200,7 +200,7 @@ extension MetricKind {
 }
 
 /// A self-contained preview fixture, independent of any backend module (see
-/// docs/CONVENTIONS.md — Features may not import a concrete backend). Feeds
+/// .claude/rules/project-structure.md — Features may not import a concrete backend). Feeds
 /// the view model's observable state directly rather than loading it, since
 /// `TodayViewModel` only depends on `any Backend`.
 private struct TodayPreview: View {

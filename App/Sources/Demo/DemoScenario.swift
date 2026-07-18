@@ -1,6 +1,6 @@
 #if DEBUG
 
-/// The demo harness's named `Backend` fixtures (see docs/TESTABILITY.md).
+/// The demo harness's named `Backend` fixtures (see docs/DEMO_HARNESS.md).
 /// Each case is built by `DemoScenarioFactory` using only `Backend` protocol
 /// calls, never `InMemoryBackend` internals, so scenario construction stays
 /// as portable as the rest of the composition root.

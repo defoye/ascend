@@ -18,7 +18,7 @@ import Observation
 /// surfaced — `trackedJourneys` instead comes from `TrackedJourneySummaries`,
 /// a pure function that never constructs a `VerifiedOutcome` and mirrors
 /// `derive`'s non-payment pillars, including its consent gate (Option B, see
-/// docs/BUILD_STATUS.md "Rollout strategy — free first, monetize later").
+/// docs/BACKEND.md "PaymentsMode: free-first rollout").
 @MainActor
 @Observable
 public final class ProofProfileViewModel {

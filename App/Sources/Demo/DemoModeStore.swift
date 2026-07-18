@@ -4,7 +4,7 @@ import Foundation
 import Observation
 
 /// The demo/testability harness's persisted on/off switch (see
-/// docs/TESTABILITY.md). `isEnabled` defaults to `false` — a normal DEBUG
+/// docs/DEMO_HARNESS.md). `isEnabled` defaults to `false` — a normal DEBUG
 /// launch is the ordinary seeded app — and is flippable from the in-app
 /// wrench button (`DemoLauncherButton`). Both `isEnabled` and the selected
 /// `scenario` are written to `UserDefaults` on every change, so flipping

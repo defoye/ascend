@@ -5,7 +5,7 @@ import Domain
 import InMemoryStore
 import SwiftUI
 
-/// The demo harness's control panel (see docs/TESTABILITY.md): the on/off
+/// The demo harness's control panel (see docs/DEMO_HARNESS.md): the on/off
 /// switch for demo mode itself, then — only once it's on — the scenario
 /// switcher, role switch, clock control, payment-outcome control, and a
 /// link into the screen catalog.

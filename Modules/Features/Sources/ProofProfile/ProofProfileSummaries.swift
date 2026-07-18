@@ -90,7 +90,7 @@ public enum ProofProfileSummaries {
     /// results" journey (`TrackedJourneySummaries`, surfaced while
     /// `PaymentsMode` is `.free`) can render **identical** phrasing without
     /// ever constructing a `VerifiedOutcome` — Tracked journeys deliberately
-    /// don't have one (Option B, docs/BUILD_STATUS.md).
+    /// don't have one (Option B, docs/BACKEND.md "PaymentsMode: free-first rollout").
     public static func journeyDescription(metric: MetricKind, start: MetricValue, end: MetricValue, durationDays: Int) -> String {
         let weeks = max(1, durationDays / 7)
         let weekWord = weeks == 1 ? "week" : "weeks"

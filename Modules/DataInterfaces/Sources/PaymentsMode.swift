@@ -1,6 +1,6 @@
 /// Whether live payments are turned on for this build — the composition
 /// root's single switch for the "free first, monetize later" rollout (see
-/// docs/BUILD_STATUS.md "Rollout strategy — free first, monetize later").
+/// docs/BACKEND.md "PaymentsMode: free-first rollout").
 ///
 /// Lives in `DataInterfaces` (alongside `PaymentGateway` and `AuthState`, its
 /// closest precedent) rather than `Domain`, because it is seam/config — it

@@ -4,8 +4,8 @@ import DataInterfaces
 /// `PaymentsMode` is `.free`, and forwards every other repository straight
 /// through to `wrapped` unchanged.
 ///
-/// This is the composition root's half of Option B (see
-/// docs/BUILD_STATUS.md "Rollout strategy — free first, monetize later"):
+/// This is the composition root's half of Option B (see docs/BACKEND.md
+/// "PaymentsMode: free-first rollout"):
 /// `AppContainer` wraps whichever concrete backend it builds
 /// (`InMemoryStore` today, a future `SupabaseBackend`) in this decorator, so
 /// flipping `AppContainer.paymentsMode` from `.free` to `.live` is the only

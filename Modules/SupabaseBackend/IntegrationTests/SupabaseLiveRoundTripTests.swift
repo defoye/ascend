@@ -13,7 +13,7 @@ import Testing
 /// when the environment doesn't provide live Supabase credentials — so this
 /// target is always safe to run in CI/local default without a Supabase
 /// project, and only exercises real network calls when the owner explicitly
-/// opts in. See this file's bottom section / docs/BUILD_STATUS.md for the
+/// opts in. See this file's bottom section / the `release-deploy` skill for the
 /// exact command to run it for real.
 @Suite("Supabase live round-trip (skips without credentials)")
 struct SupabaseLiveRoundTripTests {
@@ -80,7 +80,7 @@ struct SupabaseLiveRoundTripTests {
     /// Returns a live `SupabaseBackend` when `ASCEND_TEST_SUPABASE_URL` and
     /// `ASCEND_TEST_SUPABASE_ANON_KEY` are both set in the process
     /// environment, or `nil` (never throws) when they're absent — see the
-    /// runbook in docs/BUILD_STATUS.md for how to supply them.
+    /// runbook in the `release-deploy` skill for how to supply them.
     private static func requireLiveCredentials() throws -> SupabaseBackend? {
         let env = ProcessInfo.processInfo.environment
         guard

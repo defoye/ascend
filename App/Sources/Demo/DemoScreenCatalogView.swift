@@ -6,7 +6,7 @@ import Features
 import SwiftUI
 
 /// A flat, resolved-at-runtime list of direct jumps into the coach and
-/// consumer screens (see docs/TESTABILITY.md "Screen catalog"). Entries that
+/// consumer screens (see docs/DEMO_HARNESS.md "Screen catalog"). Entries that
 /// need a specific engagement/program the active scenario doesn't have
 /// simply don't appear — itself a demonstration of that scenario's empty
 /// state via the screen's own tab instead.

@@ -12,8 +12,7 @@ import Foundation
 /// one. Surfaced only while `PaymentsMode` is `.free`; once payments turn on
 /// the same underlying engagement/metric would instead surface as a
 /// `VerifiedJourney` via `ProofProfileSummaries.journeys(from:)` (Option B,
-/// see docs/BUILD_STATUS.md "Rollout strategy — free first, monetize
-/// later").
+/// see docs/BACKEND.md "PaymentsMode: free-first rollout").
 public struct TrackedJourney: Sendable, Identifiable, Equatable {
     public let id: String
     public let engagementID: Identifier<Engagement>

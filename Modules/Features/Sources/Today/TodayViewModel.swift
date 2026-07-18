@@ -11,7 +11,7 @@ import Observation
 /// Depends only on `any Backend` (see docs/ARCHITECTURE.md) — never a
 /// concrete backend adapter — so it works unchanged against `InMemoryStore`
 /// today and any future adapter. While `paymentsMode == .free` (see
-/// docs/BUILD_STATUS.md "Rollout strategy — free first, monetize later"),
+/// docs/BACKEND.md "PaymentsMode: free-first rollout"),
 /// `revenueSummary` stays `.zero` and no payments are even fetched — there's
 /// no live income to imply yet.
 @MainActor
