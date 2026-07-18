@@ -55,7 +55,7 @@ extension SupabaseBackend: InviteRepository {
         }
     }
 
-    private static func mapClaimInviteError(_ error: Error) -> Error {
+    static func mapClaimInviteError(_ error: Error) -> Error {
         guard let postgrestError = error as? PostgrestError else { return error }
         switch postgrestError.message {
         case "invalid_code": return InviteError.invalidCode
