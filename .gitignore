@@ -35,6 +35,9 @@ Package.resolved
 Icon
 ._*
 
+# Supabase CLI local cache (machine-local, ephemeral)
+supabase/.temp/
+
 # Editor / tooling
 .vscode/
 .idea/
